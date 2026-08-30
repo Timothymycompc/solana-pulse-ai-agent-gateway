@@ -1,19 +1,21 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy dependency manifests first (better layer caching)
 COPY package*.json ./
+
+# Install ALL dependencies — devDependencies (vite, esbuild, tsx) are needed for the build step
 RUN npm install
 
-# Copy the rest of the application
+# Copy the rest of the source
 COPY . .
 
-# Build the application (compiles both Vite frontend and Express backend)
+# Runs: vite build && esbuild server.ts ... --outfile=dist/server.cjs
 RUN npm run build
 
-# Expose the port the app runs on
+ENV NODE_ENV=production
 EXPOSE 3000
 
-# Start the compiled server
-CMD ["npm", "run", "start"]
+# Runs: node dist/server.cjs
+CMD ["npm", "start"]
