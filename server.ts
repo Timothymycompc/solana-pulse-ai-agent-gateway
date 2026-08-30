@@ -5,6 +5,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import fs from "fs";
+import { randomUUID } from "crypto";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -36,8 +37,11 @@ async function startServer() {
     solanaRpcCalls: 0,
   };
 
-  const mainnetConnection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
-  const devnetConnection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+  const mainnetRpcUrl = process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl('mainnet-beta');
+  const devnetRpcUrl = process.env.SOLANA_DEVNET_RPC_URL || clusterApiUrl('devnet');
+
+  const mainnetConnection = new Connection(mainnetRpcUrl, 'confirmed');
+  const devnetConnection = new Connection(devnetRpcUrl, 'confirmed');
 
   const getConnection = (network: string) => 
     network === 'devnet' ? devnetConnection : mainnetConnection;
@@ -175,18 +179,30 @@ async function startServer() {
     }
   );
 
-  let transport: SSEServerTransport;
+  const transports = new Map<string, SSEServerTransport>();
 
   app.get("/mcp/sse", async (req, res) => {
-    transport = new SSEServerTransport("/mcp/messages", res);
+    const sessionId = randomUUID();
+    const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
+    transports.set(sessionId, transport);
     await mcpServer.connect(transport);
+
+    res.on("close", () => {
+      transports.delete(sessionId);
+    });
   });
 
   app.post("/mcp/messages", async (req, res) => {
+    const sessionId = req.query.sessionId as string;
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing sessionId" });
+    }
+
+    const transport = transports.get(sessionId);
     if (transport) {
       await transport.handlePostMessage(req, res);
     } else {
-      res.status(503).json({ error: "MCP SSE Transport not initialized" });
+      res.status(404).json({ error: "MCP SSE Session not found" });
     }
   });
 
