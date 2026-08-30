@@ -1,0 +1,8 @@
+{
+  "name": "Solana Pulse AI Agent Gateway",
+  "description": "Real-time Solana Blockchain RPC Bridge, Devnet Broadcaster, and MCP AI Agent Gateway for autonomous LLMs and developers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

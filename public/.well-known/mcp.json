@@ -1,0 +1,64 @@
+{
+  "schema_version": "v1",
+  "name": "solana_pulse_mcp_gateway",
+  "name_for_model": "solana_pulse_mcp",
+  "description": "Real-time Solana blockchain telemetry, account inspection, and transaction signer for autonomous AI agents.",
+  "description_for_model": "Use this tool to inspect any Solana wallet or token mint, simulate transactions, check balances, and execute signed transfers on Solana Devnet or Mainnet.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://solana-pulse-ai-agent-gateway.ai.studio/openapi.json"
+  },
+  "mcp_version": "1.0",
+  "tools": [
+    {
+      "name": "get_account_balance",
+      "description": "Fetch live SOL and token balance for any Solana Base58 public key",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pubkey": {
+            "type": "string",
+            "description": "Solana Base58 public address"
+          },
+          "network": {
+            "type": "string",
+            "enum": ["mainnet-beta", "devnet"],
+            "default": "devnet"
+          }
+        },
+        "required": ["pubkey"]
+      }
+    },
+    {
+      "name": "simulate_transaction",
+      "description": "Simulate and dry-run a Solana transaction before on-chain execution",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transactionBase64": {
+            "type": "string",
+            "description": "Base64 encoded serialized transaction"
+          }
+        },
+        "required": ["transactionBase64"]
+      }
+    },
+    {
+      "name": "get_token_supply",
+      "description": "Query token mint details, decimals, and total circulating supply",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mint": {
+            "type": "string",
+            "description": "Solana SPL Token mint address"
+          }
+        },
+        "required": ["mint"]
+      }
+    }
+  ]
+}
