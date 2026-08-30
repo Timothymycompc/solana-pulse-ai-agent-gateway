@@ -6,44 +6,55 @@ import { createServer as createViteServer } from "vite";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import fs from "fs";
 
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { z } from "zod";
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Hardening: Restrict CORS (no credentials, strict origins if needed, but for public API allow GET)
   app.use(cors({
-    origin: "*", // Public API, but we removed allow_credentials to fix the CORS hole
+    origin: "*", 
     methods: ["GET", "POST", "OPTIONS"]
   }));
   app.use(express.json());
 
-  // Hardening: Add Rate Limiting to prevent DDoS / RPC spam
   const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window`
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests, please try again later." }
   });
 
-  // Apply rate limiter to all /api routes
   app.use("/api/", apiLimiter);
+  app.use("/mcp/", apiLimiter);
 
-  // In-memory stats to track real API hits
   const stats = {
     totalRequests: 0,
     solanaRpcCalls: 0,
   };
 
-  // Connect to Real Solana Networks
-  const mainnetConnection = new Connection(clusterApiUrl('mainnet-beta'));
-  const devnetConnection = new Connection(clusterApiUrl('devnet'));
+  const mainnetConnection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+  const devnetConnection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
   const getConnection = (network: string) => 
     network === 'devnet' ? devnetConnection : mainnetConnection;
 
-  // Real Solana RPC Bridge Endpoints
-  app.get("/api/solana/balance", async (req, res) => {
+  // No-cache middleware for API responses
+  const noCache = (req: any, res: any, next: any) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+  };
+
+  // ---------------------------------------------------
+  // 1. Standard REST Endpoints
+  // ---------------------------------------------------
+  app.get("/api/solana/balance", noCache, async (req, res) => {
     stats.totalRequests++;
     stats.solanaRpcCalls++;
     
@@ -58,7 +69,6 @@ async function startServer() {
       const pubKey = new PublicKey(wallet);
       const connection = getConnection(network);
       
-      // REAL network call
       const balance = await connection.getBalance(pubKey);
       
       res.json({
@@ -73,7 +83,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/blockhash", async (req, res) => {
+  app.get("/api/solana/blockhash", noCache, async (req, res) => {
     stats.totalRequests++;
     stats.solanaRpcCalls++;
     
@@ -81,13 +91,13 @@ async function startServer() {
       const network = (req.query.network as string) || 'mainnet-beta';
       const connection = getConnection(network);
       
-      // REAL network call
-      const blockhash = await connection.getLatestBlockhash();
+      const blockhash = await connection.getLatestBlockhash('finalized');
       
       res.json({
         network,
         blockhash: blockhash.blockhash,
         lastValidBlockHeight: blockhash.lastValidBlockHeight,
+        timestamp: Date.now(), // Force response variation for debugging
         live_status: "SUCCESS"
       });
     } catch (err: any) {
@@ -95,22 +105,109 @@ async function startServer() {
     }
   });
 
-  // Analytics for Owner Portal
-  app.get("/api/analytics/live", (req, res) => {
+  app.get("/api/analytics/live", noCache, (req, res) => {
     res.json(stats);
   });
 
-  // Serve MCP Manifest
-  app.get("/.well-known/mcp.json", (req, res) => {
+  // ---------------------------------------------------
+  // 2. Real MCP SSE Server Implementation
+  // ---------------------------------------------------
+  const mcpServer = new McpServer({
+    name: "solana-pulse-gateway",
+    version: "1.0.0"
+  });
+
+  // Register real tools for the MCP server
+  mcpServer.tool("get_solana_balance",
+    "Get the SOL balance of any Solana wallet address",
+    {
+      wallet: z.string().describe("Base58 encoded Solana wallet address"),
+      network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe("Solana cluster network")
+    },
+    async ({ wallet, network }) => {
+      stats.solanaRpcCalls++;
+      try {
+        const pubKey = new PublicKey(wallet);
+        const connection = getConnection(network);
+        const balance = await connection.getBalance(pubKey);
+        
+        return {
+          content: [{ 
+            type: "text", 
+            text: JSON.stringify({
+              wallet,
+              network,
+              balance_sol: balance / 1e9
+            }, null, 2) 
+          }]
+        };
+      } catch (err: any) {
+        return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+      }
+    }
+  );
+
+  mcpServer.tool("get_solana_blockhash",
+    "Get the latest blockhash from the Solana network for transaction signing",
+    {
+      network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe("Solana cluster network")
+    },
+    async ({ network }) => {
+      stats.solanaRpcCalls++;
+      try {
+        const connection = getConnection(network);
+        const blockhash = await connection.getLatestBlockhash('finalized');
+        
+        return {
+          content: [{ 
+            type: "text", 
+            text: JSON.stringify({
+              network,
+              blockhash: blockhash.blockhash,
+              lastValidBlockHeight: blockhash.lastValidBlockHeight,
+              timestamp: new Date().toISOString()
+            }, null, 2) 
+          }]
+        };
+      } catch (err: any) {
+        return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+      }
+    }
+  );
+
+  let transport: SSEServerTransport;
+
+  app.get("/mcp/sse", async (req, res) => {
+    transport = new SSEServerTransport("/mcp/messages", res);
+    await mcpServer.connect(transport);
+  });
+
+  app.post("/mcp/messages", async (req, res) => {
+    if (transport) {
+      await transport.handlePostMessage(req, res);
+    } else {
+      res.status(503).json({ error: "MCP SSE Transport not initialized" });
+    }
+  });
+
+  // Provide proper Claude Desktop configuration instead of a fake generic server
+  app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
+    
+    // Provide actual Claude Desktop configuration instructions
     res.json({
-      "mcpServers": {
-        "solana-pulse": {
-          "command": "npx",
-          "args": ["-y", "@modelcontextprotocol/server-everything"],
-          "endpoints": {
-            "get_balance": "/api/solana/balance",
-            "get_blockhash": "/api/solana/blockhash"
+      "instructions": "This is a real Server-Sent Events (SSE) MCP server. To use it with Claude Desktop, you can configure an SSE bridge or write a small stdio-to-sse wrapper. Alternatively, you can use the REST API endpoints directly.",
+      "mcp_sse_endpoint": "/mcp/sse",
+      "tools": ["get_solana_balance", "get_solana_blockhash"],
+      "rest_endpoints": {
+        "get_balance": "/api/solana/balance",
+        "get_blockhash": "/api/solana/blockhash"
+      },
+      "claude_desktop_config": {
+        "mcpServers": {
+          "solana-pulse": {
+            "command": "node",
+            "args": ["/path/to/your/stdio-sse-bridge.js", "https://[YOUR_URL]/mcp/sse"]
           }
         }
       }

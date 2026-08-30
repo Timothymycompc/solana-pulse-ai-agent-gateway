@@ -13,6 +13,7 @@ gcloud run deploy solana-pulse-gateway \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
+  --port 3000 \
   --project=$(gcloud config get-value project)
 
 echo ""
