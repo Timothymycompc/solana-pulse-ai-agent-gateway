@@ -1,0 +1,37 @@
+name: Continuous Deployment to Google Cloud
+
+on:
+  push:
+    branches: [ "main" ] # This triggers the deployment on every push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Required for secure login
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 1. Authenticate to Google Cloud securely
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: 'projects/1021990235790/locations/global/workloadIdentityPools/solpulse-pool/providers/solpulse-provider'
+        service_account: 'github-actions-sa@x300-506418.iam.gserviceaccount.com'
+
+    # 2. Set up the Google Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    # 3. Build and Deploy your application
+    # By default, we will deploy it to Cloud Run (great for gateways & APIs)
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy solpulse-gateway \
+          --source . \
+          --region=us-central1 \
+          --project=x300-506418 \
+          --allow-unauthenticated
