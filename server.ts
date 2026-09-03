@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
-import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import fs from "fs";
 import { randomUUID } from "crypto";
 
@@ -12,7 +12,7 @@ import { z } from "zod";
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
   app.use(express.json());
@@ -68,6 +68,34 @@ async function startServer() {
     }
   });
 
+  app.post("/api/solana/simulate", noCache, async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { transaction, network } = req.body;
+      if (!transaction) return res.status(400).json({ error: "Base64 transaction required" });
+
+      const net = network || 'mainnet-beta';
+      const txBuffer = Buffer.from(transaction, 'base64');
+      const tx = VersionedTransaction.deserialize(txBuffer);
+
+      const simResult = await getConnection(net).simulateTransaction(tx, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+
+      res.json({
+        network: net,
+        success: simResult.value.err === null,
+        error: simResult.value.err,
+        logs: simResult.value.logs,
+        unitsConsumed: simResult.value.unitsConsumed,
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
   app.get("/api/analytics/live", noCache, (req, res) => res.json(stats));
 
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
@@ -90,6 +118,35 @@ async function startServer() {
       const blockhash = await getConnection(network).getLatestBlockhash('finalized');
       return { content: [{ type: "text", text: JSON.stringify({ network, blockhash: blockhash.blockhash, timestamp: new Date().toISOString() }, null, 2) }] };
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
+  });
+
+  mcpServer.tool("simulate_solana_transaction", "Simulate a Solana transaction without broadcasting it", {
+    transaction: z.string().describe("Base64-encoded serialized transaction"),
+    network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
+  }, async ({ transaction, network }) => {
+    stats.solanaRpcCalls++;
+    try {
+      const txBuffer = Buffer.from(transaction, 'base64');
+      const tx = VersionedTransaction.deserialize(txBuffer);
+      const simResult = await getConnection(network).simulateTransaction(tx, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            network,
+            success: simResult.value.err === null,
+            error: simResult.value.err,
+            logs: simResult.value.logs,
+            unitsConsumed: simResult.value.unitsConsumed
+          }, null, 2)
+        }]
+      };
+    } catch (err: any) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
+    }
   });
 
   const transports = new Map<string, SSEServerTransport>();
@@ -115,7 +172,7 @@ async function startServer() {
     res.json({
       "instructions": "This is a real Server-Sent Events (SSE) MCP server.",
       "mcp_sse_endpoint": "/mcp/sse",
-      "tools": ["get_solana_balance", "get_solana_blockhash"]
+      "tools": ["get_solana_balance", "get_solana_blockhash", "simulate_solana_transaction"]
     });
   });
 

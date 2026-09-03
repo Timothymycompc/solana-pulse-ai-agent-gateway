@@ -241,28 +241,28 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     },
     tags: ['TPS', 'Cluster']
   },
-  {
-    id: 'sol-12',
-    suite: 'solana',
-    name: 'Human-Readable Transaction Outcome Simulator',
-    method: 'POST',
-    path: '/v1/solana/tx/simulate-human',
-    summary: 'Simulates transaction execution and returns clear balances changes',
-    description: 'Decodes serialized base64 transactions, executes in sandboxed RPC, and highlights net asset transfers.',
-    category: 'Transaction Engineering',
-    sampleRequestBody: {
-      transaction_base64: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAED...'
-    },
-    sampleResponse: {
-      simulation_status: 'SUCCESS',
-      units_consumed: 34200,
-      balance_changes: [
-        { asset: 'SOL', change: -0.05, symbol: 'SOL' },
-        { asset: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', change: +7.74, symbol: 'USDC' }
-      ],
-      warnings: []
-    },
-    tags: ['Simulation', 'Safety']
+{
+	    id: 'sol-12',
+	        suite: 'solana',
+	            name: 'Transaction Simulator',
+	                method: 'POST',
+	                    path: '/api/solana/simulate',
+	                        summary: 'Simulates a transaction against live RPC without broadcasting it',
+	                            description: 'Decodes a serialized base64 VersionedTransaction, runs it through simulateTransaction on mainnet or devnet, and returns logs, error state, and compute units consumed.',
+	                                category: 'Transaction Engineering',
+	                                    sampleRequestBody: {
+	                                    	      transaction: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAED...',
+	                                    	            network: 'devnet'
+	                                    	                },
+	                                    	                    sampleResponse: {
+	                                    	                    	      network: 'devnet',
+	                                    	                    	            success: false,
+	                                    	                    	                  error: 'AccountNotFound',
+	                                    	                    	                        logs: [],
+	                                    	                    	                              unitsConsumed: 0,
+	                                    	                    	                                    live_status: 'SUCCESS'
+	                                    	                    	                                        },
+	                                    	                    	                                            tags: ['Simulation', 'Safety', 'Live']
   },
   {
     id: 'sol-13',
