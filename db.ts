@@ -1,8 +1,10 @@
 import { Pool } from "pg";
 
+const isCloudSqlSocket = (process.env.DATABASE_URL || "").includes("/cloudsql/");
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: isCloudSqlSocket ? undefined : { rejectUnauthorized: false }
 });
 
 export async function isPaymentAlreadyUsed(txSignature: string): Promise<boolean> {
