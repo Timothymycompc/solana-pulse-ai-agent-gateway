@@ -6,7 +6,7 @@ import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import fs from "fs";
 import { randomUUID, timingSafeEqual, createHmac } from "crypto";
-import { isPaymentAlreadyUsed, recordPayment } from "./db";
+import { isPaymentAlreadyUsed, recordPayment, consumePayment } from "./db";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -48,6 +48,29 @@ async function startServer() {
     next();
   };
 
+  const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
+
+  const requirePayment = (req: any, res: any, next: any) => {
+    (async () => {
+      const txSignature = req.headers["x-payment-signature"] as string | undefined;
+      if (!txSignature) {
+        return res.status(402).json({
+          error: "Payment required",
+          instructions: `Send SOL payment to ${GATEWAY_WALLET}, then retry with header 'x-payment-signature: <your transaction signature>'`,
+          payTo: GATEWAY_WALLET
+        });
+      }
+      const consumed = await consumePayment(txSignature);
+      if (!consumed) {
+        return res.status(402).json({
+          error: "Payment not found, already used, or not yet confirmed",
+          payTo: GATEWAY_WALLET
+        });
+      }
+      next();
+    })().catch(next);
+  };
+
   app.get("/api/solana/balance", noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
@@ -72,7 +95,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/solana/simulate", noCache, async (req, res) => {
+  app.post("/api/solana/simulate", noCache, requirePayment, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { transaction, network } = req.body;
