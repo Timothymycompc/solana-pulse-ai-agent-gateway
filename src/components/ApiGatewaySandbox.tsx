@@ -247,6 +247,28 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
           },
           isTypoTriggered: true
         });
+      } else if (selectedEndpoint.tags?.includes('Live')) {
+        // Real endpoint — make an actual network call instead of returning canned data
+        const liveStart = performance.now();
+        const res = await fetch(fullUrl, {
+          method: selectedEndpoint.method,
+          headers: selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+          body: selectedEndpoint.method === 'POST' ? requestBodyText : undefined
+        });
+        const liveDuration = Math.round(performance.now() - liveStart);
+        const body = await res.json().catch(() => ({ error: 'Non-JSON response from server' }));
+        addServerLog(selectedEndpoint.method, fullUrl, res.status, liveDuration, JSON.stringify(body).length);
+        setTestResult({
+          endpointId: selectedEndpoint.id,
+          url: fullUrl,
+          method: selectedEndpoint.method,
+          status: res.status,
+          latencyMs: liveDuration,
+          timestamp: new Date().toLocaleTimeString(),
+          headers: { 'content-type': res.headers.get('content-type') || 'application/json' },
+          responseBody: body,
+          isTypoTriggered: false
+        });
       } else {
         addServerLog(selectedEndpoint.method, fullUrl, 200, duration, 418);
         setTestResult({

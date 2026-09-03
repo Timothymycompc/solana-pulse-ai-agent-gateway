@@ -251,7 +251,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
 	                            description: 'Decodes a serialized base64 VersionedTransaction, runs it through simulateTransaction on mainnet or devnet, and returns logs, error state, and compute units consumed.',
 	                                category: 'Transaction Engineering',
 	                                    sampleRequestBody: {
-	                                    	      transaction: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAED...',
+	                                    	      transaction: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA7SwvdHH/YHQBN85N0v2RdYIM0Odjq0+zYPS1W+TYLWnKAZnO2jNgRVOJfK+AEIYQloPplS+U4bY0/8yD2nUs18AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI1Puja4dNTDTI3Rcmoup+RD859sqQ2bAVaXWAqQOPDRAQICAAEMAgAAAOgDAAAAAAAAAA==',
 	                                    	            network: 'devnet'
 	                                    	                },
 	                                    	                    sampleResponse: {
