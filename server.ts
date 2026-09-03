@@ -1,10 +1,12 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import fs from "fs";
-import { randomUUID } from "crypto";
+import { randomUUID, timingSafeEqual, createHmac } from "crypto";
+import { isPaymentAlreadyUsed, recordPayment } from "./db";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -15,7 +17,9 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req: any, res, buf) => { req.rawBody = buf; }
+  }));
 
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -93,6 +97,58 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
+  app.post("/api/payments/helius-webhook", async (req, res) => {
+    try {
+      const signatureHeader = req.headers["helius-signature"] as string | undefined;
+      const secret = process.env.HELIUS_WEBHOOK_SECRET;
+      if (!secret) return res.status(500).json({ error: "Webhook secret not configured" });
+      if (!signatureHeader) return res.status(401).json({ error: "Missing signature header" });
+
+      const rawBody = (req as any).rawBody as Buffer;
+      const expectedSig = createHmac("sha256", secret).update(rawBody).digest("hex");
+
+      const sigBuffer = Buffer.from(signatureHeader);
+      const expectedBuffer = Buffer.from(expectedSig);
+      const isValid = sigBuffer.length === expectedBuffer.length &&
+        timingSafeEqual(sigBuffer, expectedBuffer);
+
+      if (!isValid) return res.status(401).json({ error: "Invalid signature" });
+
+      const events = Array.isArray(req.body) ? req.body : [req.body];
+      const results = [];
+
+      for (const event of events) {
+        const txSignature = event.signature;
+        const payerWallet = event.feePayer || event.accountData?.[0]?.account;
+        const amountLamports = event.fee || 0;
+
+        if (!txSignature || !payerWallet) {
+          results.push({ status: "skipped", reason: "Missing signature or payer" });
+          continue;
+        }
+
+        const alreadyUsed = await isPaymentAlreadyUsed(txSignature);
+        if (alreadyUsed) {
+          results.push({ txSignature, status: "duplicate_ignored" });
+          continue;
+        }
+
+        const inserted = await recordPayment({
+          txSignature,
+          payerWallet,
+          amountLamports,
+          network: "mainnet-beta"
+        });
+
+        results.push({ txSignature, status: inserted ? "recorded" : "duplicate_race_ignored" });
+      }
+
+      res.json({ processed: results.length, results });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
