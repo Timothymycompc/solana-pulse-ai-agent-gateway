@@ -127,33 +127,35 @@ async function startServer() {
 
   app.post("/api/payments/helius-webhook", async (req, res) => {
     try {
-      const signatureHeader = req.headers["helius-signature"] as string | undefined;
-      const secret = process.env.HELIUS_WEBHOOK_SECRET;
-      if (!secret) return res.status(500).json({ error: "Webhook secret not configured" });
-      if (!signatureHeader) return res.status(401).json({ error: "Missing signature header" });
+      const authHeader = req.headers["authorization"] as string | undefined;
+      const expectedSecret = process.env.HELIUS_WEBHOOK_SECRET;
+      if (!expectedSecret) return res.status(500).json({ error: "Webhook secret not configured" });
+      if (!authHeader) return res.status(401).json({ error: "Missing Authorization header" });
 
-      const rawBody = (req as any).rawBody as Buffer;
-      const expectedSig = createHmac("sha256", secret).update(rawBody).digest("hex");
+      const authBuffer = Buffer.from(authHeader);
+      const expectedBuffer = Buffer.from(expectedSecret);
+      const isValid = authBuffer.length === expectedBuffer.length &&
+        timingSafeEqual(authBuffer, expectedBuffer);
 
-      const sigBuffer = Buffer.from(signatureHeader);
-      const expectedBuffer = Buffer.from(expectedSig);
-      const isValid = sigBuffer.length === expectedBuffer.length &&
-        timingSafeEqual(sigBuffer, expectedBuffer);
-
-      if (!isValid) return res.status(401).json({ error: "Invalid signature" });
+      if (!isValid) return res.status(401).json({ error: "Invalid authorization" });
 
       const events = Array.isArray(req.body) ? req.body : [req.body];
       const results = [];
 
       for (const event of events) {
         const txSignature = event.signature;
-        const payerWallet = event.feePayer || event.accountData?.[0]?.account;
-        const amountLamports = event.fee || 0;
+        const nativeTransfers = event.nativeTransfers || [];
+        const paymentTransfer = nativeTransfers.find(
+          (t: any) => t.toUserAccount === GATEWAY_WALLET
+        );
 
-        if (!txSignature || !payerWallet) {
-          results.push({ status: "skipped", reason: "Missing signature or payer" });
+        if (!txSignature || !paymentTransfer) {
+          results.push({ txSignature, status: "skipped", reason: "No matching transfer to gateway wallet" });
           continue;
         }
+
+        const payerWallet = paymentTransfer.fromUserAccount;
+        const amountLamports = paymentTransfer.amount;
 
         const alreadyUsed = await isPaymentAlreadyUsed(txSignature);
         if (alreadyUsed) {
