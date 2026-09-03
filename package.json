@@ -42,5 +42,8 @@
     "esbuild": true,
     "bufferutil": true,
     "utf-8-validate@6.0.6": true
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.63.1"
   }
 }
