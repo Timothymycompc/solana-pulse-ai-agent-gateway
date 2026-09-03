@@ -24,7 +24,8 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { ApiEndpoint, TestExecutionResult } from '../types';
+import { TestExecutionResult } from '../types';
+import { ApiEndpoint } from '../data/endpointsData';
 import { API_ENDPOINTS } from '../data/endpointsData';
 
 interface ApiGatewaySandboxProps {
@@ -61,7 +62,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
     session_id: 'sess_agent_9981'
   });
   const [requestBodyText, setRequestBodyText] = useState<string>(
-    JSON.stringify(API_ENDPOINTS[0].sampleRequestBody || { sample_param: 'test' }, null, 2)
+    JSON.stringify(API_ENDPOINTS[0].defaultParams || { sample_param: 'test' }, null, 2)
   );
   
   // Execution result
@@ -165,8 +166,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
         !searchQuery ||
         ep.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ep.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ep.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ep.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+        ep.category.toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchesSuite && matchesMethod && matchesSearch;
     });
@@ -174,18 +174,8 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
 
   const handleSelectEndpoint = (ep: ApiEndpoint) => {
     setSelectedEndpoint(ep);
-    // Initialize query params with defaults
-    if (ep.queryParams) {
-      const initial: Record<string, string> = { ...queryParams };
-      ep.queryParams.forEach(q => {
-        if (q.default && !initial[q.name]) {
-          initial[q.name] = q.default;
-        }
-      });
-      setQueryParams(initial);
-    }
-    if (ep.sampleRequestBody) {
-      setRequestBodyText(JSON.stringify(ep.sampleRequestBody, null, 2));
+    if (ep.defaultParams) {
+      setRequestBodyText(JSON.stringify(ep.defaultParams, null, 2));
     } else {
       setRequestBodyText('');
     }
@@ -247,7 +237,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
           },
           isTypoTriggered: true
         });
-      } else if (selectedEndpoint.tags?.includes('Live')) {
+      } else if (selectedEndpoint.isLive) {
         // Real endpoint — make an actual network call instead of returning canned data
         const liveStart = performance.now();
         const res = await fetch(fullUrl, {
@@ -284,7 +274,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
             'x-gateway-suite': selectedEndpoint.suite,
             'x-rate-limit-remaining': '998'
           },
-          responseBody: selectedEndpoint.sampleResponse,
+          responseBody: { message: 'No sample response configured for this endpoint', endpoint: selectedEndpoint.name },
           isTypoTriggered: false
         });
       }

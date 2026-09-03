@@ -10,6 +10,7 @@ import { ContactCustomRequests } from './components/ContactCustomRequests';
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('api');
   const [ownerSubTab, setOwnerSubTab] = useState<'promo' | 'analytics'>('promo');
+  const [isServerRunning, setIsServerRunning] = useState(true);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
@@ -24,7 +25,7 @@ export function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8">
         {activeTab === 'api' && (
           <div>
-            <ApiGatewaySandbox />
+            <ApiGatewaySandbox isServerRunning={isServerRunning} setIsServerRunning={setIsServerRunning} />
             <ContactCustomRequests />
           </div>
         )}
