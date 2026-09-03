@@ -41,10 +41,10 @@ export async function recordPayment(params: {
   }
 }
 
-export async function consumePayment(txSignature: string): Promise<boolean> {
+export async function consumePayment(txSignature: string, minLamports: number = 0): Promise<boolean> {
   const result = await pool.query(
-    `UPDATE payments SET status = 'used' WHERE tx_signature = $1 AND status = 'verified' RETURNING id`,
-    [txSignature]
+    `UPDATE payments SET status = 'used' WHERE tx_signature = $1 AND status = 'verified' AND amount_lamports >= $2 RETURNING id`,
+    [txSignature, minLamports]
   );
   return (result.rowCount ?? 0) > 0;
 }

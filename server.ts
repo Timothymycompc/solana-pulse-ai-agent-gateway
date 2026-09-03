@@ -50,20 +50,22 @@ async function startServer() {
 
   const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 
-  const requirePayment = (req: any, res: any, next: any) => {
+  const requirePayment = (minLamports: number) => (req: any, res: any, next: any) => {
     (async () => {
       const txSignature = req.headers["x-payment-signature"] as string | undefined;
       if (!txSignature) {
         return res.status(402).json({
           error: "Payment required",
-          instructions: `Send SOL payment to ${GATEWAY_WALLET}, then retry with header 'x-payment-signature: <your transaction signature>'`,
+          priceLamports: minLamports,
+          instructions: `Send at least ${minLamports} lamports to ${GATEWAY_WALLET}, then retry with header 'x-payment-signature: <your transaction signature>'`,
           payTo: GATEWAY_WALLET
         });
       }
-      const consumed = await consumePayment(txSignature);
+      const consumed = await consumePayment(txSignature, minLamports);
       if (!consumed) {
         return res.status(402).json({
-          error: "Payment not found, already used, or not yet confirmed",
+          error: "Payment not found, already used, insufficient amount, or not yet confirmed",
+          priceLamports: minLamports,
           payTo: GATEWAY_WALLET
         });
       }
@@ -95,7 +97,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/solana/simulate", noCache, requirePayment, async (req, res) => {
+  app.post("/api/solana/simulate", noCache, requirePayment(10000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { transaction, network } = req.body;
