@@ -1,0 +1,35 @@
+# Session Log: 2026-09-03 to 2026-09-04
+**Project**: Solana Pulse AI Agent Gateway
+
+## 🛠️ Completed Work
+
+### 1. Core Hardening & Infrastructure
+- **Payment Model**: Shifted from per-call signatures to a pre-paid API key system.
+- **Security Flow**: Implemented a cryptographic challenge-response claim flow (`/api/keys/challenge` $\rightarrow$ `/api/keys/claim`) to prevent API key theft.
+- **Secret Management**: Integrated `@google-cloud/secret-manager` to remove sensitive credentials from environment variables.
+- **Payout Wallet**: Standardized payout wallet to `Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU` across all logic.
+- **Pricing**: Established a minimum pricing floor of 0.005 SOL for paid endpoints.
+
+### 2. "Pain-Killer" Intelligence Suite (Agent-First Endpoints)
+Built a set of endpoints designed to remove "plumbing" tasks from the LLM's reasoning:
+- **`find-ata`**: Derives the Associated Token Account for a wallet/mint.
+- **`token-profile`**: Fetches decimals, supply, and critical security flags (Freeze Authority, Mint Authority) to detect honeypots.
+- **`optimal-fee`**: Provides tiered priority fee recommendations (Low/Med/High) based on real-time congestion.
+- **`decode-tx`**: Translates raw program logs into human-readable summaries (e.g., "Swap executed via Jupiter").
+
+### 3. AI-SEO & Agent Marketing
+Optimized the gateway to be discovered and utilized by autonomous agents:
+- **`public/llms.txt`**: Created a high-density manual for LLMs to understand the gateway's value prop.
+- **`/.well-known/mcp.json`**: Expanded the MCP manifest with detailed tool descriptions and discovery instructions.
+- **Self-Correcting Errors**: Updated API error responses to include "Hints" that guide LLMs to the correct endpoint when they make a request error.
+- **Sandbox UI**: Added "Quick Presets" to the Sandbox for instant testing with real-world data.
+
+## ⚠️ Issues & Fixes
+- **Build Errors**: Encountered JSX syntax errors in `ApiGatewaySandbox.tsx` at line 670. Work was paused on this per user request to focus on API logic.
+- **DB Constraints**: Fixed `unique_wallet` constraint errors during schema initialization.
+- **GSM Config**: Resolved `GCP_PROJECT_ID` missing errors by implementing a fallback to `.env`.
+- **GitHub Permissions**: Attempted to push to the `ollamasclaude` branch, but the account `metatim89-a11y` lacks write access to the `Timothymycompc` repo.
+
+## 🧪 Verification
+- Verified the end-to-end payment flow (Helius Webhook $\rightarrow$ Credit Top-up $\rightarrow$ Key Claim $\rightarrow$ Credit Consumption) using `test_payment_flow.ts`.
+- Verified live connectivity for new intelligence endpoints using `curl` and the internal Sandbox.

@@ -61,7 +61,7 @@ export const AiAgentDiscoveryStudio: React.FC = () => {
         leadsNeeded: 1000 - leads,
         discountPercent: 15,
         discountedCallsVolume: 2500,
-        callSavingsEstimate: '$37.50',
+        callSavingsEstimate: '$123.75',
         nextTier: 'Tier 2 (2,500 leads for 30% off)',
         isLockedByActiveDiscount: isCurrentlyConsumingDiscount
       };
@@ -73,7 +73,7 @@ export const AiAgentDiscoveryStudio: React.FC = () => {
         leadsNeeded: 2500 - tierLeads,
         discountPercent: 30,
         discountedCallsVolume: 2500,
-        callSavingsEstimate: '$75.00',
+        callSavingsEstimate: '$247.50',
         nextTier: 'Tier 3 (5,000 leads for 55% off + 30% extra calls)',
         isLockedByActiveDiscount: isCurrentlyConsumingDiscount
       };
@@ -85,7 +85,7 @@ export const AiAgentDiscoveryStudio: React.FC = () => {
         leadsNeeded: 5000 - tierLeads,
         discountPercent: 55,
         discountedCallsVolume: 3250, // 2500 + 30% extra calls
-        callSavingsEstimate: '$178.75',
+        callSavingsEstimate: '$589.87',
         nextTier: 'Cycle Reset → Tier 1 (1,000 leads for 15% off)',
         isLockedByActiveDiscount: isCurrentlyConsumingDiscount
       };
@@ -96,7 +96,7 @@ export const AiAgentDiscoveryStudio: React.FC = () => {
         leadsNeeded: 1000,
         discountPercent: 15,
         discountedCallsVolume: 2500,
-        callSavingsEstimate: '$37.50',
+        callSavingsEstimate: '$123.75',
         nextTier: 'Tier 2',
         isLockedByActiveDiscount: isCurrentlyConsumingDiscount
       };
@@ -517,11 +517,11 @@ User Wallet: 5GuzhMZDWAHoEZiJZiqtiJ7op7KmFE7VqW6f9irJKrSH`;
               </div>
               <div className="text-lg font-bold text-white">1,000 Verified Leads</div>
               <p className="text-xs text-slate-400 mt-1">
-                Unlocks 15% discount on the bot's next <strong>2,500 calls</strong>. Max savings cap: <strong>$37.50</strong>.
+                Unlocks 15% discount on your next <strong>2,500 calls</strong>. Total Value Saved: <strong>$123.75</strong>.
               </p>
               <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Revenue to You:</span>
-                <span className="font-bold text-emerald-400">+$100.00</span>
+                <span>Your Savings:</span>
+                <span className="font-bold text-emerald-400">0.825 SOL Saved</span>
               </div>
             </div>
 
@@ -533,11 +533,11 @@ User Wallet: 5GuzhMZDWAHoEZiJZiqtiJ7op7KmFE7VqW6f9irJKrSH`;
               </div>
               <div className="text-lg font-bold text-white">2,500 Verified Leads</div>
               <p className="text-xs text-slate-400 mt-1">
-                Requires Tier 1 calls exhausted + 2,500 new leads. Unlocks 30% on next <strong>2,500 calls</strong> ($75.00 cap).
+                Requires Tier 1 calls exhausted + 2,500 new leads. Unlocks 30% on next <strong>2,500 calls</strong> ($247.50 saved).
               </p>
               <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Revenue to You:</span>
-                <span className="font-bold text-emerald-400">+$250.00</span>
+                <span>Your Savings:</span>
+                <span className="font-bold text-emerald-400">1.650 SOL Saved</span>
               </div>
             </div>
 
@@ -549,11 +549,11 @@ User Wallet: 5GuzhMZDWAHoEZiJZiqtiJ7op7KmFE7VqW6f9irJKrSH`;
               </div>
               <div className="text-lg font-bold text-white">5,000 Verified Leads</div>
               <p className="text-xs text-slate-400 mt-1">
-                Requires Tier 2 calls exhausted + 5,000 new leads. Unlocks 55% on <strong>3,250 calls</strong> ($178.75 cap). Resets to Tier 1!
+                Requires Tier 2 calls exhausted + 5,000 new leads. Unlocks 55% on <strong>3,250 calls</strong> ($589.87 saved).
               </p>
               <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Revenue to You:</span>
-                <span className="font-bold text-emerald-400">+$500.00</span>
+                <span>Your Savings:</span>
+                <span className="font-bold text-emerald-400">3.932 SOL Saved</span>
               </div>
             </div>
           </div>

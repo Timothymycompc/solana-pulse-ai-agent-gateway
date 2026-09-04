@@ -1,0 +1,365 @@
+
+> file-visibility-audit@0.0.0 lint
+> tsc --noEmit
+
+src/data/endpointsData.ts(267,59): error TS1137: Expression or comma expected.
+src/data/endpointsData.ts(268,38): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(269,1): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(269,2): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(272,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(273,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(274,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(275,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(276,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(277,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(278,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(279,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(281,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(284,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(285,21): error TS1005: ';' expected.
+src/data/endpointsData.ts(286,32): error TS1005: ';' expected.
+src/data/endpointsData.ts(287,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(289,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(292,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(293,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(294,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(295,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(296,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(297,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(298,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(299,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(301,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(302,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(303,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(304,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(305,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(307,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(310,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(311,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(312,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(313,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(314,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(315,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(316,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(317,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(319,18): error TS1005: ';' expected.
+src/data/endpointsData.ts(320,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(321,24): error TS1005: ';' expected.
+src/data/endpointsData.ts(322,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(324,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(327,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(328,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(329,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(330,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(331,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(332,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(333,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(334,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(336,24): error TS1005: ';' expected.
+src/data/endpointsData.ts(337,21): error TS1005: ';' expected.
+src/data/endpointsData.ts(338,27): error TS1005: ';' expected.
+src/data/endpointsData.ts(339,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(341,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(344,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(345,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(346,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(347,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(348,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(349,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(350,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(351,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(353,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(354,14): error TS1005: ';' expected.
+src/data/endpointsData.ts(355,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(356,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(358,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(361,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(362,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(363,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(364,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(365,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(366,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(367,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(368,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(370,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(371,28): error TS1005: ';' expected.
+src/data/endpointsData.ts(372,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(374,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(377,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(378,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(379,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(380,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(381,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(382,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(383,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(384,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(386,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(389,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(390,27): error TS1005: ';' expected.
+src/data/endpointsData.ts(391,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(393,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(396,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(397,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(398,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(399,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(400,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(401,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(402,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(403,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(405,21): error TS1005: ';' expected.
+src/data/endpointsData.ts(406,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(409,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(410,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(410,63): error TS1005: ';' expected.
+src/data/endpointsData.ts(411,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(413,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(420,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(421,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(422,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(423,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(424,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(425,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(426,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(427,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(429,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(435,18): error TS1005: ';' expected.
+src/data/endpointsData.ts(436,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(438,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(441,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(442,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(443,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(444,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(445,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(446,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(447,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(448,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(450,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(453,23): error TS1005: ';' expected.
+src/data/endpointsData.ts(454,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(455,26): error TS1005: ';' expected.
+src/data/endpointsData.ts(456,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(458,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(461,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(462,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(463,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(464,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(465,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(466,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(467,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(468,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(470,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(471,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(474,27): error TS1005: ';' expected.
+src/data/endpointsData.ts(475,24): error TS1005: ';' expected.
+src/data/endpointsData.ts(476,20): error TS1005: ';' expected.
+src/data/endpointsData.ts(477,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(479,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(482,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(483,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(484,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(485,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(486,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(487,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(488,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(489,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(492,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(494,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(495,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(496,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(497,20): error TS1005: ';' expected.
+src/data/endpointsData.ts(498,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(500,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(503,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(504,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(505,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(506,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(507,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(508,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(509,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(510,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(512,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(515,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(516,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(517,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(518,23): error TS1005: ';' expected.
+src/data/endpointsData.ts(519,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(521,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(524,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(525,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(526,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(527,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(528,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(529,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(530,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(531,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(533,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(536,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(536,51): error TS1005: ';' expected.
+src/data/endpointsData.ts(536,73): error TS1005: ';' expected.
+src/data/endpointsData.ts(537,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(539,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(542,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(543,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(544,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(545,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(546,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(547,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(548,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(549,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(551,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(554,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(555,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(557,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(560,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(561,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(562,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(563,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(564,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(565,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(566,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(567,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(569,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(572,21): error TS1005: ';' expected.
+src/data/endpointsData.ts(573,15): error TS1005: ';' expected.
+src/data/endpointsData.ts(574,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(576,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(579,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(580,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(581,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(582,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(583,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(584,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(585,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(586,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(588,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(591,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(592,15): error TS1005: ';' expected.
+src/data/endpointsData.ts(593,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(595,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(598,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(599,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(600,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(601,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(602,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(603,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(604,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(605,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(607,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(609,50): error TS1005: ';' expected.
+src/data/endpointsData.ts(609,80): error TS1005: ';' expected.
+src/data/endpointsData.ts(610,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(612,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(619,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(620,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(621,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(622,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(623,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(624,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(625,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(626,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(628,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(631,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(632,18): error TS1005: ';' expected.
+src/data/endpointsData.ts(633,25): error TS1005: ';' expected.
+src/data/endpointsData.ts(634,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(636,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(639,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(640,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(641,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(642,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(643,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(644,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(645,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(646,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(648,15): error TS1005: ';' expected.
+src/data/endpointsData.ts(649,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(652,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(653,20): error TS1005: ';' expected.
+src/data/endpointsData.ts(654,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(656,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(659,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(660,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(661,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(662,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(663,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(664,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(665,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(666,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(668,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(669,14): error TS1005: ';' expected.
+src/data/endpointsData.ts(670,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(673,17): error TS1005: ';' expected.
+src/data/endpointsData.ts(674,14): error TS1005: ';' expected.
+src/data/endpointsData.ts(675,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(679,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(681,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(684,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(685,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(686,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(687,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(688,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(689,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(690,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(691,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(693,40): error TS1005: ';' expected.
+src/data/endpointsData.ts(693,72): error TS1005: ';' expected.
+src/data/endpointsData.ts(693,93): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(696,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(699,20): error TS1005: ';' expected.
+src/data/endpointsData.ts(700,30): error TS1005: ';' expected.
+src/data/endpointsData.ts(701,44): error TS1005: ';' expected.
+src/data/endpointsData.ts(702,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(704,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(706,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(709,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(710,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(711,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(712,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(713,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(714,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(715,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(716,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(718,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(721,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(722,25): error TS1005: ';' expected.
+src/data/endpointsData.ts(723,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(725,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(728,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(729,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(730,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(731,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(732,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(733,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(734,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(735,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(737,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(740,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(744,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(746,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(749,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(750,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(751,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(752,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(753,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(754,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(755,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(756,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(758,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(759,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(762,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(763,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(765,4): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(768,10): error TS1005: ';' expected.
+src/data/endpointsData.ts(769,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(770,11): error TS1005: ';' expected.
+src/data/endpointsData.ts(771,9): error TS1005: ';' expected.
+src/data/endpointsData.ts(772,12): error TS1005: ';' expected.
+src/data/endpointsData.ts(773,16): error TS1005: ';' expected.
+src/data/endpointsData.ts(774,13): error TS1005: ';' expected.
+src/data/endpointsData.ts(775,22): error TS1005: ';' expected.
+src/data/endpointsData.ts(777,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(780,21): error TS1005: ';' expected.
+src/data/endpointsData.ts(781,19): error TS1005: ';' expected.
+src/data/endpointsData.ts(782,18): error TS1005: ';' expected.
+src/data/endpointsData.ts(783,6): error TS1128: Declaration or statement expected.
+src/data/endpointsData.ts(786,1): error TS1128: Declaration or statement expected.

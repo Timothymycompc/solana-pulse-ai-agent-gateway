@@ -1,0 +1,52 @@
+{
+  "name": "file-visibility-audit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "node dist/server.cjs",
+    "lint": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.98.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "bs58": "^6.0.0",
+    "buffer": "^6.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "lucide-react": "^1.35.0",
+    "pg": "^8.23.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.3",
+    "tweetnacl": "^1.0.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.13",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "bufferutil": true,
+    "utf-8-validate@6.0.6": true
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.63.1"
+  }
+}

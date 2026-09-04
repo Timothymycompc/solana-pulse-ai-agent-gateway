@@ -202,7 +202,7 @@ export const AgentMonetizationStudio: React.FC = () => {
           error: "Payment Required (HTTP 402)",
           message: "No valid X-API-Key or X-Solana-Signature header provided.",
           payout_wallet: walletAddress,
-          unlock_price_sol: 0.0005,
+          unlock_price_sol: 0.0022,
           instructions: "Transmit on-chain payment or provide valid X-API-Key header to proceed."
         }, null, 2)
       });
@@ -833,7 +833,7 @@ export const AgentMonetizationStudio: React.FC = () => {
                 <div className="mt-3 p-2 bg-slate-900 rounded font-mono text-[10px] text-amber-300">
                   HTTP/1.1 402 Payment Required
                   <br />
-                  payto: {walletAddress.slice(0, 10)}...
+              payto: {walletAddress.slice(0, 10)}... price: 0.0022 SOL
                 </div>
               </div>
 
@@ -863,7 +863,7 @@ export const AgentMonetizationStudio: React.FC = () => {
 from fastapi.responses import JSONResponse
 
 WALLET_RECIPIENT = "${walletAddress}"
-PRICE_PER_REQUEST_SOL = 0.0005
+PRICE_PER_REQUEST_SOL = 0.0022
 
 async def x402_solana_paywall_middleware(request: Request, call_next):
     # Check if request has pre-paid API key or on-chain tx signature
@@ -1028,7 +1028,7 @@ async def x402_solana_paywall_middleware(request: Request, call_next):
     "protocol": "x402_solana_pay",
     "payoutWallet": "${walletAddress}",
     "currency": "SOL",
-    "pricePerCall": 0.0005
+    "pricePerCall": 0.0022
   },
   "toolGroups": [
     {
