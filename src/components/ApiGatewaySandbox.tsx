@@ -803,6 +803,5 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
           </div>
         </div>
       </div>
-    </div>
   );
 };

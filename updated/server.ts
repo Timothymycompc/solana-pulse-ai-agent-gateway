@@ -141,7 +141,7 @@ async function startServer() {
               };
               return next();
             }
-            }
+          }
         }
 
         // Path B: Transaction Signature Verification (One-off payment)
