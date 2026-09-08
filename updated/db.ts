@@ -53,7 +53,7 @@ export async function ensureSchema() {
   await pool.query(`
     ALTER TABLE api_keys ADD CONSTRAINT unique_wallet UNIQUE (wallet_address);
   `).catch(err => {
-    if (err.code !== '42P07') throw err; // Ignore if constraint already exists (duplicate_object)
+    if (err.code !== '42P07' && err.code !== '42501') throw err; // Ignore if constraint already exists (duplicate_object)
   });
 
   await pool.query(`
