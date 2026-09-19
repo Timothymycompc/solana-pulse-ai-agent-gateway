@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Header, AppTab } from './components/Header';
+import SolanaDevnetWalletStudio from './components/SolanaDevnetWalletStudio';
 import { ApiGatewaySandbox } from './components/ApiGatewaySandbox';
 import { McpDocsView } from './components/McpDocsView';
 import { AgentMonetizationStudio } from './components/AgentMonetizationStudio';

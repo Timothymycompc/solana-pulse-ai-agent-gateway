@@ -88,4 +88,69 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       transaction: ''
     }
   }
+,
+  {
+    id: 'rent-calculator',
+    name: 'Rent Calculator',
+    suite: 'Solana Live',
+    path: '/api/solana/rent',
+    method: 'POST',
+    description: 'Calculate the minimum balance needed for rent exemption on Solana.',
+    queryParams: [],
+    bodyTemplate: JSON.stringify({ bytes: 165 }, null, 2),
+    headers: { 'Content-Type': 'application/json' }
+  },
+  {
+    id: 'token-metadata',
+    name: 'Token Metadata',
+    suite: 'Solana Live',
+    path: '/api/solana/metadata',
+    method: 'GET',
+    description: 'Retrieve metadata details for any SPL token mint address.',
+    queryParams: [
+      { key: 'mint', value: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', required: true, description: 'Token Mint Address' }
+    ]
+  },
+  {
+    id: 'block-scanner',
+    name: 'Block Scanner',
+    suite: 'Solana Live',
+    path: '/api/solana/block',
+    method: 'GET',
+    description: 'Retrieve detailed information for a specific block slot.',
+    queryParams: [
+      { key: 'slot', value: '250000000', required: true, description: 'Block Slot Number' }
+    ]
+  },
+  {
+    id: 'tx-decoder',
+    name: 'Transaction Decoder',
+    suite: 'Solana Live',
+    path: '/api/solana/decode',
+    method: 'POST',
+    description: 'Decode serialized base58/base64 transaction payloads.',
+    queryParams: [],
+    bodyTemplate: JSON.stringify({ payload: '...' }, null, 2),
+    headers: { 'Content-Type': 'application/json' }
+  },
+  {
+    id: 'gas-estimator',
+    name: 'Gas Estimator',
+    suite: 'Solana Live',
+    path: '/api/solana/fees',
+    method: 'GET',
+    description: 'Estimate recent prioritization fees for transactions.',
+    queryParams: []
+  },
+  {
+    id: 'wallet-profiler',
+    name: 'Wallet Profiler',
+    suite: 'Solana Live',
+    path: '/api/solana/profile',
+    method: 'GET',
+    description: 'Generate high-level profile analytics for a Solana address.',
+    queryParams: [
+      { key: 'address', value: 'DALhQZi19KhqerUWkwtmMAxCzi9Avur85kE57Cq8e4W', required: true, description: 'Solana Wallet Address' }
+    ]
+  }
 ];

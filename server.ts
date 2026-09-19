@@ -1,3 +1,98 @@
+
+// ==========================================
+// PAYWALL & CHALLENGE/CLAIM AUTH MODULE
+// ==========================================
+import nacl from "tweetnacl";
+import bs58 from "bs58";
+import crypto from "crypto";
+
+const pendingChallenges = new Map();
+const apiKeys = new Map();
+
+export function handleGetChallenge(req, res) {
+  const challenge = crypto.randomBytes(32).toString("hex");
+  pendingChallenges.set(challenge, { expiresAt: Date.now() + 5 * 60 * 1000 });
+  res.json({ challenge });
+}
+
+export function handleClaimKey(req, res) {
+  const { wallet, signature, challenge } = req.body;
+  if (!wallet || !signature || !challenge) {
+    return res.status(400).json({ error: "Missing wallet, signature, or challenge" });
+  }
+
+  const record = pendingChallenges.get(challenge);
+  if (!record || record.expiresAt < Date.now()) {
+    pendingChallenges.delete(challenge);
+    return res.status(400).json({ error: "Invalid or expired challenge" });
+  }
+
+  try {
+    const msgBytes = Buffer.from(challenge, "hex");
+    const sigBytes = bs58.decode(signature);
+    const pubKeyBytes = bs58.decode(wallet);
+
+    if (!nacl.sign.detached.verify(msgBytes, sigBytes, pubKeyBytes)) {
+      return res.status(401).json({ error: "Invalid wallet signature" });
+    }
+  } catch (err) {
+    return res.status(400).json({ error: "Signature verification failed" });
+  }
+
+  pendingChallenges.delete(challenge);
+  const apiKey = "sp_" + crypto.randomBytes(24).toString("hex");
+  apiKeys.set(apiKey, {
+    wallet,
+    balanceLamports: 0,
+    lifetimeCalls: 0,
+    dailyCalls: 0,
+    lastCallDate: new Date().toISOString().slice(0, 10),
+  });
+
+  res.json({ apiKey });
+}
+
+export function requirePayment(req, res, next) {
+  const authHeader = req.headers["authorization"] || "";
+  const apiKey = req.headers["x-api-key"] || authHeader.replace("Bearer ", "").trim();
+
+  if (!apiKey) {
+    return res.status(401).json({ error: "Missing x-api-key header or Bearer token" });
+  }
+
+  const account = apiKeys.get(apiKey);
+  if (!account) {
+    return res.status(403).json({ error: "Invalid API key" });
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (account.lastCallDate !== today) {
+    account.dailyCalls = 0;
+    account.lastCallDate = today;
+  }
+
+  if (account.lifetimeCalls < 50 && account.dailyCalls < 15) {
+    account.lifetimeCalls += 1;
+    account.dailyCalls += 1;
+    return next();
+  }
+
+  const cost = 2200000;
+  if (account.balanceLamports < cost) {
+    return res.status(402).json({
+      error: "Payment Required",
+      message: "Insufficient credits. Free tier exhausted (50 lifetime / 15 daily).",
+      balanceLamports: account.balanceLamports,
+      requiredLamports: cost
+    });
+  }
+
+  account.balanceLamports -= cost;
+  account.lifetimeCalls += 1;
+  account.dailyCalls += 1;
+  next();
+}
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -412,6 +507,44 @@ async function startServer() {
     app.use((req, res) => { res.sendFile(path.join(distPath, 'index.html')); });
   }
 
-  app.listen(PORT, "0.0.0.0", () => console.log(`Live Server running on port ${PORT}`));
+  
+// ==========================================
+// GENERIC SOLANA MICROSERVICE ROUTER (NEW)
+// ==========================================
+app.all('/api/solana/:service', (req, res, next) => { const free = ['balance', 'blockhash']; if (free.includes(req.params.service)) return next(); return requirePayment(req, res, next); }, async (req, res) => {
+  const service = req.params.service;
+  const targetUrls = {
+    'rent': 'https://solana-rent-calculator-1021990235790.us-central1.run.app',
+    'metadata': 'https://solana-token-metadata-1021990235790.us-central1.run.app',
+    'block': 'https://solana-block-scanner-1021990235790.us-central1.run.app',
+    'decode': 'https://solana-tx-decoder-1021990235790.us-central1.run.app',
+    'fees': 'https://solana-gas-estimator-1021990235790.us-central1.run.app',
+    'profile': 'https://solana-wallet-profiler-1021990235790.us-central1.run.app',
+  };
+  
+  const targetUrl = targetUrls[service];
+  if (!targetUrl) {
+    return res.status(404).json({ error: 'Service not registered' });
+  }
+
+  try {
+    const url = `${targetUrl}${req.url.replace('/api/solana/' + service, '')}`;
+    const response = await fetch(url, {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to connect to microservice: ' + service });
+  }
+});
+
+
+app.get('/api/keys/challenge', handleGetChallenge);
+app.post('/api/keys/claim', handleClaimKey);
+
+app.listen(PORT, "0.0.0.0", () => console.log(`Live Server running on port ${PORT}`));
 }
 startServer();

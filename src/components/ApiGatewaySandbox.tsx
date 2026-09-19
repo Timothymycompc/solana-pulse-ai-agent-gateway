@@ -655,7 +655,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
         </div>
       </div>
 
-      {/* MASTER GATEWAY SERVER CONTROL STATION (NEW) */}
+      // MASTER GATEWAY SERVER CONTROL STATION (NEW)
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
