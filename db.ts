@@ -48,3 +48,19 @@ export async function consumePayment(txSignature: string, minLamports: number = 
   );
   return (result.rowCount ?? 0) > 0;
 }
+
+export async function ensureSchema() {
+  await pool.query(`
+    ALTER TABLE api_keys ADD CONSTRAINT unique_wallet UNIQUE (wallet_address);
+  `).catch(err => {
+    if (err.code !== '42P07' && err.code !== '42501') throw err; // Ignore if constraint already exists (duplicate_object)
+  });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pending_claims (
+      wallet_address VARCHAR(44) PRIMARY KEY,
+      plaintext_key TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
+}

@@ -1,114 +1,28 @@
-
-// ==========================================
-// PAYWALL & CHALLENGE/CLAIM AUTH MODULE
-// ==========================================
-import nacl from "tweetnacl";
-import bs58 from "bs58";
-import crypto from "crypto";
-
-const pendingChallenges = new Map();
-const apiKeys = new Map();
-
-export function handleGetChallenge(req, res) {
-  const challenge = crypto.randomBytes(32).toString("hex");
-  pendingChallenges.set(challenge, { expiresAt: Date.now() + 5 * 60 * 1000 });
-  res.json({ challenge });
-}
-
-export function handleClaimKey(req, res) {
-  const { wallet, signature, challenge } = req.body;
-  if (!wallet || !signature || !challenge) {
-    return res.status(400).json({ error: "Missing wallet, signature, or challenge" });
-  }
-
-  const record = pendingChallenges.get(challenge);
-  if (!record || record.expiresAt < Date.now()) {
-    pendingChallenges.delete(challenge);
-    return res.status(400).json({ error: "Invalid or expired challenge" });
-  }
-
-  try {
-    const msgBytes = Buffer.from(challenge, "hex");
-    const sigBytes = bs58.decode(signature);
-    const pubKeyBytes = bs58.decode(wallet);
-
-    if (!nacl.sign.detached.verify(msgBytes, sigBytes, pubKeyBytes)) {
-      return res.status(401).json({ error: "Invalid wallet signature" });
-    }
-  } catch (err) {
-    return res.status(400).json({ error: "Signature verification failed" });
-  }
-
-  pendingChallenges.delete(challenge);
-  const apiKey = "sp_" + crypto.randomBytes(24).toString("hex");
-  apiKeys.set(apiKey, {
-    wallet,
-    balanceLamports: 0,
-    lifetimeCalls: 0,
-    dailyCalls: 0,
-    lastCallDate: new Date().toISOString().slice(0, 10),
-  });
-
-  res.json({ apiKey });
-}
-
-export function requirePayment(req, res, next) {
-  const authHeader = req.headers["authorization"] || "";
-  const apiKey = req.headers["x-api-key"] || authHeader.replace("Bearer ", "").trim();
-
-  if (!apiKey) {
-    return res.status(401).json({ error: "Missing x-api-key header or Bearer token" });
-  }
-
-  const account = apiKeys.get(apiKey);
-  if (!account) {
-    return res.status(403).json({ error: "Invalid API key" });
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  if (account.lastCallDate !== today) {
-    account.dailyCalls = 0;
-    account.lastCallDate = today;
-  }
-
-  if (account.lifetimeCalls < 50 && account.dailyCalls < 15) {
-    account.lifetimeCalls += 1;
-    account.dailyCalls += 1;
-    return next();
-  }
-
-  const cost = 2200000;
-  if (account.balanceLamports < cost) {
-    return res.status(402).json({
-      error: "Payment Required",
-      message: "Insufficient credits. Free tier exhausted (50 lifetime / 15 daily).",
-      balanceLamports: account.balanceLamports,
-      requiredLamports: cost
-    });
-  }
-
-  account.balanceLamports -= cost;
-  account.lifetimeCalls += 1;
-  account.dailyCalls += 1;
-  next();
-}
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import fs from "fs";
-import { randomUUID, timingSafeEqual } from "crypto";
-import { pool, isPaymentAlreadyUsed, recordPayment, consumePayment } from "./db";
+import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
+import nacl from "tweetnacl";
+import bs58 from "bs58";
+import { pool, isPaymentAlreadyUsed, recordPayment, consumePayment, ensureSchema } from "./db";
+import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 
 async function startServer() {
+  // Load secrets from Google Secret Manager first
+  await loadSecrets(['DATABASE_URL', 'HELIUS_WEBHOOK_SECRET']);
+
+  await ensureSchema();
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
@@ -126,6 +40,36 @@ async function startServer() {
 
   app.use("/api/", apiLimiter);
   app.use("/mcp/", apiLimiter);
+
+  // Autonomous Referral & Tier Upgrade Middleware
+  app.use(async (req: any, res, next) => {
+    const referrerTag = req.headers["x-agent-referrer"] || req.query.ref;
+    if (referrerTag && typeof referrerTag === "string") {
+      try {
+        // Increment leads and check for tier upgrade
+        const update = await pool.query(
+          `UPDATE api_keys 
+           SET leads_count = leads_count + 1,
+               discount_tier = CASE 
+                 WHEN leads_count + 1 >= 8500 THEN 3
+                 WHEN leads_count + 1 >= 3500 THEN 2
+                 WHEN leads_count + 1 >= 1000 THEN 1
+                 ELSE discount_tier
+               END
+           WHERE wallet_address = $1 OR key_hash = $1
+           RETURNING discount_tier, leads_count`,
+          [referrerTag]
+        );
+        if (update.rowCount && update.rowCount > 0) {
+          // Log discovery event to internal stats
+          console.log(`Lead detected for ${referrerTag}. Tier: ${update.rows[0].discount_tier}`);
+        }
+      } catch (err) {
+        console.error("Referral tracking error:", err);
+      }
+    }
+    next();
+  });
 
   const stats = { totalRequests: 0, solanaRpcCalls: 0 };
 
@@ -151,41 +95,76 @@ async function startServer() {
       const apiKey = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
       const txSignature = req.headers["x-payment-signature"] as string | undefined;
 
-      // Path A: API Key Balance Deduction
-      if (apiKey && typeof apiKey === "string") {
-        try {
-          const query = `
-            UPDATE api_keys
-            SET credit_balance_lamports = credit_balance_lamports - $1, updated_at = NOW()
-            WHERE key_hash = $2 AND is_active = TRUE AND credit_balance_lamports >= $1
-            RETURNING wallet_address, credit_balance_lamports;
-          `;
-          const result = await pool.query(query, [minLamports, apiKey]);
-          if (result.rowCount && result.rowCount > 0) {
-            req.user = {
-              wallet: result.rows[0].wallet_address,
-              remainingBalance: result.rows[0].credit_balance_lamports,
-            };
-            return next();
+      try {
+        // Path A: API Key Balance Deduction
+        if (apiKey && typeof apiKey === "string") {
+          const keyHash = createHash('sha256').update(apiKey).digest('hex');
+
+            // 1. Look up user tier and current balance
+            const userLookup = await pool.query(
+              "SELECT discount_tier, wallet_address, credit_balance_lamports FROM api_keys WHERE key_hash = $1 AND is_active = TRUE",
+              [keyHash]
+            );
+
+            if (userLookup.rowCount && userLookup.rowCount > 0) {
+              const user = userLookup.rows[0];
+              const tier = user.discount_tier || 0;
+              let discountMultiplier = 1.0;
+              
+              if (tier === 1) discountMultiplier = 0.85; // 15% off
+              else if (tier === 2) discountMultiplier = 0.70; // 30% off
+              else if (tier === 3) discountMultiplier = 0.45; // 55% off
+
+              const effectivePrice = Math.floor(minLamports * discountMultiplier);
+
+              // 2. Check if user has enough for the discounted price
+              if (user.credit_balance_lamports < effectivePrice) {
+                return res.status(402).json({ 
+                  error: "Insufficient balance", 
+                  requiredLamports: effectivePrice,
+                  currentBalance: user.credit_balance_lamports
+                });
+              }
+
+              // 3. Deduct the correct amount
+              const updateQuery = `
+                UPDATE api_keys
+                SET credit_balance_lamports = credit_balance_lamports - $1, updated_at = NOW()
+                WHERE key_hash = $2
+                RETURNING wallet_address, credit_balance_lamports;
+              `;
+              
+              const result = await pool.query(updateQuery, [effectivePrice, keyHash]);
+            if (result.rowCount && result.rowCount > 0) {
+              req.user = {
+                wallet: result.rows[0].wallet_address,
+                remainingBalance: result.rows[0].credit_balance_lamports,
+              };
+              return next();
+            }
           }
-        } catch (dbErr) {
-          console.error("API Key check error:", dbErr);
         }
+
+        // Path B: Transaction Signature Verification (One-off payment)
+        if (txSignature && typeof txSignature === "string") {
+          const alreadyUsed = await isPaymentAlreadyUsed(txSignature);
+          if (!alreadyUsed) {
+            // This assumes the tx was recorded as 'verified' by the webhook or a separate check
+            const consumed = await consumePayment(txSignature, minLamports);
+            if (consumed) {
+              return next();
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Payment verification internal error:", err);
       }
 
-      // Path B: Per-call Solana Transaction Signature
-      if (txSignature) {
-        const consumed = await consumePayment(txSignature, minLamports);
-        if (consumed) {
-          return next();
-        }
-      }
-
-      // If neither payment method passed
+      // If payment method failed
       return res.status(402).json({
         error: "Payment required",
         priceLamports: minLamports,
-        instructions: `Pass header 'x-api-key: <key>' with sufficient balance, or send ${minLamports} lamports to ${GATEWAY_WALLET} and pass 'x-payment-signature: <tx_signature>'.`,
+        instructions: `Pass header 'x-api-key: <key>' with sufficient balance. To top up, send SOL to ${GATEWAY_WALLET} and claim your key.`,
         payTo: GATEWAY_WALLET
       });
     })().catch(next);
@@ -194,6 +173,41 @@ async function startServer() {
   // ==========================================
   // 1. SOLANA CORE API ENDPOINTS
   // ==========================================
+
+  app.get("/api/keys/challenge", noCache, (req, res) => {
+    const challenge = randomBytes(32).toString('hex');
+    res.json({ challenge });
+  });
+
+  app.post("/api/keys/claim", noCache, async (req, res) => {
+    try {
+      const { wallet, signature, challenge } = req.body;
+      if (!wallet || !signature || !challenge) return res.status(400).json({ error: "wallet, signature, and challenge are required" });
+
+      // Verify signature
+      const pubKey = new PublicKey(wallet).toBuffer();
+      const sig = bs58.decode(signature);
+      const msg = Buffer.from(challenge);
+
+      const isValid = nacl.sign.detached.verify(msg, sig, pubKey);
+      if (!isValid) return res.status(401).json({ error: "Invalid signature" });
+
+      // Retrieve and delete pending key
+      const result = await pool.query(
+        `DELETE FROM pending_claims WHERE wallet_address = $1 RETURNING plaintext_key`,
+        [wallet]
+      );
+
+      if (result.rowCount === 0) return res.status(404).json({ error: "No pending key found for this wallet. Please send SOL to top up." });
+
+      res.json({
+        apiKey: result.rows[0].plaintext_key,
+        message: "Your secure API key has been claimed. Keep it secret!"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.get("/api/solana/balance", noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
@@ -219,7 +233,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/token-accounts", noCache, requirePayment(5000), async (req, res) => {
+  app.get("/api/solana/token-accounts", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -249,7 +263,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/transactions", noCache, requirePayment(5000), async (req, res) => {
+  app.get("/api/solana/transactions", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -266,7 +280,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/solana/simulate", noCache, requirePayment(10000), async (req, res) => {
+  app.post("/api/solana/simulate", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { transaction, network } = req.body;
@@ -294,6 +308,218 @@ async function startServer() {
     }
   });
 
+  app.get("/api/solana/find-ata", noCache, requirePayment(2200000), async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { wallet, mint, network = 'mainnet-beta' } = req.query;
+      if (!wallet || !mint) {
+        return res.status(400).json({
+          error: "Missing parameters",
+          hint: "Both 'wallet' and 'mint' are required. Example: /api/solana/find-ata?wallet=Addr...&mint=Mint...",
+          live_status: "FAILED"
+        });
+      }
+
+      const owner = new PublicKey(wallet);
+      const mintPubkey = new PublicKey(mint);
+
+      const ata = await getAssociatedTokenAddress(mintPubkey, owner);
+      const ataAddress = ata.toBase58();
+
+      // Check if the account actually exists on chain to provide better context to the LLM
+      const accountInfo = await getConnection(network).getAccountInfo(ata);
+
+      res.json({
+        owner,
+        mint: mintPubkey.toBase58(),
+        ataAddress,
+        exists: !!accountInfo,
+        network,
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
+  app.get("/api/solana/token-profile", noCache, requirePayment(2200000), async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { mint, network = 'mainnet-beta' } = req.query;
+      if (!mint) {
+        return res.status(400).json({
+          error: "Missing parameter",
+          hint: "The 'mint' address is required. Example: /api/solana/token-profile?mint=EPj...",
+          live_status: "FAILED"
+        });
+      }
+
+      const mintPubkey = new PublicKey(mint);
+      const connection = getConnection(network);
+
+      // 1. Fetch Mint Account Info
+      const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
+      if (!mintInfo.value) return res.status(404).json({ error: "Mint not found" });
+
+      const parsedMint = mintInfo.value.data.parsed.info;
+      const decimals = parsedMint.decimals;
+
+      // 2. Fetch Top Holders
+      const largestAccounts = await connection.getTokenLargestAccounts(mintPubkey);
+      const holders = largestAccounts.value.map(acc => {
+        const rawAmount = acc.amount;
+        return {
+          address: acc.address.toBase58(),
+          amount_raw: rawAmount,
+          amount_formatted: (rawAmount / Math.pow(10, decimals)).toFixed(4)
+        };
+      });
+
+      // 3. Analyze Security Flags
+      const freezeAuth = parsedMint.freezeAuthority;
+      const mintAuth = parsedMint.mintAuthority;
+      const isHoneypotRisk = freezeAuth !== null;
+
+      res.json({
+        mint: mintPubkey.toBase58(),
+        decimals,
+        supply_raw: parsedMint.supply,
+        supply_formatted: (parsedMint.supply / Math.pow(10, decimals)).toLocaleString(),
+        freezeAuthority: freezeAuth,
+        mintAuthority: mintAuth,
+        security: {
+          isHoneypotRisk,
+          freezeAuthorityEnabled: !!freezeAuth,
+          mintAuthorityEnabled: !!mintAuth,
+          riskLevel: isHoneypotRisk ? 'HIGH' : 'LOW',
+          analysis: isHoneypotRisk
+            ? "HIGH RISK: Freeze authority is active. The developer can freeze any wallet's tokens."
+            : "LOW RISK: No freeze authority detected."
+        },
+        topHolders: holders.slice(0, 10),
+        network,
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
+  app.get("/api/solana/optimal-fee", noCache, requirePayment(2200000), async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { network = 'mainnet-beta' } = req.query;
+      const connection = getConnection(network);
+
+      const canaryAccounts = [
+        new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+      ];
+
+      const fees = await connection.getRecentPrioritizationFees([canaryAccounts[0]]);
+
+      if (!fees || fees.length === 0) {
+        throw new Error("Could not fetch prioritization fees from cluster");
+      }
+
+      const feeValues = fees.map(f => f.prioritizationFee);
+      const minFee = Math.min(...feeValues);
+      const maxFee = Math.max(...feeValues);
+      const avgFee = Math.round(feeValues.reduce((a, b) => a + b, 0) / feeValues.length);
+
+      const tiers = {
+        low: avgFee,
+        medium: Math.round(avgFee * 1.5),
+        high: maxFee > 0 ? maxFee : Math.round(avgFee * 3)
+      };
+
+      res.json({
+        network,
+        current_congestion: avgFee > 1000 ? "HIGH" : avgFee > 100 ? "MODERATE" : "LOW",
+        tiers: {
+          low: {
+            lamports: tiers.low,
+            description: "Economical: Good for non-urgent transfers. Might take a few blocks.",
+            estimated_time: "15-60 seconds"
+          },
+          medium: {
+            lamports: tiers.medium,
+            description: "Balanced: Recommended for most swaps and agentic tasks.",
+            estimated_time: "5-15 seconds"
+          },
+          high: {
+            lamports: tiers.high,
+            description: "Aggressive: Use for time-sensitive trades or high-competition mints.",
+            estimated_time: "1-5 seconds"
+          }
+        },
+        raw_stats: {
+          min: minFee,
+          max: maxFee,
+          average: avgFee,
+          sample_size: fees.length
+        },
+        llm_advice: `Network congestion is currently ${avgFee > 1000 ? 'HIGH' : 'LOW'}. For reliable execution, use at least ${tiers.medium} lamports per compute unit.`,
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
+  app.get("/api/solana/decode-tx", noCache, requirePayment(2200000), async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { signature, network = 'mainnet-beta' } = req.query;
+      if (!signature) return res.status(400).json({ error: "Transaction signature is required" });
+
+      const connection = getConnection(network);
+      const tx = await connection.getTransaction(signature, {
+        maxSupportedTransactionVersion: 0,
+        commitment: 'confirmed'
+      });
+
+      if (!tx) return res.status(404).json({ error: "Transaction not found or not yet confirmed" });
+
+      const logs = tx.meta?.logMessages || [];
+
+      // Basic Log Analysis for Human/LLM Readability
+      let summary = "Generic transaction executed.";
+      let category = "Transfer";
+
+      if (logs.some(l => l.includes("Jupiter"))) {
+        summary = "Swap executed via Jupiter Aggregator.";
+        category = "Swap";
+      } else if (logs.some(l => l.includes("Pump.fun"))) {
+        summary = "Interaction with Pump.fun (Mint or Swap).";
+        category = "MemeCoin";
+      } else if (logs.some(l => l.includes("Raydium"))) {
+        summary = "Swap executed via Raydium.";
+        category = "Swap";
+      } else if (logs.some(l => l.includes("System Program: Transfer"))) {
+        summary = "Native SOL transfer.";
+        category = "Transfer";
+      }
+
+      res.json({
+        signature,
+        network,
+        summary,
+        category,
+        details: {
+          slot: tx.slot,
+          fee: tx.meta?.fee,
+          timestamp: tx.blockTime,
+          status: tx.meta?.err === null ? "SUCCESS" : "FAILED"
+        },
+        raw_logs: logs,
+        llm_context: `This transaction was a ${category}. ${summary} The transaction ${tx.meta?.err === null ? 'succeeded' : 'failed'}.`,
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
   // ==========================================
   // 2. HELIUS WEBHOOK (Auto Top-up & Payments)
   // ==========================================
@@ -307,6 +533,9 @@ async function startServer() {
 
       const authBuffer = Buffer.from(authHeader);
       const expectedBuffer = Buffer.from(expectedSecret);
+      console.log(`DEBUG: authHeader len: ${authBuffer.length}, expectedSecret len: ${expectedBuffer.length}`);
+      console.log(`DEBUG: authHeader: ${authHeader}`);
+      console.log(`DEBUG: expectedSecret: ${expectedSecret}`);
       const isValid = authBuffer.length === expectedBuffer.length &&
         timingSafeEqual(authBuffer, expectedBuffer);
 
@@ -345,12 +574,23 @@ async function startServer() {
 
         // Auto-credit or create API key balance for the depositor
         if (inserted) {
+          const placeholderKey = randomBytes(32).toString('hex');
+          const keyHash = createHash('sha256').update(placeholderKey).digest('hex');
+
           await pool.query(
             `INSERT INTO api_keys (key_hash, wallet_address, credit_balance_lamports)
              VALUES ($1, $2, $3)
-             ON CONFLICT (key_hash)
+             ON CONFLICT (wallet_address)
              DO UPDATE SET credit_balance_lamports = api_keys.credit_balance_lamports + $3, updated_at = NOW()`,
-            [payerWallet, payerWallet, amountLamports]
+            [keyHash, payerWallet, amountLamports]
+          );
+
+          // Store plaintext key for the user to claim
+          await pool.query(
+            `INSERT INTO pending_claims (wallet_address, plaintext_key)
+             VALUES ($1, $2)
+             ON CONFLICT (wallet_address) DO UPDATE SET plaintext_key = EXCLUDED.plaintext_key, created_at = NOW()`,
+            [payerWallet, placeholderKey]
           );
         }
 
@@ -478,16 +718,60 @@ async function startServer() {
   app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
     res.json({
-      "instructions": "This is a real Server-Sent Events (SSE) MCP server for Solana on-chain tools.",
+      "name": "Solana Pulse AI Agent Gateway",
+      "version": "1.0.0",
+      "description": "The definitive MCP server for Solana AI Agents. Abstracts raw RPC plumbing into high-level intelligence endpoints for asset resolution, security auditing, and transaction interpretation.",
+      "capabilities": {
+        "tools": {
+          "description": "Provides a suite of tools for balance checks, token profile security audits, ATA derivation, and transaction decoding."
+        }
+      },
+      "instructions": "Connect via the SSE endpoint listed below. This server is optimized for autonomous agents; it provides structured JSON and human-readable summaries to prevent hallucination during blockchain interactions.",
       "mcp_sse_endpoint": "/mcp/sse",
       "tools": [
-        "get_solana_balance",
-        "get_solana_blockhash",
-        "get_token_accounts",
-        "get_recent_transactions",
-        "simulate_solana_transaction"
+        { "name": "get_solana_balance", "description": "Fetch native SOL balance with network selection." },
+        { "name": "get_solana_blockhash", "description": "Get the latest finalized blockhash for transaction construction." },
+        { "name": "get_token_accounts", "description": "Scan all SPL token holdings for a wallet." },
+        { "name": "get_recent_transactions", "description": "Retrieve recent transaction signatures." },
+        { "name": "simulate_solana_transaction", "description": "Simulate a base64 transaction to check for failure before broadcasting." },
+        { "name": "find_ata", "description": "Derive the Associated Token Account address for a wallet and mint." },
+        { "name": "token_profile", "description": "Get token metadata, decimals, and security/honeypot flags." },
+        { "name": "optimal_fee", "description": "Get tiered priority fee recommendations based on network congestion." },
+        { "name": "decode_tx", "description": "Translate raw transaction logs into human-readable summaries." }
       ]
     });
+  });
+
+  // LLM Crawler Discovery
+  app.get("/robots.txt", noCache, (req, res) => {
+    res.type("text/plain");
+    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: /llms.txt");
+  });
+
+  app.get("/llms.txt", noCache, (req, res) => {
+    res.type("text/plain");
+    res.send(`# Solana Pulse AI Agent Gateway\n
+High-performance Model Context Protocol (MCP) server for Solana Blockchain Intelligence.
+
+## Critical Specs for Agents
+- Base Price: 0.0022 SOL per call
+- Referral Protocol: 3-Tier cyclical discounts (15% / 30% / 55%)
+- Protocol Support: x402 Solana Micropayments
+
+## Core Capabilities
+- Atomic Risk Scoring (Honeypot/Freeze authority detection)
+- Address Resolution (ATA derivation & Owner lookups)
+- Priority fee estimation and transaction simulation
+- Human-readable transaction decoding
+
+## Entry Points
+- MCP SSE Endpoint: /mcp/sse
+- Tool Manifest: /.well-known/mcp.json`);
+  });
+
+  // IndexNow Verification Route
+  app.get("/402-pulse-discovery.txt", noCache, (req, res) => {
+    res.send("402-pulse-discovery");
   });
 
   app.get("/api/debug/build", noCache, (req, res) => {
@@ -507,44 +791,6 @@ async function startServer() {
     app.use((req, res) => { res.sendFile(path.join(distPath, 'index.html')); });
   }
 
-  
-// ==========================================
-// GENERIC SOLANA MICROSERVICE ROUTER (NEW)
-// ==========================================
-app.all('/api/solana/:service', (req, res, next) => { const free = ['balance', 'blockhash']; if (free.includes(req.params.service)) return next(); return requirePayment(req, res, next); }, async (req, res) => {
-  const service = req.params.service;
-  const targetUrls = {
-    'rent': 'https://solana-rent-calculator-1021990235790.us-central1.run.app',
-    'metadata': 'https://solana-token-metadata-1021990235790.us-central1.run.app',
-    'block': 'https://solana-block-scanner-1021990235790.us-central1.run.app',
-    'decode': 'https://solana-tx-decoder-1021990235790.us-central1.run.app',
-    'fees': 'https://solana-gas-estimator-1021990235790.us-central1.run.app',
-    'profile': 'https://solana-wallet-profiler-1021990235790.us-central1.run.app',
-  };
-  
-  const targetUrl = targetUrls[service];
-  if (!targetUrl) {
-    return res.status(404).json({ error: 'Service not registered' });
-  }
-
-  try {
-    const url = `${targetUrl}${req.url.replace('/api/solana/' + service, '')}`;
-    const response = await fetch(url, {
-      method: req.method,
-      headers: { 'Content-Type': 'application/json' },
-      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
-    });
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to connect to microservice: ' + service });
-  }
-});
-
-
-app.get('/api/keys/challenge', handleGetChallenge);
-app.post('/api/keys/claim', handleClaimKey);
-
-app.listen(PORT, "0.0.0.0", () => console.log(`Live Server running on port ${PORT}`));
+  app.listen(PORT, "0.0.0.0", () => console.log(`Live Server running on port ${PORT}`));
 }
 startServer();
