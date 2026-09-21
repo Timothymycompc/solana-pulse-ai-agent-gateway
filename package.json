@@ -12,7 +12,9 @@
     "prebuild": "./check-before-build.sh"
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^7.1.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.98.4",
     "@tailwindcss/vite": "^4.3.3",
     "bs58": "^6.0.0",

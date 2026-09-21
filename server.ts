@@ -14,6 +14,8 @@ import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { meterCall, meterMiddleware } from "./meter";
 import { z } from "zod";
 
 async function startServer() {
@@ -23,6 +25,7 @@ async function startServer() {
   await ensureSchema();
   const app = express();
   app.set('trust proxy', 1);
+  console.log("startup: trust proxy =", app.get("trust proxy"));
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
@@ -89,8 +92,10 @@ async function startServer() {
 
   const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 
-  // Hybrid Payment Middleware (Supports API Key Balance OR Transaction Signature)
-  const requirePayment = (minLamports: number) => (req: any, res: any, next: any) => {
+  const requirePayment = (min: number) => meterMiddleware(min, GATEWAY_WALLET);
+
+  // Legacy hybrid middleware (unused, kept for reference)
+  const requirePaymentLegacy = (minLamports: number) => (req: any, res: any, next: any) => {
     (async () => {
       const apiKey = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
       const txSignature = req.headers["x-payment-signature"] as string | undefined;
@@ -209,7 +214,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/balance", noCache, async (req, res) => {
+  app.get("/api/solana/balance", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -222,7 +227,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/blockhash", noCache, async (req, res) => {
+  app.get("/api/solana/blockhash", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const network = (req.query.network as string) || 'mainnet-beta';
@@ -609,7 +614,19 @@ async function startServer() {
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
+  const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
+  const rawTool = (mcpServer as any).tool.bind(mcpServer);
+  (mcpServer as any).tool = (name: string, ...rest: any[]) => {
+    const handler = rest.pop();
+    return rawTool(name, ...rest, async (...args: any[]) => {
+      const m = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
+      if (!m.ok) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error, priceLamports: m.priceLamports, payTo: GATEWAY_WALLET, note: "Free tier used up. Send x-api-key with credits." }) }], isError: true };
+      }
+      return handler(...args);
+    });
+  };
 
   mcpServer.tool("get_solana_balance", "Get the SOL balance of any wallet address", {
     wallet: z.string(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
@@ -697,13 +714,16 @@ async function startServer() {
     }
   });
 
+    return mcpServer;
+  };
+
   const transports = new Map<string, SSEServerTransport>();
 
   app.get("/mcp/sse", async (req, res) => {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     transports.set(sessionId, transport);
-    await mcpServer.connect(transport);
+    await createMcpServer({ apiKey: (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined, ip: req.ip || "unknown" }).connect(transport);
     res.on("close", () => transports.delete(sessionId));
   });
 
@@ -715,6 +735,21 @@ async function startServer() {
     else res.status(404).json({ error: "MCP SSE Session not found" });
   });
 
+  app.post("/mcp", express.json(), async (req, res) => {
+    const server = createMcpServer({ apiKey: (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined, ip: req.ip || "unknown" });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    res.on("close", () => { transport.close(); server.close(); });
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (err) {
+      if (!res.headersSent) res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: null });
+    }
+  });
+  app.get("/mcp", (req, res) => res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null }));
+  app.delete("/mcp", (req, res) => res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null }));
+
+  app.get("/api/debug/ip", noCache, (req, res) => res.json({ ip: req.ip, xff: req.headers["x-forwarded-for"] || null, trustProxy: app.get("trust proxy") }));
   app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
     res.json({

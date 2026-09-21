@@ -9,3 +9,6 @@ updated/secrets.json
 .env
 secrets.json
 updated/secrets.json
+*.bak.*
+secrets.json.enc
+updated/secrets.json.enc
