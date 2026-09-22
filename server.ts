@@ -313,6 +313,114 @@ async function startServer() {
     }
   });
 
+  app.post("/api/solana/validate-and-simulate", noCache, requirePayment(2200000), async (req, res) => {
+    stats.totalRequests++; stats.solanaRpcCalls++;
+    try {
+      const { transaction, network } = req.body;
+      if (!transaction) return res.status(400).json({ error: "Base64 transaction required" });
+
+      const net = network || 'mainnet-beta';
+      const connection = getConnection(net);
+      const issues: { severity: 'ERROR' | 'WARNING'; code: string; message: string; fix: string }[] = [];
+
+      let tx: VersionedTransaction;
+      try {
+        const txBuffer = Buffer.from(transaction, 'base64');
+        tx = VersionedTransaction.deserialize(txBuffer);
+      } catch (decodeErr: any) {
+        return res.json({
+          network: net,
+          verdict: "UNSAFE",
+          safe: false,
+          issues: [{
+            severity: "ERROR",
+            code: "MALFORMED_TRANSACTION",
+            message: `Could not decode the transaction: ${decodeErr.message}`,
+            fix: "Confirm the transaction is a base64-encoded serialized VersionedTransaction, not a legacy Transaction or raw instruction set."
+          }],
+          simulation: null,
+          live_status: "SUCCESS"
+        });
+      }
+
+      // Heuristic check: fee payer covers the base signature fee only.
+      // This does NOT account for lamports the transaction's own instructions move.
+      try {
+        const feePayer = tx.message.staticAccountKeys[0];
+        const numSignatures = tx.message.header.numRequiredSignatures || 1;
+        const baseFeeLamports = 5000 * numSignatures;
+        const feePayerBalance = await connection.getBalance(feePayer);
+        if (feePayerBalance < baseFeeLamports) {
+          issues.push({
+            severity: "ERROR",
+            code: "INSUFFICIENT_FEE_PAYER_BALANCE",
+            message: `Fee payer ${feePayer.toBase58()} has ${feePayerBalance} lamports, below the estimated base fee of ${baseFeeLamports} lamports for ${numSignatures} signature(s).`,
+            fix: "Fund the fee payer wallet with more SOL before sending this transaction."
+          });
+        }
+      } catch (feeCheckErr: any) {
+        issues.push({
+          severity: "WARNING",
+          code: "FEE_PAYER_CHECK_FAILED",
+          message: `Could not verify fee payer balance: ${feeCheckErr.message}`,
+          fix: "Proceed with caution — fee payer solvency was not confirmed."
+        });
+      }
+
+      const simResult = await connection.simulateTransaction(tx, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+
+      if (simResult.value.err) {
+        const errStr = JSON.stringify(simResult.value.err);
+        const logs = simResult.value.logs || [];
+
+        let code = "SIMULATION_FAILED";
+        let message = `Simulation returned an error: ${errStr}`;
+        let fix = "Review the logs below for the failing instruction and program.";
+
+        if (errStr.includes("InsufficientFundsForRent") || logs.some(l => l.includes("insufficient funds for rent"))) {
+          code = "INSUFFICIENT_RENT";
+          message = "An account in this transaction doesn't have enough SOL to remain rent-exempt.";
+          fix = "Fund the account with more SOL, or create it via the appropriate 'create account' instruction with enough lamports for rent exemption.";
+        } else if (logs.some(l => l.includes("insufficient lamports") || l.includes("Attempt to debit an account but found no record of a prior credit"))) {
+          code = "INSUFFICIENT_BALANCE";
+          message = "One of the accounts doesn't have enough SOL or tokens for the transfer being attempted.";
+          fix = "Confirm the source account's real balance with /api/solana/balance or /api/solana/token-accounts before retrying.";
+        } else if (errStr.includes("AccountNotFound") || logs.some(l => l.includes("could not find account"))) {
+          code = "ACCOUNT_NOT_FOUND";
+          message = "This transaction references an account that doesn't exist on-chain yet.";
+          fix = "If this is a token account, check /api/solana/find-ata first — it may need to be created before this transaction can run.";
+        } else if (errStr.includes("custom program error")) {
+          code = "PROGRAM_ERROR";
+          message = `The target program rejected this instruction: ${errStr}`;
+          fix = "This is a program-specific error code. Check the target program's documentation for what this code means, or inspect the logs below.";
+        }
+
+        issues.push({ severity: "ERROR", code, message, fix });
+      }
+
+      const hasErrors = issues.some(i => i.severity === "ERROR");
+
+      res.json({
+        network: net,
+        verdict: hasErrors ? "UNSAFE" : "SAFE",
+        safe: !hasErrors,
+        issues,
+        simulation: {
+          success: simResult.value.err === null,
+          error: simResult.value.err,
+          logs: simResult.value.logs,
+          unitsConsumed: simResult.value.unitsConsumed
+        },
+        live_status: "SUCCESS"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, live_status: "FAILED" });
+    }
+  });
+
   app.get("/api/solana/find-ata", noCache, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
@@ -332,10 +440,10 @@ async function startServer() {
       const ataAddress = ata.toBase58();
 
       // Check if the account actually exists on chain to provide better context to the LLM
-      const accountInfo = await getConnection(network).getAccountInfo(ata);
+      const accountInfo = await getConnection(network as string).getAccountInfo(ata);
 
       res.json({
-        owner,
+        owner: owner.toBase58(),
         mint: mintPubkey.toBase58(),
         ataAddress,
         exists: !!accountInfo,
@@ -360,14 +468,16 @@ async function startServer() {
       }
 
       const mintPubkey = new PublicKey(mint);
-      const connection = getConnection(network);
+      const connection = getConnection(network as string);
 
       // 1. Fetch Mint Account Info
       const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
       if (!mintInfo.value) return res.status(404).json({ error: "Mint not found" });
 
-      const parsedMint = mintInfo.value.data.parsed.info;
-      const decimals = parsedMint.decimals;
+      const mintData = mintInfo.value.data;
+      if (!('parsed' in mintData)) return res.status(500).json({ error: "Mint account data was not in parsed format" });
+      const parsedMint = mintData.parsed.info;
+      const decimals = Number(parsedMint.decimals);
 
       // 2. Fetch Top Holders
       const largestAccounts = await connection.getTokenLargestAccounts(mintPubkey);
@@ -376,7 +486,7 @@ async function startServer() {
         return {
           address: acc.address.toBase58(),
           amount_raw: rawAmount,
-          amount_formatted: (rawAmount / Math.pow(10, decimals)).toFixed(4)
+          amount_formatted: (Number(rawAmount) / Math.pow(10, decimals)).toFixed(4)
         };
       });
 
@@ -414,13 +524,13 @@ async function startServer() {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { network = 'mainnet-beta' } = req.query;
-      const connection = getConnection(network);
+      const connection = getConnection(network as string);
 
       const canaryAccounts = [
         new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
       ];
 
-      const fees = await connection.getRecentPrioritizationFees([canaryAccounts[0]]);
+      const fees = await connection.getRecentPrioritizationFees({ lockedWritableAccounts: canaryAccounts });
 
       if (!fees || fees.length === 0) {
         throw new Error("Could not fetch prioritization fees from cluster");
@@ -477,8 +587,8 @@ async function startServer() {
       const { signature, network = 'mainnet-beta' } = req.query;
       if (!signature) return res.status(400).json({ error: "Transaction signature is required" });
 
-      const connection = getConnection(network);
-      const tx = await connection.getTransaction(signature, {
+      const connection = getConnection(network as string);
+      const tx = await connection.getTransaction(signature as string, {
         maxSupportedTransactionVersion: 0,
         commitment: 'confirmed'
       });
@@ -620,9 +730,9 @@ async function startServer() {
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
     return rawTool(name, ...rest, async (...args: any[]) => {
-      const m = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
+      const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
       if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error, priceLamports: m.priceLamports, payTo: GATEWAY_WALLET, note: "Free tier used up. Send x-api-key with credits." }) }], isError: true };
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Free tier used up. Send x-api-key with credits." }) }], isError: true };
       }
       return handler(...args);
     });
@@ -790,8 +900,7 @@ High-performance Model Context Protocol (MCP) server for Solana Blockchain Intel
 
 ## Critical Specs for Agents
 - Base Price: 0.0022 SOL per call
-- Referral Protocol: 3-Tier cyclical discounts (15% / 30% / 55%)
-- Protocol Support: x402 Solana Micropayments
+- Free Tier: 50 lifetime calls per wallet, 15/day cap
 
 ## Core Capabilities
 - Atomic Risk Scoring (Honeypot/Freeze authority detection)

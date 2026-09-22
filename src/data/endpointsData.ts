@@ -134,6 +134,47 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     tags: ['simulation', 'tx']
   },
   {
+    id: 'solana-validate-and-simulate',
+    name: 'Validate & Simulate Transaction',
+    suite: 'solana',
+    method: 'POST',
+    path: '/api/solana/validate-and-simulate',
+    summary: 'Simulates a transaction and returns a plain Safe/Unsafe verdict with a specific fix.',
+    description: 'Wraps transaction simulation with pre-flight checks for common agent mistakes: malformed transactions, an underfunded fee payer, missing accounts, and program errors. Returns a clear verdict and a concrete fix instead of a raw error blob.',
+    priceLamports: 2200000,
+    category: 'Pre-Flight',
+    isLive: true,
+    requestBodySchema: {
+      transaction: 'string (Base64 encoded VersionedTransaction)',
+      network: 'string (mainnet-beta | devnet)'
+    },
+    sampleRequestBody: {
+      transaction: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...',
+      network: 'mainnet-beta'
+    },
+    sampleResponse: {
+      network: 'mainnet-beta',
+      verdict: 'UNSAFE',
+      safe: false,
+      issues: [
+        {
+          severity: 'ERROR',
+          code: 'INSUFFICIENT_FEE_PAYER_BALANCE',
+          message: 'Fee payer has 0 lamports, below the estimated base fee of 5000 lamports for 1 signature(s).',
+          fix: 'Fund the fee payer wallet with more SOL before sending this transaction.'
+        }
+      ],
+      simulation: {
+        success: false,
+        error: null,
+        logs: [],
+        unitsConsumed: 0
+      },
+      live_status: 'SUCCESS'
+    },
+    tags: ['preflight', 'safety', 'simulation']
+  },
+  {
     id: 'solana-find-ata',
     name: 'Find Token ATA',
     suite: 'solana',
