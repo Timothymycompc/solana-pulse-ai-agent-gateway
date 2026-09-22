@@ -615,6 +615,16 @@ async function startServer() {
         category = "Transfer";
       }
 
+      const accountKeys = tx.transaction.message.staticAccountKeys.map(k => k.toBase58());
+      const preBalances = tx.meta?.preBalances || [];
+      const postBalances = tx.meta?.postBalances || [];
+      const balanceChanges = accountKeys.map((address, i) => {
+        const before = preBalances[i] ?? 0;
+        const after = postBalances[i] ?? 0;
+        const deltaLamports = after - before;
+        return { address, deltaLamports, deltaSol: deltaLamports / 1e9 };
+      }).filter(c => c.deltaLamports !== 0);
+
       res.json({
         signature,
         network,
@@ -626,6 +636,7 @@ async function startServer() {
           timestamp: tx.blockTime,
           status: tx.meta?.err === null ? "SUCCESS" : "FAILED"
         },
+        balance_changes: balanceChanges,
         raw_logs: logs,
         llm_context: `This transaction was a ${category}. ${summary} The transaction ${tx.meta?.err === null ? 'succeeded' : 'failed'}.`,
         live_status: "SUCCESS"
