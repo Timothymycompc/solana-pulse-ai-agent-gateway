@@ -1,0 +1,10 @@
+nohup: ignoring input
+2026/09/22 04:36:03 Authorizing with Application Default Credentials
+2026/09/22 04:36:04 [x300-506418:us-central1:solana-pulse-db] Listening on 127.0.0.1:5433
+2026/09/22 04:36:04 The proxy has started successfully and is ready for new connections!
+2026/09/22 04:36:45 [x300-506418:us-central1:solana-pulse-db] Accepted connection from 127.0.0.1:53984
+2026/09/22 04:36:45 [x300-506418:us-central1:solana-pulse-db] client closed the connection
+2026/09/22 04:39:14 [x300-506418:us-central1:solana-pulse-db] Accepted connection from 127.0.0.1:36322
+2026/09/22 04:39:15 [x300-506418:us-central1:solana-pulse-db] client closed the connection
+2026/09/22 04:59:40 [x300-506418:us-central1:solana-pulse-db] Accepted connection from 127.0.0.1:36178
+2026/09/22 04:59:40 [x300-506418:us-central1:solana-pulse-db] client closed the connection

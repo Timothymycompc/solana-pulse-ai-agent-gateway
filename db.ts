@@ -50,17 +50,8 @@ export async function consumePayment(txSignature: string, minLamports: number = 
 }
 
 export async function ensureSchema() {
-  await pool.query(`
-    ALTER TABLE api_keys ADD CONSTRAINT unique_wallet UNIQUE (wallet_address);
-  `).catch(err => {
-    if (err.code !== '42P07' && err.code !== '42501') throw err; // Ignore if constraint already exists (duplicate_object)
-  });
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS pending_claims (
-      wallet_address VARCHAR(44) PRIMARY KEY,
-      plaintext_key TEXT NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-  `);
+  // NOTE: api_keys / pending_claims / payments tables no longer exist in production
+  // (superseded by the wallets / used_wallet_signatures schema). This function is now
+  // a no-op placeholder until the metering/payment code is migrated to that schema.
+  return;
 }
