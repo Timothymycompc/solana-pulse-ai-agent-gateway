@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import type { Request, Response, NextFunction } from "express";
-import { pool, isPaymentAlreadyUsed, consumePayment } from "./db";
+import { pool, logCall } from "./db";
 
 export const FREE_CALLS_PER_YEAR = Number(process.env.FREE_CALLS_PER_YEAR) || 110;
 
@@ -44,53 +44,51 @@ async function takeFree(subject: string): Promise<number | null> {
   return r.rowCount ? FREE_CALLS_PER_YEAR - r.rows[0].calls : null;
 }
 
-const PRICE_SQL = `floor($1::numeric * (CASE COALESCE(discount_tier, 0) WHEN 1 THEN 0.85 WHEN 2 THEN 0.70 WHEN 3 THEN 0.45 ELSE 1 END))::bigint`;
-async function takeCredits(apiKey: string, price: number) {
+async function takeCredit(apiKey: string): Promise<{ address: string; paid_credits: number } | null> {
   const keyHash = createHash("sha256").update(apiKey).digest("hex");
   const r = await pool.query(
-    `UPDATE api_keys
-     SET credit_balance_lamports = credit_balance_lamports - ${PRICE_SQL}, updated_at = NOW()
-     WHERE key_hash = $2 AND is_active = TRUE AND credit_balance_lamports >= ${PRICE_SQL}
-     RETURNING wallet_address, credit_balance_lamports`,
-    [price, keyHash]
+    `UPDATE wallets
+     SET paid_credits = paid_credits - 1, total_calls_made = total_calls_made + 1, last_active_at = NOW()
+     WHERE key_hash = $1 AND is_active = TRUE AND paid_credits > 0
+     RETURNING address, paid_credits`,
+    [keyHash]
   );
   return r.rowCount ? r.rows[0] : null;
 }
 
 export type MeterOutcome =
-  | { ok: true; via: "free" | "credits" | "signature"; freeRemaining?: number; balance?: string; wallet?: string }
+  | { ok: true; via: "free" | "credits"; freeRemaining?: number; creditsRemaining?: number; wallet?: string }
   | { ok: false; status: 402 | 503; error: string; priceLamports: number };
 
-export async function meterCall(o: { apiKey?: string; txSignature?: string; ip: string; priceLamports: number }): Promise<MeterOutcome> {
-  const price = o.priceLamports;
+export async function meterCall(o: { apiKey?: string; ip: string; priceLamports: number }): Promise<MeterOutcome> {
   try {
     const left = await takeFree(subjectFor(o.ip));
     if (left !== null) return { ok: true, via: "free", freeRemaining: left };
   } catch (e) { console.error("free-tier error:", e); }
+
   try {
     if (o.apiKey && typeof o.apiKey === "string") {
-      const row = await takeCredits(o.apiKey, price);
-      if (row) return { ok: true, via: "credits", balance: String(row.credit_balance_lamports), wallet: row.wallet_address };
-    }
-    if (o.txSignature && typeof o.txSignature === "string") {
-      if (!(await isPaymentAlreadyUsed(o.txSignature)) && (await consumePayment(o.txSignature, price))) return { ok: true, via: "signature" };
+      const row = await takeCredit(o.apiKey);
+      if (row) return { ok: true, via: "credits", creditsRemaining: row.paid_credits, wallet: row.address };
     }
   } catch (e) {
     console.error("billing error:", e);
-    return { ok: false, status: 503, error: "Billing temporarily unavailable", priceLamports: price };
+    return { ok: false, status: 503, error: "Billing temporarily unavailable", priceLamports: o.priceLamports };
   }
-  return { ok: false, status: 402, error: "Payment required", priceLamports: price };
+
+  return { ok: false, status: 402, error: "Payment required", priceLamports: o.priceLamports };
 }
 
 export function meterMiddleware(price: number, payTo: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
-    const m = await meterCall({ apiKey, txSignature: req.headers["x-payment-signature"] as string | undefined, ip: req.ip || "unknown", priceLamports: price });
+    const m = await meterCall({ apiKey, ip: req.ip || "unknown", priceLamports: price });
     if (m.ok) {
       res.setHeader("Access-Control-Expose-Headers", "x-free-calls-remaining, x-credits-remaining");
       if (m.freeRemaining !== undefined) res.setHeader("x-free-calls-remaining", String(m.freeRemaining));
-      if (m.balance) res.setHeader("x-credits-remaining", m.balance);
-      (req as any).user = { wallet: m.wallet, remainingBalance: m.balance };
+      if (m.creditsRemaining !== undefined) res.setHeader("x-credits-remaining", String(m.creditsRemaining));
+      (req as any).user = { wallet: m.wallet };
+      logCall({ wallet: m.wallet || null, endpoint: req.path, method: req.method, priceCredits: m.via === "credits" ? 1 : 0, via: m.via });
       return next();
     }
     const f = m as any;
@@ -98,7 +96,7 @@ export function meterMiddleware(price: number, payTo: string) {
       error: f.error,
       priceLamports: f.priceLamports,
       freeCallsPerYear: FREE_CALLS_PER_YEAR,
-      instructions: `Free tier used up. Pass header 'x-api-key: <key>' with sufficient balance. To top up, send SOL to ${payTo} and claim your key.`,
+      instructions: `Free tier used up. Pass header 'x-api-key: <key>' with credits remaining. Log in with your wallet at /api/auth/login to get a key and top up by sending SOL to ${payTo}.`,
       payTo,
     });
   };

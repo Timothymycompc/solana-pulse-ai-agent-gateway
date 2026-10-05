@@ -9,7 +9,7 @@ import fs from "fs";
 import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { pool, isPaymentAlreadyUsed, recordPayment, consumePayment, ensureSchema } from "./db";
+import { pool, ensureSchema, recordProcessedPayment } from "./db";
 import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -33,9 +33,49 @@ async function startServer() {
     verify: (req: any, res, buf) => { req.rawBody = buf; }
   }));
 
+  // ---- Free tier (raw RPC data layer) ----
+  const FREE_PATHS = new Set([
+    "/api/solana/balance",
+    "/api/solana/blockhash",
+    "/api/solana/token-accounts",
+    "/api/solana/transactions",
+    "/api/solana/find-ata",
+    "/api/claim/deposit-info",
+    "/api/payments/status",
+  ]);
+
+  const FREE_REQUESTS_PER_MINUTE = 60;
+  const freeLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: FREE_REQUESTS_PER_MINUTE,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Free tier rate limit reached (" + FREE_REQUESTS_PER_MINUTE + " requests per minute). Slow down or retry shortly." }
+  });
+
+  const claimLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests to the claim endpoints (30 per minute). Please wait a moment." }
+  });
+
+  const freeTtlCache = new Map<string, { at: number; value: any }>();
+  const getWithTtl = async <T,>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<{ value: T; hit: boolean; ageMs: number }> => {
+    const now = Date.now();
+    const entry = freeTtlCache.get(key);
+    if (entry && now - entry.at < ttlMs) return { value: entry.value as T, hit: true, ageMs: now - entry.at };
+    const value = await fn();
+    freeTtlCache.set(key, { at: now, value });
+    if (freeTtlCache.size > 2000) freeTtlCache.clear();
+    return { value, hit: false, ageMs: 0 };
+  };
+
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
+    skip: (req: any) => FREE_PATHS.has(String(req.originalUrl).split("?")[0]),
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests, please try again later." }
@@ -43,36 +83,6 @@ async function startServer() {
 
   app.use("/api/", apiLimiter);
   app.use("/mcp/", apiLimiter);
-
-  // Autonomous Referral & Tier Upgrade Middleware
-  app.use(async (req: any, res, next) => {
-    const referrerTag = req.headers["x-agent-referrer"] || req.query.ref;
-    if (referrerTag && typeof referrerTag === "string") {
-      try {
-        // Increment leads and check for tier upgrade
-        const update = await pool.query(
-          `UPDATE api_keys 
-           SET leads_count = leads_count + 1,
-               discount_tier = CASE 
-                 WHEN leads_count + 1 >= 8500 THEN 3
-                 WHEN leads_count + 1 >= 3500 THEN 2
-                 WHEN leads_count + 1 >= 1000 THEN 1
-                 ELSE discount_tier
-               END
-           WHERE wallet_address = $1 OR key_hash = $1
-           RETURNING discount_tier, leads_count`,
-          [referrerTag]
-        );
-        if (update.rowCount && update.rowCount > 0) {
-          // Log discovery event to internal stats
-          console.log(`Lead detected for ${referrerTag}. Tier: ${update.rows[0].discount_tier}`);
-        }
-      } catch (err) {
-        console.error("Referral tracking error:", err);
-      }
-    }
-    next();
-  });
 
   const stats = { totalRequests: 0, solanaRpcCalls: 0 };
 
@@ -94,127 +104,129 @@ async function startServer() {
 
   const requirePayment = (min: number) => meterMiddleware(min, GATEWAY_WALLET);
 
-  // Legacy hybrid middleware (unused, kept for reference)
-  const requirePaymentLegacy = (minLamports: number) => (req: any, res: any, next: any) => {
-    (async () => {
-      const apiKey = req.headers["x-api-key"] || req.headers["authorization"]?.replace("Bearer ", "");
-      const txSignature = req.headers["x-payment-signature"] as string | undefined;
-
-      try {
-        // Path A: API Key Balance Deduction
-        if (apiKey && typeof apiKey === "string") {
-          const keyHash = createHash('sha256').update(apiKey).digest('hex');
-
-            // 1. Look up user tier and current balance
-            const userLookup = await pool.query(
-              "SELECT discount_tier, wallet_address, credit_balance_lamports FROM api_keys WHERE key_hash = $1 AND is_active = TRUE",
-              [keyHash]
-            );
-
-            if (userLookup.rowCount && userLookup.rowCount > 0) {
-              const user = userLookup.rows[0];
-              const tier = user.discount_tier || 0;
-              let discountMultiplier = 1.0;
-              
-              if (tier === 1) discountMultiplier = 0.85; // 15% off
-              else if (tier === 2) discountMultiplier = 0.70; // 30% off
-              else if (tier === 3) discountMultiplier = 0.45; // 55% off
-
-              const effectivePrice = Math.floor(minLamports * discountMultiplier);
-
-              // 2. Check if user has enough for the discounted price
-              if (user.credit_balance_lamports < effectivePrice) {
-                return res.status(402).json({ 
-                  error: "Insufficient balance", 
-                  requiredLamports: effectivePrice,
-                  currentBalance: user.credit_balance_lamports
-                });
-              }
-
-              // 3. Deduct the correct amount
-              const updateQuery = `
-                UPDATE api_keys
-                SET credit_balance_lamports = credit_balance_lamports - $1, updated_at = NOW()
-                WHERE key_hash = $2
-                RETURNING wallet_address, credit_balance_lamports;
-              `;
-              
-              const result = await pool.query(updateQuery, [effectivePrice, keyHash]);
-            if (result.rowCount && result.rowCount > 0) {
-              req.user = {
-                wallet: result.rows[0].wallet_address,
-                remainingBalance: result.rows[0].credit_balance_lamports,
-              };
-              return next();
-            }
-          }
-        }
-
-        // Path B: Transaction Signature Verification (One-off payment)
-        if (txSignature && typeof txSignature === "string") {
-          const alreadyUsed = await isPaymentAlreadyUsed(txSignature);
-          if (!alreadyUsed) {
-            // This assumes the tx was recorded as 'verified' by the webhook or a separate check
-            const consumed = await consumePayment(txSignature, minLamports);
-            if (consumed) {
-              return next();
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Payment verification internal error:", err);
-      }
-
-      // If payment method failed
-      return res.status(402).json({
-        error: "Payment required",
-        priceLamports: minLamports,
-        instructions: `Pass header 'x-api-key: <key>' with sufficient balance. To top up, send SOL to ${GATEWAY_WALLET} and claim your key.`,
-        payTo: GATEWAY_WALLET
-      });
-    })().catch(next);
-  };
+  const PRICE_PER_CALL_LAMPORTS = 2200000;
 
   // ==========================================
   // 1. SOLANA CORE API ENDPOINTS
   // ==========================================
 
-  app.get("/api/keys/challenge", noCache, (req, res) => {
-    const challenge = randomBytes(32).toString('hex');
-    res.json({ challenge });
+  app.get("/api/auth/challenge", noCache, (req, res) => {
+    const nonce = randomBytes(16).toString('hex');
+    const timestamp = Date.now();
+    const message = `Sign in to Solana Pulse\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+    res.json({ message });
   });
 
-  app.post("/api/keys/claim", noCache, async (req, res) => {
+  app.post("/api/auth/login", noCache, async (req, res) => {
     try {
-      const { wallet, signature, challenge } = req.body;
-      if (!wallet || !signature || !challenge) return res.status(400).json({ error: "wallet, signature, and challenge are required" });
+      const { wallet, signature, message } = req.body;
+      if (!wallet || !signature || !message) return res.status(400).json({ error: "wallet, signature, and message are required" });
 
-      // Verify signature
+      const tsMatch = /Timestamp: (\d+)/.exec(message);
+      if (!tsMatch) return res.status(400).json({ error: "Malformed message: missing timestamp" });
+      const timestamp = Number(tsMatch[1]);
+      if (!Number.isFinite(timestamp) || Date.now() - timestamp > 5 * 60 * 1000) {
+        return res.status(401).json({ error: "Challenge expired. Request a new one from /api/auth/challenge." });
+      }
+
       const pubKey = new PublicKey(wallet).toBuffer();
       const sig = bs58.decode(signature);
-      const msg = Buffer.from(challenge);
-
+      const msg = Buffer.from(message);
       const isValid = nacl.sign.detached.verify(msg, sig, pubKey);
       if (!isValid) return res.status(401).json({ error: "Invalid signature" });
 
-      // Retrieve and delete pending key
-      const result = await pool.query(
-        `DELETE FROM pending_claims WHERE wallet_address = $1 RETURNING plaintext_key`,
-        [wallet]
+      const replayCheck = await pool.query(
+        `INSERT INTO used_wallet_signatures (wallet_address, timestamp_used) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING wallet_address`,
+        [wallet, timestamp]
       );
+      if ((replayCheck.rowCount ?? 0) === 0) {
+        return res.status(401).json({ error: "This signed message has already been used. Request a new challenge." });
+      }
 
-      if (result.rowCount === 0) return res.status(404).json({ error: "No pending key found for this wallet. Please send SOL to top up." });
+      const apiKey = randomBytes(32).toString('hex');
+      const keyHash = createHash('sha256').update(apiKey).digest('hex');
+
+      const result = await pool.query(
+        `INSERT INTO wallets (address, key_hash, is_active, last_active_at)
+         VALUES ($1, $2, TRUE, NOW())
+         ON CONFLICT (address) DO UPDATE SET key_hash = $2, is_active = TRUE, last_active_at = NOW()
+         RETURNING paid_credits, display_name, email, profile_pic_url, total_calls_made`,
+        [wallet, keyHash]
+      );
+      const row = result.rows[0];
 
       res.json({
-        apiKey: result.rows[0].plaintext_key,
-        message: "Your secure API key has been claimed. Keep it secret!"
+        apiKey,
+        wallet,
+        paidCredits: row.paid_credits,
+        displayName: row.display_name,
+        email: row.email,
+        profilePicUrl: row.profile_pic_url,
+        totalCallsMade: row.total_calls_made,
+        message: "Logged in. This key is now active — logging in again issues a new key and invalidates this one."
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.get("/api/solana/balance", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/profile", noCache, async (req, res) => {
+    try {
+      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
+      const keyHash = createHash('sha256').update(apiKey).digest('hex');
+      const result = await pool.query(
+        `SELECT address, display_name, email, profile_pic_url, paid_credits, total_calls_made, total_paid_credits_ever, total_sol_received_lamports, created_at, last_active_at FROM wallets WHERE key_hash = $1 AND is_active = TRUE`,
+        [keyHash]
+      );
+      if (result.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/profile", noCache, async (req, res) => {
+    try {
+      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
+      const keyHash = createHash('sha256').update(apiKey).digest('hex');
+      const { displayName, email, profilePicUrl } = req.body;
+      const result = await pool.query(
+        `UPDATE wallets SET
+           display_name = COALESCE($1, display_name),
+           email = COALESCE($2, email),
+           profile_pic_url = COALESCE($3, profile_pic_url)
+         WHERE key_hash = $4 AND is_active = TRUE
+         RETURNING address, display_name, email, profile_pic_url`,
+        [displayName ?? null, email ?? null, profilePicUrl ?? null, keyHash]
+      );
+      if (result.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/calls/history", noCache, async (req, res) => {
+    try {
+      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
+      const keyHash = createHash('sha256').update(apiKey).digest('hex');
+      const walletLookup = await pool.query(`SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE`, [keyHash]);
+      if (walletLookup.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
+      const wallet = walletLookup.rows[0].address;
+      const history = await pool.query(
+        `SELECT endpoint, method, price_credits, via, created_at FROM call_history WHERE wallet_address = $1 ORDER BY created_at DESC LIMIT 100`,
+        [wallet]
+      );
+      res.json({ wallet, calls: history.rows });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/solana/balance", freeLimiter, noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -227,18 +239,19 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/blockhash", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/blockhash", freeLimiter, noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const network = (req.query.network as string) || 'mainnet-beta';
-      const blockhash = await getConnection(network).getLatestBlockhash('finalized');
-      res.json({ network, blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight, timestamp: Date.now(), live_status: "SUCCESS" });
+      const c = await getWithTtl("bh:" + network, 5000, () => getConnection(network).getLatestBlockhash('finalized'));
+      const blockhash = c.value;
+      res.json({ network, blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight, timestamp: Date.now(), cached: c.hit, cache_age_ms: c.ageMs, live_status: "SUCCESS" });
     } catch (err: any) {
       res.status(500).json({ error: err.message, live_status: "FAILED" });
     }
   });
 
-  app.get("/api/solana/token-accounts", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/token-accounts", freeLimiter, noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -268,7 +281,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/transactions", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/transactions", freeLimiter, noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -421,7 +434,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/solana/find-ata", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/find-ata", freeLimiter, noCache, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { wallet, mint, network = 'mainnet-beta' } = req.query;
@@ -650,6 +663,57 @@ async function startServer() {
   // 2. HELIUS WEBHOOK (Auto Top-up & Payments)
   // ==========================================
 
+  // ==========================================
+  // CLAIM PAGE SUPPORT (unmetered)
+  // ==========================================
+
+  // Placeholder deposit sizes, in calls. Each is an exact multiple of the price, so nothing is lost to rounding.
+  const DEPOSIT_OPTION_CALLS = [5, 25, 100, 500];
+
+  app.get("/api/claim/deposit-info", claimLimiter, noCache, (req, res) => {
+    res.json({
+      network: "mainnet-beta",
+      payout_address: GATEWAY_WALLET,
+      price_per_call_lamports: PRICE_PER_CALL_LAMPORTS,
+      price_per_call_sol: PRICE_PER_CALL_LAMPORTS / 1e9,
+      min_deposit_lamports: PRICE_PER_CALL_LAMPORTS,
+      deposit_options: DEPOSIT_OPTION_CALLS.map((calls) => ({
+        calls,
+        lamports: calls * PRICE_PER_CALL_LAMPORTS,
+        sol: (calls * PRICE_PER_CALL_LAMPORTS) / 1e9,
+      })),
+      free_calls_per_year: Number(process.env.FREE_CALLS_PER_YEAR) || 110,
+      note: "Credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples of the price. Send from the wallet you will sign in with."
+    });
+  });
+
+  const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+  app.get("/api/payments/status", claimLimiter, noCache, async (req, res) => {
+    try {
+      const wallet = String(req.query.wallet || "");
+      if (!SOLANA_ADDRESS_RE.test(wallet)) return res.status(400).json({ error: "Valid wallet address required" });
+      const result = await pool.query(
+        `SELECT total_paid_credits_ever, total_sol_received_lamports, first_paid_at, (key_hash IS NOT NULL) AS has_key FROM wallets WHERE address = $1`,
+        [wallet]
+      );
+      if (result.rowCount === 0) {
+        return res.json({ wallet, deposit_detected: false, total_credits_ever: 0, total_sol_received_lamports: 0, has_key: false, first_paid_at: null });
+      }
+      const row = result.rows[0];
+      res.json({
+        wallet,
+        deposit_detected: Number(row.total_paid_credits_ever) > 0,
+        total_credits_ever: Number(row.total_paid_credits_ever),
+        total_sol_received_lamports: Number(row.total_sol_received_lamports),
+        has_key: !!row.has_key,
+        first_paid_at: row.first_paid_at,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/payments/helius-webhook", async (req, res) => {
     try {
       const authHeader = req.headers["authorization"] as string | undefined;
@@ -659,9 +723,6 @@ async function startServer() {
 
       const authBuffer = Buffer.from(authHeader);
       const expectedBuffer = Buffer.from(expectedSecret);
-      console.log(`DEBUG: authHeader len: ${authBuffer.length}, expectedSecret len: ${expectedBuffer.length}`);
-      console.log(`DEBUG: authHeader: ${authHeader}`);
-      console.log(`DEBUG: expectedSecret: ${expectedSecret}`);
       const isValid = authBuffer.length === expectedBuffer.length &&
         timingSafeEqual(authBuffer, expectedBuffer);
 
@@ -685,42 +746,29 @@ async function startServer() {
         const payerWallet = paymentTransfer.fromUserAccount;
         const amountLamports = paymentTransfer.amount;
 
-        const alreadyUsed = await isPaymentAlreadyUsed(txSignature);
-        if (alreadyUsed) {
-          results.push({ txSignature, status: "duplicate_ignored" });
-          continue;
-        }
-
-        const inserted = await recordPayment({
+        const creditsToAdd = Math.floor(amountLamports / PRICE_PER_CALL_LAMPORTS);
+        const inserted = await recordProcessedPayment({
           txSignature,
           payerWallet,
           amountLamports,
-          network: "mainnet-beta"
+          creditsAdded: creditsToAdd
         });
 
-        // Auto-credit or create API key balance for the depositor
-        if (inserted) {
-          const placeholderKey = randomBytes(32).toString('hex');
-          const keyHash = createHash('sha256').update(placeholderKey).digest('hex');
-
+        if (inserted && creditsToAdd > 0) {
           await pool.query(
-            `INSERT INTO api_keys (key_hash, wallet_address, credit_balance_lamports)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (wallet_address)
-             DO UPDATE SET credit_balance_lamports = api_keys.credit_balance_lamports + $3, updated_at = NOW()`,
-            [keyHash, payerWallet, amountLamports]
-          );
-
-          // Store plaintext key for the user to claim
-          await pool.query(
-            `INSERT INTO pending_claims (wallet_address, plaintext_key)
-             VALUES ($1, $2)
-             ON CONFLICT (wallet_address) DO UPDATE SET plaintext_key = EXCLUDED.plaintext_key, created_at = NOW()`,
-            [payerWallet, placeholderKey]
+            `INSERT INTO wallets (address, paid_credits, total_paid_credits_ever, total_sol_received_lamports, first_paid_at, last_active_at)
+             VALUES ($1, $2, $2, $3, NOW(), NOW())
+             ON CONFLICT (address) DO UPDATE SET
+               paid_credits = wallets.paid_credits + $2,
+               total_paid_credits_ever = wallets.total_paid_credits_ever + $2,
+               total_sol_received_lamports = wallets.total_sol_received_lamports + $3,
+               first_paid_at = COALESCE(wallets.first_paid_at, NOW()),
+               last_active_at = NOW()`,
+            [payerWallet, creditsToAdd, amountLamports]
           );
         }
 
-        results.push({ txSignature, status: inserted ? "recorded" : "duplicate_race_ignored" });
+        results.push({ txSignature, status: inserted ? "recorded" : "duplicate_ignored", creditsAdded: inserted ? creditsToAdd : 0 });
       }
 
       res.json({ processed: results.length, results });
@@ -735,12 +783,15 @@ async function startServer() {
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
+  const FREE_TOOLS = new Set(["get_solana_balance", "get_solana_blockhash", "get_token_accounts", "get_recent_transactions"]);
+
   const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
   const rawTool = (mcpServer as any).tool.bind(mcpServer);
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
     return rawTool(name, ...rest, async (...args: any[]) => {
+      if (FREE_TOOLS.has(name)) return handler(...args);
       const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
       if (!m.ok) {
         return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Free tier used up. Send x-api-key with credits." }) }], isError: true };
