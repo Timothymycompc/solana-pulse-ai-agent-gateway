@@ -1,4 +1,5 @@
 import React from 'react';
+import { SecureWalletClaim } from './SecureWalletClaim';
 import { useApiGateway } from './sandbox/useApiGateway';
 import { SuiteOverview } from './sandbox/SuiteOverview';
 import { EndpointBrowser } from './sandbox/EndpointBrowser';
@@ -19,6 +20,14 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="w-full mb-6">
+        <SecureWalletClaim 
+          onCredentialsApplied={(apiKey, newHeaders) => {
+            // Merge the claimed headers into the sandbox's existing header state
+            actions.setAuthHeaders(newHeaders);
+          }} 
+        />
+      </div>
       <SuiteOverview
         selectedSuite={state.selectedSuite}
         setSelectedSuite={actions.setSelectedSuite}

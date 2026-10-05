@@ -6,7 +6,7 @@ interface EndpointBrowserProps {
   filteredEndpoints: ApiEndpoint[];
   selectedEndpoint: ApiEndpoint;
   selectedSuite: string;
-  setSelectedSuite: (suite: 'all' | 'solana' | 'mcp' | 'dataweave') => void;
+  setSelectedSuite: (suite: 'all' | 'safety' | 'intel' | 'free') => void;
   methodFilter: string;
   setMethodFilter: (method: 'all' | 'GET' | 'POST') => void;
   searchQuery: string;

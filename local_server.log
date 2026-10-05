@@ -1,0 +1,36 @@
+nohup: ignoring input
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+Error fetching secret DATABASE_URL from GSM: Error: GCP_PROJECT_ID environment variable is not set
+    at getSecret (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:88:13)
+    at loadSecrets (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:105:27)
+    at startServer (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:218:9)
+    at Object.<anonymous> (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:1019:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+Could not load DATABASE_URL from GSM, falling back to environment variable: Error: GCP_PROJECT_ID environment variable is not set
+    at getSecret (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:88:13)
+    at loadSecrets (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:105:27)
+    at startServer (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:218:9)
+    at Object.<anonymous> (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:1019:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+Error fetching secret HELIUS_WEBHOOK_SECRET from GSM: Error: GCP_PROJECT_ID environment variable is not set
+    at getSecret (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:88:13)
+    at loadSecrets (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:105:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async startServer (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:218:3)
+Could not load HELIUS_WEBHOOK_SECRET from GSM, falling back to environment variable: Error: GCP_PROJECT_ID environment variable is not set
+    at getSecret (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:88:13)
+    at loadSecrets (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:105:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async startServer (/home/timothymycompc/solana-pulse-ai-agent-gateway/dist/server.cjs:218:3)
+startup: trust proxy = 1
+Live Server running on port 3000

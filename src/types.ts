@@ -28,7 +28,7 @@ export interface ApiEndpoint {
   priceLamports?: number;
   defaultParams?: Record<string, any>;
   id: string;
-  suite: 'solana' | 'mcp' | 'dataweave';
+  suite: 'safety' | 'intel' | 'free';
   name: string;
   method: 'GET' | 'POST' | 'DELETE' | 'PUT';
   path: string;

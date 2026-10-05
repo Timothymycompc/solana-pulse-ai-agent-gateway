@@ -20,7 +20,8 @@ interface UseApiGatewayProps {
 }
 
 export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGatewayProps) => {
-  const [selectedSuite, setSelectedSuite] = useState<'all' | 'solana' | 'mcp' | 'dataweave'>('all');
+  const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
+  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(API_ENDPOINTS[0]);
@@ -175,7 +176,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const t0 = performance.now();
       const res = await fetch(fullUrl, {
         method: selectedEndpoint.method,
-        headers: selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        headers: { ...(selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : {}), ...authHeaders },
         body: selectedEndpoint.method === 'POST' ? requestBodyText : undefined
       });
       const liveDuration = Math.round(performance.now() - t0);
@@ -229,7 +230,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const t0 = performance.now();
       let status = 0;
       try {
-        const r = await fetch(url, ep.method === 'POST' ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' } : undefined);
+        const r = await fetch(url, ep.method === 'POST' ? { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders }, body: '{}' } : { headers: authHeaders });
         status = (r.headers.get('content-type') || '').includes('json') ? r.status : 404;
       } catch { status = 500; }
       const lat = Math.round(performance.now() - t0);
@@ -281,6 +282,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   return {
     state: {
       selectedSuite,
+      authHeaders,
       methodFilter,
       searchQuery,
       selectedEndpoint,
@@ -301,6 +303,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
     },
     actions: {
       setSelectedSuite,
+      setAuthHeaders,
       setMethodFilter,
       setSearchQuery,
       handleSelectEndpoint,

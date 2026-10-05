@@ -117,7 +117,44 @@ async function startServer() {
     res.json({ message });
   });
 
-  app.post("/api/auth/login", noCache, async (req, res) => {
+  
+// Resilient Base58 decoder for server.ts
+const B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const B58_MAP: Record<string, number> = {};
+for (let i = 0; i < B58_ALPHABET.length; i++) {
+  B58_MAP[B58_ALPHABET.charAt(i)] = i;
+}
+
+function safeBs58Decode(str: string): Uint8Array {
+  const b = bs58 as any;
+  if (typeof b?.decode === 'function') return b.decode(str);
+  if (typeof b?.default?.decode === 'function') return b.default.decode(str);
+  
+  // Pure JS fallback
+  if (!str || str.length === 0) return new Uint8Array(0);
+  const bytes = [0];
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (!(c in B58_MAP)) throw new Error("Invalid base58 character '" + c + "'");
+    let carry = B58_MAP[c];
+    for (let j = 0; j < bytes.length; j++) {
+      carry += bytes[j] * 58;
+      bytes[j] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  for (let i = 0; i < str.length && str[i] === '1'; i++) {
+    bytes.push(0);
+  }
+  return new Uint8Array(bytes.reverse());
+}
+
+
+app.post("/api/auth/login", noCache, async (req, res) => {
     try {
       const { wallet, signature, message } = req.body;
       if (!wallet || !signature || !message) return res.status(400).json({ error: "wallet, signature, and message are required" });
@@ -130,7 +167,7 @@ async function startServer() {
       }
 
       const pubKey = new PublicKey(wallet).toBuffer();
-      const sig = bs58.decode(signature);
+      const sig = safeBs58Decode(signature);
       const msg = Buffer.from(message);
       const isValid = nacl.sign.detached.verify(msg, sig, pubKey);
       if (!isValid) return res.status(401).json({ error: "Invalid signature" });
@@ -714,7 +751,40 @@ async function startServer() {
     }
   });
 
-  app.post("/api/payments/helius-webhook", async (req, res) => {
+  
+  // Wallet Claim Status Lookup Route
+  app.get("/api/wallets/claim-status", async (req, res) => {
+    try {
+      const address = req.query.address as string;
+      if (!address) {
+        return res.status(400).json({ error: "Wallet address parameter is required" });
+      }
+
+      const wallet = await pool.query(
+        "SELECT address, paid_credits, total_paid_credits_ever, total_sol_received_lamports, key_hash FROM wallets WHERE address = $1",
+        [address]
+      );
+
+      if (!wallet.rows.length) {
+        return res.status(404).json({ error: "No deposit record found for this wallet address." });
+      }
+
+      const record = wallet.rows[0];
+      return res.json({
+        address: record.address,
+        paidCredits: Number(record.paid_credits || 0),
+        totalPaidCreditsEver: Number(record.total_paid_credits_ever || 0),
+        totalSolReceivedLamports: Number(record.total_sol_received_lamports || 0),
+        hasKey: Boolean(record.key_hash)
+      });
+    } catch (err: any) {
+      console.error("Error fetching claim status:", err);
+      return res.status(500).json({ error: "Failed to query wallet claim status" });
+    }
+  });
+
+
+app.post("/api/payments/helius-webhook", async (req, res) => {
     try {
       const authHeader = req.headers["authorization"] as string | undefined;
       const expectedSecret = process.env.HELIUS_WEBHOOK_SECRET;
