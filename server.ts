@@ -753,6 +753,34 @@ app.post("/api/auth/login", noCache, async (req, res) => {
   });
 
   
+  // Verify a personal API key and the header it was sent in (free, read-only, never echoes the key)
+  app.get("/api/keys/verify", freeLimiter, noCache, async (req, res) => {
+    try {
+      const xKey = req.headers["x-api-key"] as string | undefined;
+      const authHdr = req.headers["authorization"]?.toString();
+      const apiKey = xKey || authHdr?.replace(/^Bearer\s+/i, "");
+      if (!apiKey) {
+        return res.status(401).json({ valid: false, error: "No key received. Send x-api-key: <key> or Authorization: Bearer <key>." });
+      }
+      const keyHash = createHash("sha256").update(apiKey).digest("hex");
+      const r = await pool.query(
+        "SELECT address, paid_credits, total_calls_made, is_active FROM wallets WHERE key_hash = $1",
+        [keyHash]
+      );
+      const row = r.rows[0];
+      return res.json({
+        valid: Boolean(row && row.is_active),
+        headerUsed: xKey ? "x-api-key" : "authorization",
+        address: row ? row.address : null,
+        paidCredits: row ? Number(row.paid_credits || 0) : 0,
+        totalCallsMade: row ? Number(row.total_calls_made || 0) : 0
+      });
+    } catch (err: any) {
+      console.error("Error in /api/keys/verify:", err);
+      return res.status(500).json({ error: "Failed to verify key" });
+    }
+  });
+
   // Free credits lookup (read-only, consumes nothing, never returns a key)
   app.get("/api/credits", freeLimiter, noCache, async (req, res) => {
     try {

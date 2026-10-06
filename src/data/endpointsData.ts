@@ -335,5 +335,130 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       hasWallet: true
     },
     tags: ['credits', 'balance']
+  },
+  {
+    id: 'claim-deposit-info',
+    name: 'Deposit Info',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/claim/deposit-info',
+    summary: 'Where to send SOL, the price per call, and deposit options.',
+    description: 'Returns the payout address, price per call in lamports and SOL, and preset deposit amounts. Credits are floor(deposit / price per call). Send from the wallet you will sign in with.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: {
+      network: 'mainnet-beta',
+      payout_address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      price_per_call_lamports: 2200000,
+      price_per_call_sol: 0.0022,
+      free_calls_per_year: 110
+    },
+    tags: ['claim', 'deposit']
+  },
+  {
+    id: 'claim-payment-status',
+    name: 'Payment Status',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/payments/status',
+    summary: 'Checks whether a deposit from a wallet has been detected.',
+    description: 'Shows whether the webhook has seen a deposit from this wallet, how many credits it earned, and whether a key has been issued yet.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [
+      { name: 'wallet', type: 'string', required: true, description: 'The wallet you deposited from (Base58)' }
+    ],
+    sampleResponse: {
+      wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      deposit_detected: false,
+      total_credits_ever: 0,
+      total_sol_received_lamports: 0,
+      has_key: false,
+      first_paid_at: null
+    },
+    tags: ['claim', 'payment']
+  },
+  {
+    id: 'auth-challenge',
+    name: 'Sign-in Challenge',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/auth/challenge',
+    summary: 'Gets a one-time message for your wallet to sign.',
+    description: 'Returns a message containing a nonce and timestamp. Sign it with your wallet, then submit the signature to /api/auth/login to receive a new personal API key. Challenges expire quickly and can only be used once.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: {
+      message: 'Sign in to Solana Pulse\nNonce: 9f2c0e1b7a4d4c3e8b1a6d5f2e7c9a10\nTimestamp: 1790000000000'
+    },
+    tags: ['auth', 'claim']
+  },
+  {
+    id: 'keys-verify',
+    name: 'Verify My Key',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/keys/verify',
+    summary: 'Tests your API key and headers without spending a call.',
+    description: 'Send your key as x-api-key or Authorization: Bearer. Reports whether it is valid, which header the server read, and your credits. Never returns the key itself. Claim a key above and it is attached automatically.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: {
+      valid: true,
+      headerUsed: 'x-api-key',
+      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      paidCredits: 4545,
+      totalCallsMade: 12
+    },
+    tags: ['keys', 'auth']
+  },
+  {
+    id: 'keys-profile',
+    name: 'My Profile',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/profile',
+    summary: 'Your wallet, credits and usage totals. Requires your key.',
+    description: 'Returns the account tied to your API key: credits left, total calls made, total credits ever bought. Needs x-api-key or Authorization: Bearer.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: {
+      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      display_name: null,
+      email: null,
+      paid_credits: 4545,
+      total_calls_made: 12,
+      total_paid_credits_ever: 4557
+    },
+    tags: ['keys', 'profile']
+  },
+  {
+    id: 'keys-call-history',
+    name: 'My Call History',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/calls/history',
+    summary: 'Your most recent calls and what each one cost. Requires your key.',
+    description: 'Lists your latest calls with endpoint, method, credits charged, and whether the call used a free or paid credit. Needs x-api-key or Authorization: Bearer.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: {
+      wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      calls: [
+        { endpoint: '/api/solana/validate-and-simulate', method: 'POST', price_credits: 1, via: 'paid', created_at: '2026-10-05T17:00:00.000Z' }
+      ]
+    },
+    tags: ['keys', 'history']
   }
 ];

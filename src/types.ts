@@ -28,7 +28,7 @@ export interface ApiEndpoint {
   priceLamports?: number;
   defaultParams?: Record<string, any>;
   id: string;
-  suite: 'safety' | 'intel' | 'free';
+  suite: 'safety' | 'intel' | 'free' | 'keys';
   name: string;
   method: 'GET' | 'POST' | 'DELETE' | 'PUT';
   path: string;

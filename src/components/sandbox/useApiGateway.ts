@@ -21,7 +21,7 @@ interface UseApiGatewayProps {
 
 export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGatewayProps) => {
   const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
-  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free'>('all');
+  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(API_ENDPOINTS[0]);
