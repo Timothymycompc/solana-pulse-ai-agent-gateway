@@ -12,6 +12,7 @@ import bs58 from "bs58";
 import { pool, ensureSchema, recordProcessedPayment } from "./db";
 import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
 import { makeAutofill } from "./resolver";
+import { lookupUser, saveDefaults, cleanDefaults } from "./userDefaults";
 import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -112,7 +113,7 @@ async function startServer() {
   // 1. SOLANA CORE API ENDPOINTS
   // ==========================================
 
-  const autofill = makeAutofill(getConnection);
+  const autofill = makeAutofill(getConnection, lookupUser);
 
   app.get("/api/auth/challenge", noCache, (req, res) => {
     const nonce = randomBytes(16).toString('hex');
@@ -280,7 +281,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/blockhash", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/solana/blockhash", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const network = (req.query.network as string) || 'mainnet-beta';
@@ -574,7 +575,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/optimal-fee", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/optimal-fee", noCache, autofill, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { network = 'mainnet-beta' } = req.query;
@@ -730,7 +731,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-  app.get("/api/payments/status", claimLimiter, noCache, async (req, res) => {
+  app.get("/api/payments/status", claimLimiter, noCache, autofill, async (req, res) => {
     try {
       const wallet = String(req.query.wallet || "");
       if (!SOLANA_ADDRESS_RE.test(wallet)) return res.status(400).json({ error: "Valid wallet address required" });
@@ -784,8 +785,46 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
+  // Per-key live defaults: what blank calls fill in with (signed-in wallets only)
+  const keyFromReq = (req: any) =>
+    (req.headers["x-api-key"] as string | undefined) || req.headers["authorization"]?.toString().replace(/^Bearer\s+/i, "");
+
+  app.get("/api/keys/defaults", freeLimiter, noCache, async (req, res) => {
+    try {
+      const k = keyFromReq(req);
+      if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
+      const user = await lookupUser(k);
+      if (!user) return res.status(401).json({ error: "Invalid or inactive API key" });
+      return res.json({
+        address: user.address,
+        defaults: user.defaults,
+        builtIn: { wallet: user.address, token: "USDC", signature: "latest Jupiter transaction", network: "mainnet-beta" }
+      });
+    } catch (err: any) {
+      console.error("Error in GET /api/keys/defaults:", err);
+      return res.status(500).json({ error: "Failed to load defaults" });
+    }
+  });
+
+  app.put("/api/keys/defaults", freeLimiter, noCache, express.json(), async (req, res) => {
+    try {
+      const k = keyFromReq(req);
+      if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
+      const user = await lookupUser(k);
+      if (!user) return res.status(401).json({ error: "Invalid or inactive API key" });
+      const { value, errors } = cleanDefaults(req.body);
+      if (errors.length) return res.status(400).json({ error: errors.join("; ") });
+      const saved = await saveDefaults(user.address, value);
+      if (!saved) return res.status(503).json({ error: "Saving defaults is not available right now." });
+      return res.json({ address: user.address, defaults: value });
+    } catch (err: any) {
+      console.error("Error in PUT /api/keys/defaults:", err);
+      return res.status(500).json({ error: "Failed to save defaults" });
+    }
+  });
+
   // Free credits lookup (read-only, consumes nothing, never returns a key)
-  app.get("/api/credits", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/credits", freeLimiter, noCache, autofill, async (req, res) => {
     try {
       const address = String(req.query.address || "").trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {

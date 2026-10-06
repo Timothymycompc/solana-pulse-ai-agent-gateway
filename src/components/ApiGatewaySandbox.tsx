@@ -1,3 +1,4 @@
+import { AccountPanel } from './AccountPanel';
 import { CreditsCheck } from './CreditsCheck';
 import React from 'react';
 import { SecureWalletClaim } from './SecureWalletClaim';
@@ -29,6 +30,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
           }} 
         />
       </div>
+      <div className="w-full mb-6"><AccountPanel authHeaders={state.authHeaders} /></div>
       <div className="w-full mb-6"><CreditsCheck /></div>
       <SuiteOverview
         selectedSuite={state.selectedSuite}

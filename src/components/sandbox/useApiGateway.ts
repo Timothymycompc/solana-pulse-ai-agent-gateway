@@ -188,7 +188,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const status = isJson ? res.status : 404;
       const hdrs: Record<string, string> = { 'content-type': ctype || 'unknown' };
       ['x-free-calls-remaining', 'x-credits-remaining'].forEach(h => { const v = res.headers.get(h); if (v !== null) hdrs[h] = v; });
-      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration, JSON.stringify(body).length);
+      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration, JSON.stringify(body).length); window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
         endpointId: selectedEndpoint.id, url: fullUrl, method: selectedEndpoint.method, status,
         latencyMs: liveDuration, timestamp: new Date().toLocaleTimeString(), headers: hdrs,
