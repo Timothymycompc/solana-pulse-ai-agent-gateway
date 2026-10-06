@@ -510,6 +510,10 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
+  const profileCache = new Map<string, { t: number; v: any }>();
+  const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timed out")), ms))]);
+
   app.get("/api/solana/token-profile", noCache, autofill, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
@@ -517,44 +521,55 @@ app.post("/api/auth/login", noCache, async (req, res) => {
       if (!mint) {
         return res.status(400).json({
           error: "Missing parameter",
-          hint: "The 'mint' address is required. Example: /api/solana/token-profile?mint=EPj...",
+          hint: "Pass a mint address, or a ticker such as ?symbol=BONK",
           live_status: "FAILED"
         });
       }
+      let mintPubkey: PublicKey;
+      try { mintPubkey = new PublicKey(String(mint)); }
+      catch { return res.status(400).json({ error: "That is not a valid mint address", live_status: "FAILED" }); }
 
-      const mintPubkey = new PublicKey(mint);
-      const connection = getConnection(network as string);
+      const net = String(network);
+      const cacheKey = net + ":" + mintPubkey.toBase58();
+      const hit = profileCache.get(cacheKey);
+      if (hit && Date.now() - hit.t < 60000) return res.json({ ...hit.v, cached: true });
 
-      // 1. Fetch Mint Account Info
-      const mintInfo = await connection.getParsedAccountInfo(mintPubkey);
-      if (!mintInfo.value) return res.status(404).json({ error: "Mint not found" });
+      const connection = getConnection(net);
+      const [mintInfo, largest] = await Promise.all([
+        withTimeout(connection.getParsedAccountInfo(mintPubkey), 8000),
+        withTimeout(connection.getTokenLargestAccounts(mintPubkey), 5000).catch((e: any) => ({ failed: String(e?.message || e) })),
+      ]);
 
-      const mintData = mintInfo.value.data;
-      if (!('parsed' in mintData)) return res.status(500).json({ error: "Mint account data was not in parsed format" });
+      if (!mintInfo.value) return res.status(404).json({ error: "Mint not found", live_status: "FAILED" });
+      const mintData: any = mintInfo.value.data;
+      if (!mintData || typeof mintData !== "object" || !mintData.parsed || mintData.parsed.type !== "mint") {
+        return res.status(422).json({ error: "This address exists but is not a token mint", live_status: "FAILED" });
+      }
       const parsedMint = mintData.parsed.info;
       const decimals = Number(parsedMint.decimals);
 
-      // 2. Fetch Top Holders
-      const largestAccounts = await connection.getTokenLargestAccounts(mintPubkey);
-      const holders = largestAccounts.value.map(acc => {
-        const rawAmount = acc.amount;
-        return {
+      let topHolders: any[] | null = null;
+      let topHoldersNote: string | undefined;
+      const largestValue = (largest as any).value;
+      if (largestValue) {
+        topHolders = largestValue.slice(0, 10).map((acc: any) => ({
           address: acc.address.toBase58(),
-          amount_raw: rawAmount,
-          amount_formatted: (Number(rawAmount) / Math.pow(10, decimals)).toFixed(4)
-        };
-      });
+          amount_raw: acc.amount,
+          amount_formatted: (Number(acc.amount) / Math.pow(10, decimals)).toFixed(4)
+        }));
+      } else {
+        topHoldersNote = "Top holders are unavailable right now because the RPC was slow or declined this heavy lookup. Everything else is live.";
+      }
 
-      // 3. Analyze Security Flags
       const freezeAuth = parsedMint.freezeAuthority;
       const mintAuth = parsedMint.mintAuthority;
       const isHoneypotRisk = freezeAuth !== null;
 
-      res.json({
+      const body = {
         mint: mintPubkey.toBase58(),
         decimals,
         supply_raw: parsedMint.supply,
-        supply_formatted: (parsedMint.supply / Math.pow(10, decimals)).toLocaleString(),
+        supply_formatted: (Number(parsedMint.supply) / Math.pow(10, decimals)).toLocaleString(),
         freezeAuthority: freezeAuth,
         mintAuthority: mintAuth,
         security: {
@@ -566,12 +581,19 @@ app.post("/api/auth/login", noCache, async (req, res) => {
             ? "HIGH RISK: Freeze authority is active. The developer can freeze any wallet's tokens."
             : "LOW RISK: No freeze authority detected."
         },
-        topHolders: holders.slice(0, 10),
-        network,
+        topHolders,
+        topHoldersNote,
+        network: net,
         live_status: "SUCCESS"
-      });
+      };
+      profileCache.set(cacheKey, { t: Date.now(), v: body });
+      res.json(body);
     } catch (err: any) {
-      res.status(500).json({ error: err.message, live_status: "FAILED" });
+      const slow = String(err?.message || "").includes("timed out");
+      res.status(slow ? 504 : 500).json({
+        error: slow ? "The Solana RPC was too slow to answer. Try again in a moment." : err.message,
+        live_status: "FAILED"
+      });
     }
   });
 
