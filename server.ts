@@ -11,6 +11,7 @@ import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { pool, ensureSchema, recordProcessedPayment } from "./db";
 import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
+import { makeAutofill } from "./resolver";
 import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -110,6 +111,8 @@ async function startServer() {
   // ==========================================
   // 1. SOLANA CORE API ENDPOINTS
   // ==========================================
+
+  const autofill = makeAutofill(getConnection);
 
   app.get("/api/auth/challenge", noCache, (req, res) => {
     const nonce = randomBytes(16).toString('hex');
@@ -264,7 +267,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/balance", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/solana/balance", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -289,7 +292,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/token-accounts", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/solana/token-accounts", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -319,7 +322,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/transactions", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/solana/transactions", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -472,7 +475,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/find-ata", freeLimiter, noCache, async (req, res) => {
+  app.get("/api/solana/find-ata", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { wallet, mint, network = 'mainnet-beta' } = req.query;
@@ -506,7 +509,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/token-profile", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/token-profile", noCache, autofill, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { mint, network = 'mainnet-beta' } = req.query;
@@ -632,7 +635,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/decode-tx", noCache, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/decode-tx", noCache, autofill, requirePayment(2200000), async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { signature, network = 'mainnet-beta' } = req.query;

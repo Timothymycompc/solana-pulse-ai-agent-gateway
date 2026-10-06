@@ -83,7 +83,9 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Translator',
     isLive: true,
     queryParams: [
-      { name: 'signature', type: 'string', required: true, description: 'The transaction signature' },
+      { name: 'wallet', type: 'string', required: false, description: 'Use this wallet latest transaction when no signature is given' },
+      { name: 'at', type: 'string', required: false, description: 'ISO time or unix seconds. Picks the transaction closest to then.' },
+      { name: 'signature', type: 'string', required: false, description: 'The transaction signature (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
@@ -143,7 +145,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Simplifier',
     isLive: true,
     queryParams: [
-      { name: 'mint', type: 'string', required: true, description: 'The token mint address' },
+      { name: 'symbol', type: 'string', required: false, description: 'Ticker such as BONK. The mint is looked up for you.' },
+      { name: 'mint', type: 'string', required: false, description: 'The token mint address (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
@@ -188,7 +191,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Core Solana',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: true, description: 'The Solana wallet address (Base58)' },
+      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (Base58) (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query (mainnet-beta or devnet)' }
     ],
     sampleResponse: {
@@ -235,7 +238,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'SPL Tokens',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: true, description: 'The Solana wallet address' },
+      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
@@ -266,7 +269,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'History',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: true, description: 'The Solana wallet address' },
+      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' },
       { name: 'limit', type: 'number', required: false, default: '10', description: 'Number of signatures to return' }
     ],
@@ -291,8 +294,9 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Simplifier',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: true, description: 'The Solana wallet address' },
-      { name: 'mint', type: 'string', required: true, description: 'The token mint address' },
+      { name: 'symbol', type: 'string', required: false, description: 'Ticker such as BONK. The mint is looked up for you.' },
+      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
+      { name: 'mint', type: 'string', required: false, description: 'The token mint address (optional, filled in if blank)' },
       { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
