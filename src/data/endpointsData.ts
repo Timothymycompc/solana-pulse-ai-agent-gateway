@@ -310,5 +310,30 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
         params: { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' }
       }
     ]
+  },
+  {
+    id: 'credits-lookup',
+    name: 'Check Wallet Credits',
+    suite: 'free',
+    method: 'GET',
+    path: '/api/credits',
+    summary: 'Shows paid credits and free calls remaining for a wallet address.',
+    description: 'Read-only lookup. Returns paid credits, lifetime usage, and free calls left for the calling connection. Costs nothing and never returns an API key.',
+    priceLamports: 0,
+    category: 'Core Solana',
+    isLive: true,
+    queryParams: [
+      { name: 'address', type: 'string', required: true, description: 'The Solana wallet address (Base58)' }
+    ],
+    sampleResponse: {
+      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
+      paidCredits: 4545,
+      totalCallsMade: 12,
+      freeCallsRemaining: 110,
+      freeCallsPerYear: 110,
+      lamportsPerCall: 2200000,
+      hasWallet: true
+    },
+    tags: ['credits', 'balance']
   }
 ];

@@ -101,3 +101,12 @@ export function meterMiddleware(price: number, payTo: string) {
     });
   };
 }
+
+
+export async function peekFree(ip: string): Promise<number> {
+  await ensureFreeTable();
+  const r = await pool.query("SELECT calls, window_start FROM free_tier_usage WHERE subject = $1", [subjectFor(ip)]);
+  if (!r.rowCount) return FREE_CALLS_PER_YEAR;
+  const expired = Date.now() - new Date(r.rows[0].window_start).getTime() > 365 * 86400000;
+  return expired ? FREE_CALLS_PER_YEAR : Math.max(0, FREE_CALLS_PER_YEAR - Number(r.rows[0].calls));
+}

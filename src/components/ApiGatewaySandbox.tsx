@@ -1,3 +1,4 @@
+import { CreditsCheck } from './CreditsCheck';
 import React from 'react';
 import { SecureWalletClaim } from './SecureWalletClaim';
 import { useApiGateway } from './sandbox/useApiGateway';
@@ -28,6 +29,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
           }} 
         />
       </div>
+      <div className="w-full mb-6"><CreditsCheck /></div>
       <SuiteOverview
         selectedSuite={state.selectedSuite}
         setSelectedSuite={actions.setSelectedSuite}

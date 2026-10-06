@@ -10,6 +10,7 @@ import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { pool, ensureSchema, recordProcessedPayment } from "./db";
+import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
 import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -752,6 +753,35 @@ app.post("/api/auth/login", noCache, async (req, res) => {
   });
 
   
+  // Free credits lookup (read-only, consumes nothing, never returns a key)
+  app.get("/api/credits", freeLimiter, noCache, async (req, res) => {
+    try {
+      const address = String(req.query.address || "").trim();
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+        return res.status(400).json({ error: "Valid Solana wallet address required (?address=...)" });
+      }
+      const w = await pool.query(
+        "SELECT paid_credits, total_calls_made, total_paid_credits_ever FROM wallets WHERE address = $1",
+        [address]
+      );
+      const row = w.rows[0];
+      const freeLeft = await peekFree(req.ip || "");
+      return res.json({
+        address,
+        paidCredits: Number(row?.paid_credits || 0),
+        totalCallsMade: Number(row?.total_calls_made || 0),
+        totalPaidCreditsEver: Number(row?.total_paid_credits_ever || 0),
+        freeCallsRemaining: freeLeft,
+        freeCallsPerYear: FREE_PER_YEAR,
+        lamportsPerCall: 2200000,
+        hasWallet: Boolean(row)
+      });
+    } catch (err: any) {
+      console.error("Error in /api/credits:", err);
+      return res.status(500).json({ error: "Failed to look up credits" });
+    }
+  });
+
   // Wallet Claim Status Lookup Route
   app.get("/api/wallets/claim-status", async (req, res) => {
     try {
