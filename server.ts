@@ -13,6 +13,7 @@ import { pool, ensureSchema, recordProcessedPayment } from "./db";
 import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
 import { makeAutofill } from "./resolver";
 import { lookupUser, saveDefaults, cleanDefaults } from "./userDefaults";
+import { keyFromReq } from "./authKey";
 import { loadSecrets } from "./src/secrets";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -214,7 +215,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   app.get("/api/profile", noCache, async (req, res) => {
     try {
-      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      const apiKey = keyFromReq(req);
       if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
       const keyHash = createHash('sha256').update(apiKey).digest('hex');
       const result = await pool.query(
@@ -230,7 +231,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   app.patch("/api/profile", noCache, async (req, res) => {
     try {
-      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      const apiKey = keyFromReq(req);
       if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
       const keyHash = createHash('sha256').update(apiKey).digest('hex');
       const { displayName, email, profilePicUrl } = req.body;
@@ -252,7 +253,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   app.get("/api/calls/history", noCache, async (req, res) => {
     try {
-      const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+      const apiKey = keyFromReq(req);
       if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
       const keyHash = createHash('sha256').update(apiKey).digest('hex');
       const walletLookup = await pool.query(`SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE`, [keyHash]);
@@ -808,8 +809,6 @@ app.post("/api/auth/login", noCache, async (req, res) => {
   });
 
   // Per-key live defaults: what blank calls fill in with (signed-in wallets only)
-  const keyFromReq = (req: any) =>
-    (req.headers["x-api-key"] as string | undefined) || req.headers["authorization"]?.toString().replace(/^Bearer\s+/i, "");
 
   app.get("/api/keys/defaults", freeLimiter, noCache, async (req, res) => {
     try {
@@ -1087,7 +1086,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     transports.set(sessionId, transport);
-    await createMcpServer({ apiKey: (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined, ip: req.ip || "unknown" }).connect(transport);
+    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" }).connect(transport);
     res.on("close", () => transports.delete(sessionId));
   });
 
@@ -1100,7 +1099,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   });
 
   app.post("/mcp", express.json(), async (req, res) => {
-    const server = createMcpServer({ apiKey: (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined, ip: req.ip || "unknown" });
+    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {
@@ -1154,13 +1153,18 @@ High-performance Model Context Protocol (MCP) server for Solana Blockchain Intel
 
 ## Critical Specs for Agents
 - Base Price: 0.0022 SOL per call
-- Free Tier: 50 lifetime calls per wallet, 15/day cap
+- Free Tier: 110 calls per year per IP address. Balance, blockhash, token accounts, recent transactions and find-ata are always free (rate limited)
 
 ## Core Capabilities
 - Atomic Risk Scoring (Honeypot/Freeze authority detection)
 - Address Resolution (ATA derivation & Owner lookups)
-- Priority fee estimation and transaction simulation
+- Priority fee estimation and pre-flight transaction checks
 - Human-readable transaction decoding
+
+## Authentication
+- Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message
+- Send the returned key in the x-api-key header
+- Add credits by sending SOL to the address from GET /api/claim/deposit-info
 
 ## Entry Points
 - MCP SSE Endpoint: /mcp/sse

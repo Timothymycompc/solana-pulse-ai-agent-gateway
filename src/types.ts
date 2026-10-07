@@ -1,28 +1,3 @@
-export interface ScannedFile {
-  id: string;
-  name: string;
-  path: string;
-  size: number;
-  extension: string;
-  lastModified?: number;
-  type: string;
-  isDotfile: boolean;
-  isBinary: boolean;
-  isHeavyCompileRisk: boolean;
-  status: 'compatible' | 'hidden' | 'compile-risk' | 'missing-dep' | 'empty';
-  rawFile?: File;
-  contentPreview?: string;
-}
-
-export interface ExtensionStat {
-  ext: string;
-  name: string;
-  count: number;
-  totalSize: number;
-  color: string;
-  category: 'code' | 'config' | 'document' | 'data' | 'binary' | 'hidden';
-}
-
 export interface ApiEndpoint {
   isLive?: boolean;
   priceLamports?: number;
@@ -57,15 +32,3 @@ export interface TestExecutionResult {
   isTypoTriggered?: boolean;
 }
 
-export interface DiagnosticIssue {
-  id: string;
-  title: string;
-  severity: 'critical' | 'warning' | 'info';
-  category: 'python_runtime' | 'routing_404' | 'dependency' | 'termux';
-  summary: string;
-  detectedLogSnippet: string;
-  rootCause: string;
-  fixCommand: string;
-  fixExplanation: string;
-  isResolved?: boolean;
-}

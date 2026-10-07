@@ -218,12 +218,13 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
     }
     setIsBatchTesting(true);
     setBatchProgress(0);
-    const total = API_ENDPOINTS.length;
+    const testable = API_ENDPOINTS.filter(e => e.suite === 'free' || (e.suite === 'keys' && Boolean(authHeaders['x-api-key'])));
+    const total = testable.length;
     let passed = 0;
     let totalLatency = 0;
 
     for (let i = 0; i < total; i++) {
-      const ep = API_ENDPOINTS[i];
+      const ep = testable[i];
       const qp: string[] = [];
       (ep.queryParams || []).forEach(q => { if (q.default) qp.push(encodeURIComponent(q.name) + '=' + encodeURIComponent(q.default)); });
       const url = ep.path + (qp.length ? '?' + qp.join('&') : '');
@@ -239,15 +240,12 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       if (status === 200) passed++;
       setBatchProgress(i + 1);
 
-      if (i % 4 === 0) {
-        addServerLog(API_ENDPOINTS[i].method, API_ENDPOINTS[i].path, 200, lat, 350);
-      }
     }
 
     setBatchStats({
       total,
       passed,
-      failed: 0,
+      failed: total - passed,
       avgLatency: Math.round(totalLatency / total)
     });
     setIsBatchTesting(false);

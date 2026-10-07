@@ -1,3 +1,4 @@
+import { keyFromReq } from "./authKey";
 import { createHash } from "crypto";
 import type { Request, Response, NextFunction } from "express";
 import { pool, logCall } from "./db";
@@ -81,7 +82,7 @@ export async function meterCall(o: { apiKey?: string; ip: string; priceLamports:
 
 export function meterMiddleware(price: number, payTo: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const apiKey = (req.headers["x-api-key"] || req.headers["authorization"]?.toString().replace("Bearer ", "")) as string | undefined;
+    const apiKey = keyFromReq(req);
     const m = await meterCall({ apiKey, ip: req.ip || "unknown", priceLamports: price });
     if (m.ok) {
       res.setHeader("Access-Control-Expose-Headers", "x-free-calls-remaining, x-credits-remaining");

@@ -69,8 +69,8 @@ export const AgentMonetizationStudio: React.FC = () => {
           </div>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
             <span className="text-[11px] font-semibold text-slate-400 uppercase">Free tier</span>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-1">50 calls</p>
-            <p className="text-xs text-slate-400 mt-1">Lifetime pool per wallet, capped at 15 free calls per day. Balance and blockhash are always free, uncapped.</p>
+            <p className="text-2xl font-extrabold text-emerald-400 mt-1">110 calls <span className="text-sm font-normal text-slate-400">/ year</span></p>
+            <p className="text-xs text-slate-400 mt-1">Per IP address, per year, on any endpoint. Balance, blockhash, token accounts, recent transactions and token address (ATA) lookups are always free, within rate limits.</p>
           </div>
         </div>
       </div>
@@ -82,11 +82,29 @@ export const AgentMonetizationStudio: React.FC = () => {
           Get an API Key
         </h3>
         <p className="text-xs text-slate-400 mt-1">
-          Keys are issued by depositing SOL and proving wallet ownership — no signup form, no email.
+          Sign in by proving you own a Solana wallet. No signup form, no email, and signing in is free.
         </p>
 
         <div className="mt-4">
-          <label className="text-xs font-semibold text-slate-300">1. Send SOL to the gateway wallet</label>
+          <label className="text-xs font-semibold text-slate-300">1. Request a message, sign it with your wallet, and get your key</label>
+          <p className="text-xs text-slate-400 mt-1">
+            Sign the message exactly as returned (it contains line breaks), then base58-encode the signature. The message expires after 5 minutes and works once.
+          </p>
+          <pre className="mt-2 p-3 bg-slate-950 rounded-lg text-[11px] font-mono text-indigo-300 overflow-x-auto border border-slate-800">
+{`curl ${typeof window !== 'undefined' ? window.location.origin : ''}/api/auth/challenge
+
+# Sign the returned "message" with your wallet, then:
+curl -X POST ${typeof window !== 'undefined' ? window.location.origin : ''}/api/auth/login \\
+  -H "Content-Type: application/json" \\
+  -d '{"wallet": "<your_wallet>", "signature": "<base58_signature>", "message": "<message_from_above>"}'`}
+          </pre>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Keys are unrecoverable by design, only a hash is stored server-side. Signing in again issues a new key and invalidates the old one.
+          </p>
+        </div>
+
+        <div className="mt-5">
+          <label className="text-xs font-semibold text-slate-300">2. Add credits when you need them</label>
           <div className="mt-1 flex items-center gap-2">
             <input
               type="text"
@@ -102,33 +120,16 @@ export const AgentMonetizationStudio: React.FC = () => {
               {copiedWallet ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">The amount you send becomes your credit balance, at {PRICE_PER_CALL_SOL} SOL per call.</p>
-        </div>
-
-        <div className="mt-5">
-          <label className="text-xs font-semibold text-slate-300">2. Get a challenge, sign it, and claim your key</label>
-          <p className="text-xs text-slate-400 mt-1">
-            Once your deposit is detected, request a challenge, sign it with the same wallet you paid from, and claim your key:
-          </p>
-          <pre className="mt-2 p-3 bg-slate-950 rounded-lg text-[11px] font-mono text-indigo-300 overflow-x-auto border border-slate-800">
-{`curl ${typeof window !== 'undefined' ? window.location.origin : ''}/api/keys/challenge
-
-# Sign the returned challenge with your wallet's private key, then:
-curl -X POST ${typeof window !== 'undefined' ? window.location.origin : ''}/api/keys/claim \\
-  -H "Content-Type: application/json" \\
-  -d '{"wallet": "<your_wallet>", "signature": "<base58_signature>", "challenge": "<challenge_from_above>"}'`}
-          </pre>
-          <p className="text-[11px] text-slate-500 mt-1">
-            Keys are unrecoverable by design — only a hash is stored server-side. Sending more SOL from the same wallet issues a new key and invalidates the old one.
-          </p>
+          <p className="text-[11px] text-slate-500 mt-1">Send SOL from the wallet you signed in with. Credits are added automatically when the deposit is detected, at {PRICE_PER_CALL_SOL} SOL per call. Sending SOL does not change your key.</p>
         </div>
 
         <div className="mt-5">
           <label className="text-xs font-semibold text-slate-300">3. Use your key</label>
           <pre className="mt-2 p-3 bg-slate-950 rounded-lg text-[11px] font-mono text-indigo-300 overflow-x-auto border border-slate-800">
-{`curl "${typeof window !== 'undefined' ? window.location.origin : ''}/api/solana/balance?wallet=<any_wallet>" \\
+{`curl "${typeof window !== 'undefined' ? window.location.origin : ''}/api/solana/token-profile?mint=<token_mint>" \\
   -H "x-api-key: <your_key>"`}
           </pre>
+          <p className="text-[11px] text-slate-500 mt-1">Responses carry x-free-calls-remaining while free calls last, and x-credits-remaining when a credit is used.</p>
         </div>
       </div>
 
