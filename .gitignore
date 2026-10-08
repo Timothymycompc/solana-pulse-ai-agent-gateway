@@ -12,3 +12,7 @@ updated/secrets.json
 *.bak.*
 secrets.json.enc
 updated/secrets.json.enc
+
+*.bak
+*.bak.*
+*.pre

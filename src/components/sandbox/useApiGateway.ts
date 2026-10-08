@@ -20,7 +20,8 @@ interface UseApiGatewayProps {
 }
 
 export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGatewayProps) => {
-  const [selectedSuite, setSelectedSuite] = useState<'all' | 'solana' | 'mcp' | 'dataweave'>('all');
+  const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
+  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(API_ENDPOINTS[0]);
@@ -175,7 +176,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const t0 = performance.now();
       const res = await fetch(fullUrl, {
         method: selectedEndpoint.method,
-        headers: selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        headers: { ...(selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : {}), ...authHeaders },
         body: selectedEndpoint.method === 'POST' ? requestBodyText : undefined
       });
       const liveDuration = Math.round(performance.now() - t0);
@@ -187,7 +188,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const status = isJson ? res.status : 404;
       const hdrs: Record<string, string> = { 'content-type': ctype || 'unknown' };
       ['x-free-calls-remaining', 'x-credits-remaining'].forEach(h => { const v = res.headers.get(h); if (v !== null) hdrs[h] = v; });
-      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration, JSON.stringify(body).length);
+      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration, JSON.stringify(body).length); window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
         endpointId: selectedEndpoint.id, url: fullUrl, method: selectedEndpoint.method, status,
         latencyMs: liveDuration, timestamp: new Date().toLocaleTimeString(), headers: hdrs,
@@ -217,19 +218,20 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
     }
     setIsBatchTesting(true);
     setBatchProgress(0);
-    const total = API_ENDPOINTS.length;
+    const testable = API_ENDPOINTS.filter(e => e.suite === 'free' || (e.suite === 'keys' && Boolean(authHeaders['x-api-key'])));
+    const total = testable.length;
     let passed = 0;
     let totalLatency = 0;
 
     for (let i = 0; i < total; i++) {
-      const ep = API_ENDPOINTS[i];
+      const ep = testable[i];
       const qp: string[] = [];
       (ep.queryParams || []).forEach(q => { if (q.default) qp.push(encodeURIComponent(q.name) + '=' + encodeURIComponent(q.default)); });
       const url = ep.path + (qp.length ? '?' + qp.join('&') : '');
       const t0 = performance.now();
       let status = 0;
       try {
-        const r = await fetch(url, ep.method === 'POST' ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' } : undefined);
+        const r = await fetch(url, ep.method === 'POST' ? { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders }, body: '{}' } : { headers: authHeaders });
         status = (r.headers.get('content-type') || '').includes('json') ? r.status : 404;
       } catch { status = 500; }
       const lat = Math.round(performance.now() - t0);
@@ -238,15 +240,12 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       if (status === 200) passed++;
       setBatchProgress(i + 1);
 
-      if (i % 4 === 0) {
-        addServerLog(API_ENDPOINTS[i].method, API_ENDPOINTS[i].path, 200, lat, 350);
-      }
     }
 
     setBatchStats({
       total,
       passed,
-      failed: 0,
+      failed: total - passed,
       avgLatency: Math.round(totalLatency / total)
     });
     setIsBatchTesting(false);
@@ -281,6 +280,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   return {
     state: {
       selectedSuite,
+      authHeaders,
       methodFilter,
       searchQuery,
       selectedEndpoint,
@@ -301,6 +301,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
     },
     actions: {
       setSelectedSuite,
+      setAuthHeaders,
       setMethodFilter,
       setSearchQuery,
       handleSelectEndpoint,

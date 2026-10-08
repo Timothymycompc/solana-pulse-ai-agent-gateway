@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="How the Solana Pulse gateway works, which call to use, and how to get an API key.">
+<title>Solana Pulse Docs</title>
+<style>
+/* Layout: one reading column on the site's dark navy. Order: how it works (diagram), free vs paid paths, which call to use, keys, agents, glossary. */
+:root {
+  --bg: #020617;
+  --card: #0f172a;
+  --line: #1e293b;
+  --fg: #e2e8f0;
+  --muted: #94a3b8;
+  --indigo: #818cf8;
+  --indigo-soft: rgba(99, 102, 241, 0.14);
+  --emerald: #34d399;
+  --emerald-soft: rgba(52, 211, 153, 0.12);
+  --amber: #fbbf24;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6; padding-inline: 16px; padding-block: 24px 64px; }
+a { color: var(--indigo); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; border-radius: 3px; }
+.wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 68ch; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: rgba(148, 163, 184, 0.12); padding: 1px 5px; border-radius: 4px; }
+section, header { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.muted { color: var(--muted); }
+.top { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: 0.92rem; }
+.top .brand { font-weight: 700; color: var(--fg); }
+.top a { text-decoration: none; color: var(--muted); }
+.top a:hover { color: var(--fg); }
+.lede { font-size: 1.1rem; color: var(--muted); }
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--indigo); }
+
+.flow { display: flex; flex-direction: column; }
+.step { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cell { min-width: 0; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 2px; }
+.cell.rest { border-left: 4px solid var(--amber); }
+.cell.gate { border-left: 4px solid var(--indigo); }
+.who { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.rest .who { color: var(--amber); }
+.gate .who { color: var(--indigo); }
+.cell b { font-weight: 600; }
+.cell small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+.arrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 28px; color: var(--muted); font-size: 0.8rem; }
+.arrow span { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.arrow span::before { content: "↓"; font-size: 1rem; }
+.fork { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fork .col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; }
+.legend .a::before { background: var(--amber); }
+.legend .i::before { background: var(--indigo); }
+@media (max-width: 600px) {
+  .step, .arrow, .fork { grid-template-columns: 1fr; }
+  .arrow span:first-child { display: none; }
+  .arrow { height: 24px; }
+  .step .cell.rest { border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: -10px; }
+  .step .cell.gate { border-top-left-radius: 0; border-top-right-radius: 0; }
+}
+
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.lane { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.lane.free { border-top: 3px solid var(--emerald); }
+.lane.paid { border-top: 3px solid var(--indigo); }
+.lane ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lane li { display: flex; flex-direction: column; gap: 1px; padding: 8px 0 8px 14px; border-left: 2px solid var(--line); position: relative; }
+.lane li::before { content: ""; position: absolute; left: -6px; top: 15px; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); border: 2px solid var(--muted); }
+.lane.free li::before { border-color: var(--emerald); }
+.lane.paid li::before { border-color: var(--indigo); }
+.lane li b { font-weight: 600; }
+.lane li small { color: var(--muted); font-size: 0.88rem; }
+.tag { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.tag.free { background: var(--emerald-soft); color: var(--emerald); }
+.tag.paid { background: var(--indigo-soft); color: var(--indigo); }
+
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.93rem; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+th { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.q { min-width: 220px; font-weight: 600; }
+td.call b { display: block; font-weight: 600; }
+td.call code { font-size: 0.76rem; word-break: break-all; }
+tr.group td { background: rgba(148, 163, 184, 0.06); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.steps > div { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.steps .n { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--indigo); }
+.steps p { font-size: 0.93rem; color: var(--muted); }
+pre { margin: 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.5; color: #a5b4fc; }
+.note { border: 1px solid var(--line); border-left: 4px solid var(--indigo); background: var(--indigo-soft); border-radius: 8px; padding: 14px 16px; }
+.cta { display: inline-block; align-self: flex-start; background: #4f46e5; color: #fff; text-decoration: none; font-weight: 600; padding: 10px 18px; border-radius: 10px; }
+.cta:hover { background: #6366f1; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); font-size: 0.88rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <nav class="top" aria-label="Docs navigation">
+      <a href="/" class="brand">← Solana Pulse Gateway</a>
+      <a href="#how">How it works</a>
+      <a href="#paths">Free and paid</a>
+      <a href="#calls">Which call to use</a>
+      <a href="#key">Get a key</a>
+      <a href="#agents">For AI agents</a>
+    </nav>
+    <span class="eyebrow">Docs</span>
+    <h1>Live Solana data, ready to use</h1>
+    <p class="lede">You send a request to a web address. The gateway does the Solana work and sends back a clean, structured answer. This page explains how that works, which call to pick, and how to get started.</p>
+  </header>
+
+  <section id="how" aria-labelledby="how-h">
+    <h2 id="how-h">How it works: think of a restaurant</h2>
+    <p>Every part of a web service has a match in a restaurant. Follow one request from start to finish. Each step happens before the next.</p>
+    <div class="legend"><span class="a">In the restaurant</span><span class="i">In the gateway</span></div>
+    <div class="flow">
+      <div class="step">
+        <div class="cell rest"><span class="who">Customer</span><b>Sits down and wants something</b><small>A person, or a hungry program.</small></div>
+        <div class="cell gate"><span class="who">Client</span><b>Your app or AI agent</b><small>For example Claude Desktop, Cursor, or a bot you wrote.</small></div>
+      </div>
+      <div class="arrow"><span>orders from</span><span>sends a request to</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">The menu</span><b>Lists every dish and how to order it</b><small>You can only order what is printed.</small></div>
+        <div class="cell gate"><span class="who">The API</span><b>The agreed way to ask</b><small>The list of things the gateway offers, and the format for asking.</small></div>
+      </div>
+      <div class="arrow"><span>one dish</span><span>one address</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">A dish</span><b>"Table 4 would like the soup"</b><small>Each dish has its own name.</small></div>
+        <div class="cell gate"><span class="who">Endpoint</span><b><code>/api/solana/balance</code></b><small>One web address that does one job.</small></div>
+      </div>
+      <div class="arrow"><span>checks the order</span><span>checks the request</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Water is free. Full dishes go on a prepaid tab.</small></div>
+        <div class="cell gate"><span class="who">Rate limit and credits</span><b>Free reads are rate limited. Paid calls need your key and a credit.</b><small>Decides whether the call goes ahead.</small></div>
+      </div>
+      <div class="arrow"><span>hands the ticket to</span><span>runs the code</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">Chef</span><b>Reads the ticket and cooks</b><small>Knows the recipe and does the work.</small></div>
+        <div class="cell gate"><span class="who">The logic</span><b>Checks your inputs and does the work</b><small>Runs on a server and decides what to do with your request.</small></div>
+      </div>
+      <div class="arrow"><span>gets ingredients</span><span>reads and fetches</span></div>
+      <div class="fork">
+        <div class="col">
+          <div class="cell rest"><span class="who">Pantry</span><b>Ingredients kept on hand</b><small>Things the kitchen stores for itself.</small></div>
+          <div class="cell gate"><span class="who">Database</span><b>Keys and credits</b><small>Your credit balance and call history.</small></div>
+        </div>
+        <div class="col">
+          <div class="cell rest"><span class="who">Outside supplier</span><b>Fresh produce, delivered daily</b><small>What the kitchen cannot grow itself.</small></div>
+          <div class="cell gate"><span class="who">The blockchain</span><b>Solana, read live</b><small>Balances, transactions, and token data.</small></div>
+        </div>
+      </div>
+      <div class="arrow"><span>plates the dish</span><span>returns the response</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">The plate</span><b>The customer eats</b><small>Served in minutes.</small></div>
+        <div class="cell gate"><span class="who">The response</span><b>Structured data (JSON)</b><small>Usually well under a second.</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="paths" aria-labelledby="paths-h">
+    <h2 id="paths-h">Free reads and paid calls</h2>
+    <p>Basic lookups are free, because many providers give them away. Calls that do real work for you are paid, at <strong>0.0022 SOL per call</strong>, from credits you add to your wallet.</p>
+    <div class="lanes">
+      <div class="lane free">
+        <h3>Free reads <span class="tag free">FREE</span></h3>
+        <p class="muted">Balance, latest blockhash, token holdings, recent transactions, token account address</p>
+        <ol>
+          <li><b>You send a request</b><small>No key needed.</small></li>
+          <li><b>The gateway checks and prepares it</b><small>Applies a rate limit and fills in anything you left blank.</small></li>
+          <li><b>Live data is fetched from Solana</b><small>Nothing is stored or guessed.</small></li>
+          <li><b>You get a clean answer</b><small>Structured JSON.</small></li>
+        </ol>
+      </div>
+      <div class="lane paid">
+        <h3>Paid calls <span class="tag paid">0.0022 SOL</span></h3>
+        <p class="muted">Transaction preview, pre-flight safety check, token safety report, priority fee advice, explain transaction</p>
+        <ol>
+          <li><b>You send a request with your key</b><small>Header <code>x-api-key</code>.</small></li>
+          <li><b>The gateway checks and prepares it</b><small>Confirms your key has a credit and fills in anything you left blank.</small></li>
+          <li><b>Live data is fetched and analyzed</b><small>The gateway does the interpretation for you.</small></li>
+          <li><b>You get an answer and one credit is used</b><small>Headers show what you have left.</small></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="calls" aria-labelledby="calls-h">
+    <h2 id="calls-h">Which call should I use?</h2>
+    <p>Start from the question you want answered. Every call also accepts an optional <code>network</code> (default <code>mainnet-beta</code>). Where an input is left blank, the gateway picks a sensible live value for most calls and reports what it chose.</p>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>You want to know</th><th>Use</th><th>Cost</th><th>You send</th></tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">Free reads</td></tr>
+          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
+          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag free">Free</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
+          <tr class="group"><td colspan="4">Paid calls</td></tr>
+          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">Is this token risky to hold or trade?</td><td class="call"><b>Token safety report</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">Paid</span></td><td><code>mint</code></td></tr>
+          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">Paid</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">Paid</span></td><td><code>signature</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>About the pre-flight check.</strong> It tells you what it checked, for example whether the fee payer can cover the base fee, and shows the result of a dry run. It is a check for common mistakes, not a guarantee that a transaction will succeed.</p>
+    </div>
+    <h3>If something goes wrong</h3>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td><code>400</code></td><td>A required input is missing or invalid.</td><td>Check the inputs in the table above.</td></tr>
+          <tr><td><code>402</code></td><td>Payment required: no credit available.</td><td>Add credits to your wallet.</td></tr>
+          <tr><td><code>404</code></td><td>The token or transaction was not found.</td><td>Check the address or signature, and that the transaction is confirmed.</td></tr>
+          <tr><td><code>422</code></td><td>The address exists but is not a token.</td><td>Use a token mint address.</td></tr>
+          <tr><td><code>503</code></td><td>Billing is briefly unavailable.</td><td>Try again in a moment.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="key" aria-labelledby="key-h">
+    <h2 id="key-h">Get a key and add credits</h2>
+    <p>You only need a key for paid calls. There is no signup form and no email. You prove you own a Solana wallet, and the wallet is your account.</p>
+    <div class="steps">
+      <div><span class="n">Step 1</span><h3>Sign in with your wallet</h3><p>Request a short message, sign it with your wallet, and send the signature back. Signing in is free and sends nothing to the network. You get an API key.</p></div>
+      <div><span class="n">Step 2</span><h3>Add credits</h3><p>Send SOL from the same wallet to the gateway address. Credits are added automatically when the deposit is detected, at 0.0022 SOL per paid call.</p></div>
+      <div><span class="n">Step 3</span><h3>Make a call</h3><p>Send your key in the <code>x-api-key</code> header. Responses show your remaining credits in the <code>x-credits-remaining</code> header.</p></div>
+    </div>
+    <pre id="curl-example">curl "https://YOUR-GATEWAY/api/solana/token-profile?mint=&lt;token_mint&gt;" \
+  -H "x-api-key: &lt;your_key&gt;"</pre>
+    <p class="muted">Keys cannot be recovered, because only a hash is stored. Signing in again issues a new key and retires the old one. The exact commands and the deposit address are on the Pricing and Top-Up tab.</p>
+    <a class="cta" href="/">Open the playground</a>
+  </section>
+
+  <section id="agents" aria-labelledby="agents-h">
+    <h2 id="agents-h">For AI agents</h2>
+    <p>The gateway is also a Model Context Protocol (MCP) server, which is a menu written for robots. AI tools can discover and call it directly.</p>
+    <div class="steps">
+      <div><span class="n">MCP endpoint</span><p><code>/mcp</code> (send requests with POST)</p></div>
+      <div><span class="n">Tool manifest</span><p><a href="/.well-known/mcp.json"><code>/.well-known/mcp.json</code></a></p></div>
+      <div><span class="n">Plain-text guide</span><p><a href="/llms.txt"><code>/llms.txt</code></a></p></div>
+    </div>
+  </section>
+
+  <section id="glossary" aria-labelledby="gloss-h">
+    <h2 id="gloss-h">Glossary</h2>
+    <div class="tablebox">
+      <table style="min-width: 560px">
+        <thead><tr><th>Term</th><th>Restaurant version</th><th>Here</th></tr></thead>
+        <tbody>
+          <tr><td><b>API</b></td><td>The menu</td><td>Everything the gateway can do</td></tr>
+          <tr><td><b>Endpoint</b></td><td>One dish</td><td>A single address, like <code>/api/solana/balance</code></td></tr>
+          <tr><td><b>Request</b></td><td>The order</td><td>What you send, such as a wallet address</td></tr>
+          <tr><td><b>Response</b></td><td>The plate</td><td>What comes back, such as that wallet's balance</td></tr>
+          <tr><td><b>API key</b></td><td>A numbered tab</td><td>A secret that says who is ordering</td></tr>
+          <tr><td><b>Credits</b></td><td>Money on the tab</td><td>Prepaid balance that pays for paid calls</td></tr>
+          <tr><td><b>MCP server</b></td><td>A menu written for robots</td><td>Lets AI tools find and use the calls directly</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Solana Pulse Gateway. Questions or a call you wish existed? Use the request form on the playground page.</footer>
+</div>
+<script>
+(function () {
+  var el = document.getElementById("curl-example");
+  if (el) el.textContent = el.textContent.replace("https://YOUR-GATEWAY", window.location.origin);
+})();
+</script>
+</body>
+</html>

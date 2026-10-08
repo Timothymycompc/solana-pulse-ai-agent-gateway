@@ -6,7 +6,7 @@ interface EndpointBrowserProps {
   filteredEndpoints: ApiEndpoint[];
   selectedEndpoint: ApiEndpoint;
   selectedSuite: string;
-  setSelectedSuite: (suite: 'all' | 'solana' | 'mcp' | 'dataweave') => void;
+  setSelectedSuite: (suite: 'all' | 'safety' | 'intel' | 'free' | 'keys') => void;
   methodFilter: string;
   setMethodFilter: (method: 'all' | 'GET' | 'POST') => void;
   searchQuery: string;
@@ -42,7 +42,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-1">
-            {(['all', 'solana', 'mcp', 'dataweave'] as const).map((suite) => (
+            {(['all', 'safety', 'intel', 'free', 'keys'] as const).map((suite) => (
               <button
                 key={suite}
                 onClick={() => setSelectedSuite(suite)}
