@@ -19,7 +19,7 @@ import { loadSecrets } from "./src/secrets";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { meterCall, meterMiddleware } from "./meter";
+import { meterCall, meterMiddleware, refundCredit } from "./meter";
 import { z } from "zod";
 
 async function startServer() {
@@ -48,7 +48,7 @@ async function startServer() {
     "/api/payments/status",
   ]);
 
-  const FREE_REQUESTS_PER_MINUTE = 60;
+  const FREE_REQUESTS_PER_MINUTE = 120;
   const freeLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: FREE_REQUESTS_PER_MINUTE,
@@ -77,8 +77,8 @@ async function startServer() {
   };
 
   const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs: 60 * 1000,
+    max: 120,
     skip: (req: any) => FREE_PATHS.has(String(req.originalUrl).split("?")[0]),
     standardHeaders: true,
     legacyHeaders: false,
@@ -747,7 +747,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         lamports: calls * PRICE_PER_CALL_LAMPORTS,
         sol: (calls * PRICE_PER_CALL_LAMPORTS) / 1e9,
       })),
-      free_calls_per_year: Number(process.env.FREE_CALLS_PER_YEAR) || 110,
+      free_calls_per_year: 0,
       note: "Credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples of the price. Send from the wallet you will sign in with."
     });
   });
@@ -974,7 +974,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
-  const FREE_TOOLS = new Set(["get_solana_balance", "get_solana_blockhash", "get_token_accounts", "get_recent_transactions"]);
+  const FREE_TOOLS = new Set(["get_solana_balance", "get_solana_blockhash", "get_token_accounts", "get_recent_transactions", "find_ata"]);
 
   const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
@@ -985,15 +985,22 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
       if (FREE_TOOLS.has(name)) return handler(...args);
       const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
       if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Free tier used up. Send x-api-key with credits." }) }], isError: true };
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Payment required. Send x-api-key with credits." }) }], isError: true };
       }
-      return handler(...args);
+      let result: any;
+      try { result = await handler(...args); }
+      catch (e) { if (m.via === "credits") await refundCredit(m.wallet); throw e; }
+      if (m.via === "credits" && result && result.isError) await refundCredit(m.wallet);
+      return result;
     });
   };
 
-  mcpServer.tool("get_solana_balance", "Get the SOL balance of any wallet address", {
-    wallet: z.string(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
-  }, async ({ wallet, network }) => {
+  const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe('Cluster to query: "mainnet-beta" (real funds; the default) or "devnet" (test network). Optional.');
+  const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+
+  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: free. Example: {\"wallet\":\"<wallet address>\"}", {
+    wallet: z.string().describe("Wallet whose SOL balance to read: base58 public key, 32-44 characters (required)."), network: NETWORK
+  }, READ_ONLY, async ({ wallet, network }) => {
     stats.solanaRpcCalls++;
     try {
       const balance = await getConnection(network).getBalance(new PublicKey(wallet));
@@ -1001,9 +1008,9 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash", {
-    network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
-  }, async ({ network }) => {
+  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: free. Example: {\"network\":\"mainnet-beta\"}", {
+    network: NETWORK
+  }, READ_ONLY, async ({ network }) => {
     stats.solanaRpcCalls++;
     try {
       const blockhash = await getConnection(network).getLatestBlockhash('finalized');
@@ -1011,10 +1018,10 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_token_accounts", "Get all SPL token balances and mints owned by a wallet", {
-    wallet: z.string().describe("Solana wallet public key"),
-    network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
-  }, async ({ wallet, network }) => {
+  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: free. Example: {\"wallet\":\"<wallet address>\"}", {
+    wallet: z.string().describe("Wallet whose token accounts to list: base58 public key, 32-44 characters (required)."),
+    network: NETWORK
+  }, READ_ONLY, async ({ wallet, network }) => {
     stats.solanaRpcCalls++;
     try {
       const ownerPubkey = new PublicKey(wallet);
@@ -1035,11 +1042,11 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_recent_transactions", "Get recent transaction signatures for a wallet address", {
-    wallet: z.string().describe("Solana wallet public key"),
-    limit: z.number().optional().default(10),
-    network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
-  }, async ({ wallet, limit, network }) => {
+  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: free. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
+    wallet: z.string().describe("Wallet whose transaction history to list: base58 public key, 32-44 characters (required)."),
+    limit: z.number().int().min(1).max(1000).optional().default(10).describe("How many signatures to return, newest first: integer 1-1000 (optional, default 10)."),
+    network: NETWORK
+  }, READ_ONLY, async ({ wallet, limit, network }) => {
     stats.solanaRpcCalls++;
     try {
       const ownerPubkey = new PublicKey(wallet);
@@ -1048,10 +1055,10 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("simulate_solana_transaction", "Simulate a Solana transaction without broadcasting it", {
-    transaction: z.string().describe("Base64-encoded serialized transaction"),
-    network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta")
-  }, async ({ transaction, network }) => {
+  mcpServer.tool("simulate_solana_transaction", "Dry-run a transaction against live chain state without sending it. Returns success, error, program logs and compute units used. Use it to test a transaction; for a SAFE or UNSAFE verdict with fix hints use validate_transaction. Nothing is broadcast. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+    transaction: z.string().describe("The transaction to test: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
+    network: NETWORK
+  }, READ_ONLY, async ({ transaction, network }) => {
     stats.solanaRpcCalls++;
     try {
       const txBuffer = Buffer.from(transaction, 'base64');
@@ -1075,6 +1082,262 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true };
     }
+  });
+
+  // ---- Added: remaining gateway endpoints exposed as MCP tools ----
+
+  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: free. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+    wallet: z.string().describe("Owner of the token account: a regular wallet address (base58 public key, 32-44 characters), not a program-derived address (required)."),
+    mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v is USDC."),
+    network: NETWORK
+  }, READ_ONLY, async ({ wallet, mint, network }: any) => {
+    stats.solanaRpcCalls++;
+    try {
+      const owner = new PublicKey(wallet);
+      const mintPubkey = new PublicKey(mint);
+      const ata = await getAssociatedTokenAddress(mintPubkey, owner);
+      const accountInfo = await getConnection(network).getAccountInfo(ata);
+      return { content: [{ type: "text", text: JSON.stringify({ owner: owner.toBase58(), mint: mintPubkey.toBase58(), ataAddress: ata.toBase58(), exists: !!accountInfo, network }, null, 2) }] };
+    } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
+  });
+
+  mcpServer.tool("token_profile", "Live safety profile of an SPL token: decimals, supply, freeze and mint authority status, a risk level (HIGH when a freeze authority exists, so holders can be frozen), and the top 10 holders. Use it before buying or recommending an unfamiliar token. Cached 60 seconds. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+    mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Pass the mint, not a ticker symbol."),
+    network: NETWORK
+  }, READ_ONLY, async ({ mint, network }: any) => {
+    stats.solanaRpcCalls++;
+    try {
+      let mintPubkey: PublicKey;
+      try { mintPubkey = new PublicKey(String(mint)); }
+      catch { return { content: [{ type: "text", text: "Error: That is not a valid mint address" }], isError: true }; }
+
+      const cacheKey = network + ":" + mintPubkey.toBase58();
+      const hit = profileCache.get(cacheKey);
+      if (hit && Date.now() - hit.t < 60000) return { content: [{ type: "text", text: JSON.stringify({ ...hit.v, cached: true }, null, 2) }] };
+
+      const connection = getConnection(network);
+      const [mintInfo, largest] = await Promise.all([
+        withTimeout(connection.getParsedAccountInfo(mintPubkey), 8000),
+        withTimeout(connection.getTokenLargestAccounts(mintPubkey), 5000).catch((e: any) => ({ failed: String(e?.message || e) })),
+      ]);
+
+      if (!mintInfo.value) return { content: [{ type: "text", text: "Error: Mint not found" }], isError: true };
+      const mintData: any = mintInfo.value.data;
+      if (!mintData || typeof mintData !== "object" || !mintData.parsed || mintData.parsed.type !== "mint") {
+        return { content: [{ type: "text", text: "Error: This address exists but is not a token mint" }], isError: true };
+      }
+      const parsedMint = mintData.parsed.info;
+      const decimals = Number(parsedMint.decimals);
+
+      let topHolders: any[] | null = null;
+      let topHoldersNote: string | undefined;
+      const largestValue = (largest as any).value;
+      if (largestValue) {
+        topHolders = largestValue.slice(0, 10).map((acc: any) => ({
+          address: acc.address.toBase58(),
+          amount_raw: acc.amount,
+          amount_formatted: (Number(acc.amount) / Math.pow(10, decimals)).toFixed(4)
+        }));
+      } else {
+        topHoldersNote = "Top holders are unavailable right now because the RPC was slow or declined this heavy lookup. Everything else is live.";
+      }
+
+      const freezeAuth = parsedMint.freezeAuthority;
+      const mintAuth = parsedMint.mintAuthority;
+      const isHoneypotRisk = freezeAuth !== null;
+
+      const body = {
+        mint: mintPubkey.toBase58(),
+        decimals,
+        supply_raw: parsedMint.supply,
+        supply_formatted: (Number(parsedMint.supply) / Math.pow(10, decimals)).toLocaleString(),
+        freezeAuthority: freezeAuth,
+        mintAuthority: mintAuth,
+        security: {
+          isHoneypotRisk,
+          freezeAuthorityEnabled: !!freezeAuth,
+          mintAuthorityEnabled: !!mintAuth,
+          riskLevel: isHoneypotRisk ? 'HIGH' : 'LOW',
+          analysis: isHoneypotRisk
+            ? "HIGH RISK: Freeze authority is active. The developer can freeze any wallet's tokens."
+            : "LOW RISK: No freeze authority detected."
+        },
+        topHolders,
+        topHoldersNote,
+        network
+      };
+      profileCache.set(cacheKey, { t: Date.now(), v: body });
+      return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] };
+    } catch (err: any) {
+      const slow = String(err?.message || "").includes("timed out");
+      return { content: [{ type: "text", text: slow ? "Error: The Solana RPC was too slow to answer. Try again in a moment." : `Error: ${err.message}` }], isError: true };
+    }
+  });
+
+  mcpServer.tool("optimal_fee", "Live priority-fee recommendation for current congestion: low, medium and high tiers in micro-lamports per compute unit with estimated confirmation times, plus min, max and average. Use it just before sending a transaction so it lands without overpaying. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"network\":\"mainnet-beta\"}", {
+    network: NETWORK
+  }, READ_ONLY, async ({ network }: any) => {
+    stats.solanaRpcCalls++;
+    try {
+      const connection = getConnection(network);
+      const canaryAccounts = [new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")];
+      const fees = await connection.getRecentPrioritizationFees({ lockedWritableAccounts: canaryAccounts });
+      if (!fees || fees.length === 0) throw new Error("Could not fetch prioritization fees from cluster");
+
+      const feeValues = fees.map(f => f.prioritizationFee);
+      const minFee = Math.min(...feeValues);
+      const maxFee = Math.max(...feeValues);
+      const avgFee = Math.round(feeValues.reduce((a, b) => a + b, 0) / feeValues.length);
+      const tiers = {
+        low: avgFee,
+        medium: Math.round(avgFee * 1.5),
+        high: maxFee > 0 ? maxFee : Math.round(avgFee * 3)
+      };
+
+      return { content: [{ type: "text", text: JSON.stringify({
+        network,
+        current_congestion: avgFee > 1000 ? "HIGH" : avgFee > 100 ? "MODERATE" : "LOW",
+        tiers: {
+          low: { lamports: tiers.low, description: "Economical: Good for non-urgent transfers. Might take a few blocks.", estimated_time: "15-60 seconds" },
+          medium: { lamports: tiers.medium, description: "Balanced: Recommended for most swaps and agentic tasks.", estimated_time: "5-15 seconds" },
+          high: { lamports: tiers.high, description: "Aggressive: Use for time-sensitive trades or high-competition mints.", estimated_time: "1-5 seconds" }
+        },
+        raw_stats: { min: minFee, max: maxFee, average: avgFee, sample_size: fees.length },
+        llm_advice: `Network congestion is currently ${avgFee > 1000 ? 'HIGH' : 'LOW'}. For reliable execution, use at least ${tiers.medium} lamports per compute unit.`
+      }, null, 2) }] };
+    } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
+  });
+
+  mcpServer.tool("decode_tx", "Explain a confirmed transaction in plain language: category (swap, SOL transfer, meme-coin trade), success or failure, fee, slot, time, each account's SOL balance change, and raw logs. Use it to check what a transaction actually did. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"signature\":\"<transaction signature>\"}", {
+    signature: z.string().describe("Signature of a confirmed transaction: base58 string, about 88 characters; get one from get_recent_transactions (required)."),
+    network: NETWORK
+  }, READ_ONLY, async ({ signature, network }: any) => {
+    stats.solanaRpcCalls++;
+    try {
+      const tx = await getConnection(network).getTransaction(signature, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+      if (!tx) return { content: [{ type: "text", text: "Error: Transaction not found or not yet confirmed" }], isError: true };
+
+      const logs = tx.meta?.logMessages || [];
+      let summary = "Generic transaction executed.";
+      let category = "Transfer";
+      if (logs.some(l => l.includes("Jupiter"))) { summary = "Swap executed via Jupiter Aggregator."; category = "Swap"; }
+      else if (logs.some(l => l.includes("Pump.fun"))) { summary = "Interaction with Pump.fun (Mint or Swap)."; category = "MemeCoin"; }
+      else if (logs.some(l => l.includes("Raydium"))) { summary = "Swap executed via Raydium."; category = "Swap"; }
+      else if (logs.some(l => l.includes("System Program: Transfer"))) { summary = "Native SOL transfer."; category = "Transfer"; }
+
+      const accountKeys = tx.transaction.message.staticAccountKeys.map(k => k.toBase58());
+      const preBalances = tx.meta?.preBalances || [];
+      const postBalances = tx.meta?.postBalances || [];
+      const balanceChanges = accountKeys.map((address, i) => {
+        const deltaLamports = (postBalances[i] ?? 0) - (preBalances[i] ?? 0);
+        return { address, deltaLamports, deltaSol: deltaLamports / 1e9 };
+      }).filter(c => c.deltaLamports !== 0);
+
+      return { content: [{ type: "text", text: JSON.stringify({
+        signature,
+        network,
+        summary,
+        category,
+        details: { slot: tx.slot, fee: tx.meta?.fee, timestamp: tx.blockTime, status: tx.meta?.err === null ? "SUCCESS" : "FAILED" },
+        balance_changes: balanceChanges,
+        raw_logs: logs,
+        llm_context: `This transaction was a ${category}. ${summary} The transaction ${tx.meta?.err === null ? 'succeeded' : 'failed'}.`
+      }, null, 2) }] };
+    } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
+  });
+
+  mcpServer.tool("validate_transaction", "Pre-send safety check: decodes the transaction, checks the fee payer can pay fees, tests it against live chain state without sending, and returns a SAFE or UNSAFE verdict with issues (each with a code and fix hint), logs and compute units. Use it as the last step before signing an agent-built transaction. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+    transaction: z.string().describe("The transaction to check: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
+    network: NETWORK
+  }, READ_ONLY, async ({ transaction, network }: any) => {
+    stats.solanaRpcCalls++;
+    try {
+      const connection = getConnection(network);
+      const issues: { severity: 'ERROR' | 'WARNING'; code: string; message: string; fix: string }[] = [];
+
+      let tx: VersionedTransaction;
+      try {
+        tx = VersionedTransaction.deserialize(Buffer.from(transaction, 'base64'));
+      } catch (decodeErr: any) {
+        return { content: [{ type: "text", text: JSON.stringify({
+          network,
+          verdict: "UNSAFE",
+          safe: false,
+          issues: [{
+            severity: "ERROR",
+            code: "MALFORMED_TRANSACTION",
+            message: `Could not decode the transaction: ${decodeErr.message}`,
+            fix: "Confirm the transaction is a base64-encoded serialized VersionedTransaction, not a legacy Transaction or raw instruction set."
+          }],
+          simulation: null
+        }, null, 2) }] };
+      }
+
+      try {
+        const feePayer = tx.message.staticAccountKeys[0];
+        const numSignatures = tx.message.header.numRequiredSignatures || 1;
+        const baseFeeLamports = 5000 * numSignatures;
+        const feePayerBalance = await connection.getBalance(feePayer);
+        if (feePayerBalance < baseFeeLamports) {
+          issues.push({
+            severity: "ERROR",
+            code: "INSUFFICIENT_FEE_PAYER_BALANCE",
+            message: `Fee payer ${feePayer.toBase58()} has ${feePayerBalance} lamports, below the estimated base fee of ${baseFeeLamports} lamports for ${numSignatures} signature(s).`,
+            fix: "Fund the fee payer wallet with more SOL before sending this transaction."
+          });
+        }
+      } catch (feeCheckErr: any) {
+        issues.push({
+          severity: "WARNING",
+          code: "FEE_PAYER_CHECK_FAILED",
+          message: `Could not verify fee payer balance: ${feeCheckErr.message}`,
+          fix: "Proceed with caution — fee payer solvency was not confirmed."
+        });
+      }
+
+      const simResult = await connection.simulateTransaction(tx, { sigVerify: false, replaceRecentBlockhash: true });
+
+      if (simResult.value.err) {
+        const errStr = JSON.stringify(simResult.value.err);
+        const logs = simResult.value.logs || [];
+        let code = "SIMULATION_FAILED";
+        let message = `Simulation returned an error: ${errStr}`;
+        let fix = "Review the logs below for the failing instruction and program.";
+
+        if (errStr.includes("InsufficientFundsForRent") || logs.some(l => l.includes("insufficient funds for rent"))) {
+          code = "INSUFFICIENT_RENT";
+          message = "An account in this transaction doesn't have enough SOL to remain rent-exempt.";
+          fix = "Fund the account with more SOL, or create it via the appropriate 'create account' instruction with enough lamports for rent exemption.";
+        } else if (logs.some(l => l.includes("insufficient lamports") || l.includes("Attempt to debit an account but found no record of a prior credit"))) {
+          code = "INSUFFICIENT_BALANCE";
+          message = "One of the accounts doesn't have enough SOL or tokens for the transfer being attempted.";
+          fix = "Confirm the source account's real balance with get_solana_balance or get_token_accounts before retrying.";
+        } else if (errStr.includes("AccountNotFound") || logs.some(l => l.includes("could not find account"))) {
+          code = "ACCOUNT_NOT_FOUND";
+          message = "This transaction references an account that doesn't exist on-chain yet.";
+          fix = "If this is a token account, check find_ata first — it may need to be created before this transaction can run.";
+        } else if (errStr.includes("custom program error")) {
+          code = "PROGRAM_ERROR";
+          message = `The target program rejected this instruction: ${errStr}`;
+          fix = "This is a program-specific error code. Check the target program's documentation for what this code means, or inspect the logs below.";
+        }
+        issues.push({ severity: "ERROR", code, message, fix });
+      }
+
+      const hasErrors = issues.some(i => i.severity === "ERROR");
+      return { content: [{ type: "text", text: JSON.stringify({
+        network,
+        verdict: hasErrors ? "UNSAFE" : "SAFE",
+        safe: !hasErrors,
+        issues,
+        simulation: {
+          success: simResult.value.err === null,
+          error: simResult.value.err,
+          logs: simResult.value.logs,
+          unitsConsumed: simResult.value.unitsConsumed
+        }
+      }, null, 2) }] };
+    } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
     return mcpServer;
@@ -1127,15 +1390,16 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
       "instructions": "Connect via the SSE endpoint listed below. This server is optimized for autonomous agents; it provides structured JSON and human-readable summaries to prevent hallucination during blockchain interactions.",
       "mcp_sse_endpoint": "/mcp/sse",
       "tools": [
-        { "name": "get_solana_balance", "description": "Fetch native SOL balance with network selection." },
-        { "name": "get_solana_blockhash", "description": "Get the latest finalized blockhash for transaction construction." },
-        { "name": "get_token_accounts", "description": "Scan all SPL token holdings for a wallet." },
-        { "name": "get_recent_transactions", "description": "Retrieve recent transaction signatures." },
-        { "name": "simulate_solana_transaction", "description": "Simulate a base64 transaction to check for failure before broadcasting." },
-        { "name": "find_ata", "description": "Derive the Associated Token Account address for a wallet and mint." },
-        { "name": "token_profile", "description": "Get token metadata, decimals, and security/honeypot flags." },
-        { "name": "optimal_fee", "description": "Get tiered priority fee recommendations based on network congestion." },
-        { "name": "decode_tx", "description": "Translate raw transaction logs into human-readable summaries." }
+        { "name": "get_solana_balance", "description": "Free. Get a wallet's SOL balance." },
+        { "name": "get_solana_blockhash", "description": "Free. Get the latest finalized blockhash for building a transaction." },
+        { "name": "get_token_accounts", "description": "Free. List every SPL token account a wallet owns, with mint and balance." },
+        { "name": "get_recent_transactions", "description": "Free. List a wallet's recent transaction signatures, newest first." },
+        { "name": "simulate_solana_transaction", "description": "1 credit. Dry-run a base64 transaction against live chain state without sending it." },
+        { "name": "find_ata", "description": "Free. Derive a wallet's Associated Token Account for a mint and check if it exists." },
+        { "name": "token_profile", "description": "1 credit. Token safety profile: decimals, supply, freeze and mint authority, top holders." },
+        { "name": "optimal_fee", "description": "1 credit. Live low, medium and high priority-fee tiers for current congestion." },
+        { "name": "decode_tx", "description": "1 credit. Explain a confirmed transaction: category, status, fee, balance changes, logs." },
+        { "name": "validate_transaction", "description": "1 credit. Pre-send check: SAFE or UNSAFE verdict with fix hints." }
       ]
     });
   });

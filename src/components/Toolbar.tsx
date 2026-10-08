@@ -55,7 +55,7 @@ export default function Toolbar(p: Props) {
       {p.showUpsell && (
         <div className="border-t border-slate-800 bg-slate-900/70">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-xs lg:px-8">
-            <span className="text-slate-300">Test every endpoint free: {total} calls a year, no signup.</span>
+            <span className="text-slate-300">Basic lookups are always free. Paid calls use credits you add with your wallet.</span>
             <button onClick={p.onUpgrade} className="rounded-md bg-indigo-600 px-3 py-1 font-semibold text-white hover:bg-indigo-500">Yes, I want it</button>
             <button onClick={p.onStayFree} className="text-slate-400 hover:text-slate-200 hover:underline">No, I'll stay free</button>
           </div>

@@ -68,9 +68,9 @@ export const AgentMonetizationStudio: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1">Flat rate across every metered endpoint. Deducted from your credit balance.</p>
           </div>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase">Free tier</span>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-1">110 calls <span className="text-sm font-normal text-slate-400">/ year</span></p>
-            <p className="text-xs text-slate-400 mt-1">Per IP address, per year, on any endpoint. Balance, blockhash, token accounts, recent transactions and token address (ATA) lookups are always free, within rate limits.</p>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Free reads</span>
+            <p className="text-2xl font-extrabold text-emerald-400 mt-1">Always free <span className="text-sm font-normal text-slate-400">/ rate limited</span></p>
+            <p className="text-xs text-slate-400 mt-1">Balance, blockhash, token accounts, recent transactions and token address (ATA) lookups are always free, up to 120 requests per minute per IP address. Everything else is a paid call.</p>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ curl -X POST ${typeof window !== 'undefined' ? window.location.origin : ''}/api/
 {`curl "${typeof window !== 'undefined' ? window.location.origin : ''}/api/solana/token-profile?mint=<token_mint>" \\
   -H "x-api-key: <your_key>"`}
           </pre>
-          <p className="text-[11px] text-slate-500 mt-1">Responses carry x-free-calls-remaining while free calls last, and x-credits-remaining when a credit is used.</p>
+          <p className="text-[11px] text-slate-500 mt-1">Paid responses carry x-credits-remaining with the credits you have left. A call that ends in an error is refunded.</p>
         </div>
       </div>
 

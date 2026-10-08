@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-function encodeBase58(bytes: Uint8Array): string {
+export function encodeBase58(bytes: Uint8Array): string {
   if (!bytes || bytes.length === 0) return '';
   const digits = [0];
   for (let i = 0; i < bytes.length; i++) {

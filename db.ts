@@ -54,6 +54,7 @@ export async function ensureSchema() {
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS call_history_wallet_idx ON call_history (wallet_address, created_at DESC);`);
+  await pool.query(`ALTER TABLE call_history ADD COLUMN IF NOT EXISTS status INTEGER;`).catch((e: any) => console.error('call_history status column:', e.message));
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS processed_payments (
@@ -66,11 +67,11 @@ export async function ensureSchema() {
   `);
 }
 
-export async function logCall(params: { wallet: string | null; endpoint: string; method: string; priceCredits: number; via: string }) {
+export async function logCall(params: { wallet: string | null; endpoint: string; method: string; priceCredits: number; via: string; status?: number }) {
   try {
     await pool.query(
-      `INSERT INTO call_history (wallet_address, endpoint, method, price_credits, via) VALUES ($1, $2, $3, $4, $5)`,
-      [params.wallet, params.endpoint, params.method, params.priceCredits, params.via]
+      `INSERT INTO call_history (wallet_address, endpoint, method, price_credits, via, status) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [params.wallet, params.endpoint, params.method, params.priceCredits, params.via, params.status ?? null]
     );
   } catch (e) {
     console.error("call_history insert failed:", e);

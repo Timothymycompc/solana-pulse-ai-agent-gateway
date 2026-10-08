@@ -5,6 +5,7 @@ import { Terminal, Bot, Coins, Lock } from 'lucide-react';
 import { ApiGatewaySandbox } from './components/ApiGatewaySandbox';
 import { McpDocsView } from './components/McpDocsView';
 import { AgentMonetizationStudio } from './components/AgentMonetizationStudio';
+import { GetStartedWalkthrough } from './components/GetStartedWalkthrough';
 import { AutomatedPromotionStudio } from './components/AutomatedPromotionStudio';
 import { OwnerAnalyticsPortal } from './components/OwnerAnalyticsPortal';
 import { ContactCustomRequests } from './components/ContactCustomRequests';
@@ -30,10 +31,10 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
       <Toolbar
-        items={[{ id: 'api', label: 'Playground', icon: Terminal }, { id: 'mcp_docs', label: 'Agent Docs', icon: Bot }, { id: 'monetization', label: 'Pricing & Top-Up', icon: Coins }]}
+        items={[{ id: 'api', label: 'Playground', icon: Terminal }, { id: 'mcp_docs', label: 'Agent Docs', icon: Bot }, { id: 'monetization', label: 'Pricing & Top-Up', icon: Coins }, { id: 'docs', label: 'Docs' }]}
         ownerItems={ownerMode ? [{ id: 'owner_studio', label: 'Owner Hub', icon: Lock }] : []}
         active={activeTab}
-        onSelect={(id) => setActiveTab(id as AppTab)}
+        onSelect={(id) => (id === 'docs' ? window.open('/docs/', '_blank') : setActiveTab(id as AppTab))}
         freeLeft={freeLeft}
         showUpsell={showUpsell}
         onUpgrade={() => setActiveTab('monetization')}
@@ -57,7 +58,8 @@ export function App() {
 
         {activeTab === 'monetization' && (
           <div>
-            <AgentMonetizationStudio />
+            <GetStartedWalkthrough />
+            <div className="mt-10"><AgentMonetizationStudio /></div>
             <ContactCustomRequests />
           </div>
         )}
