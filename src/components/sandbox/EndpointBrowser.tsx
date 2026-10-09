@@ -33,14 +33,16 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Search endpoints by name, path..."
+            placeholder="Search a question, e.g. wallet, token risk, fees"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use your visitor trial first.</p>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1">
             {(['all', 'safety', 'intel', 'free', 'keys'] as const).map((suite) => (
               <button
@@ -52,7 +54,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                     : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
                 }`}
               >
-                {suite}
+                {{ all: 'All', safety: 'Transactions', intel: 'Tokens', free: 'Core data', keys: 'Wallet' }[suite]}
               </button>
             ))}
           </div>
@@ -104,8 +106,8 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                     {ep.name}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono capitalize">
-                  {ep.suite}
+                <span className={`text-[10px] font-medium ${ep.priceLamports ? 'text-amber-300' : 'text-emerald-300'}`}>
+                  {ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · Trial' : 'Trial · then 1 credit') : 'No call credit'}
                 </span>
               </div>
 

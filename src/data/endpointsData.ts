@@ -186,8 +186,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/balance',
     summary: 'Live SOL balance of any wallet.',
-    description: 'Returns the current SOL balance of a wallet in lamports and SOL, straight from the network. Leave the wallet blank to try a live example.',
-    priceLamports: 0,
+    description: 'Returns the current SOL balance of a wallet in lamports and SOL, straight from the network. Every visitor gets 27 trial calls, then successful calls cost one credit.',
+    priceLamports: 2200000,
     category: 'Core Solana',
     isLive: true,
     queryParams: [
@@ -210,8 +210,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/blockhash',
     summary: 'The newest finalized blockhash and how long it stays valid.',
-    description: 'Returns the latest finalized blockhash and its last valid block height, needed to build any transaction.',
-    priceLamports: 0,
+    description: 'Returns the latest finalized blockhash and its last valid block height, needed to build any transaction. Trial calls are shared across tools; after 27, successful calls cost one credit.',
+    priceLamports: 2200000,
     category: 'Core Solana',
     isLive: true,
     queryParams: [
@@ -233,8 +233,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/token-accounts',
     summary: 'Every token a wallet holds, with amounts.',
-    description: 'Lists token accounts owned by a wallet with mint, balance, and decimals, read live from the chain.',
-    priceLamports: 0,
+    description: 'Lists token accounts owned by a wallet with mint, balance, and decimals, read live from the chain. Trial calls are shared across tools; after 27, successful calls cost one credit.',
+    priceLamports: 2200000,
     category: 'SPL Tokens',
     isLive: true,
     queryParams: [
@@ -264,8 +264,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/transactions',
     summary: 'A wallet most recent transactions, newest first.',
-    description: 'Returns recent transaction signatures for a wallet, newest first.',
-    priceLamports: 0,
+    description: 'Returns recent transaction signatures for a wallet, newest first. Trial calls are shared across tools; after 27, successful calls cost one credit.',
+    priceLamports: 2200000,
     category: 'History',
     isLive: true,
     queryParams: [
@@ -289,8 +289,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/find-ata',
     summary: 'Works out the token account address for a wallet and a token, and whether it exists yet.',
-    description: 'Derives the associated token account for a wallet and mint and checks whether it exists on chain.',
-    priceLamports: 0,
+    description: 'Derives the associated token account for a wallet and mint and checks whether it exists on chain. Trial calls are shared across tools; after 27, successful calls cost one credit.',
+    priceLamports: 2200000,
     category: 'Simplifier',
     isLive: true,
     queryParams: [
@@ -322,7 +322,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/credits',
     summary: 'Shows the paid credit balance and usage for a wallet address.',
-    description: 'Read-only lookup. Returns paid credits and lifetime usage. Costs nothing and never returns an API key.',
+    description: 'Read-only account lookup. Returns paid credits and lifetime usage. Does not consume a data call or return an API key.',
     priceLamports: 0,
     category: 'Core Solana',
     isLive: true,
@@ -333,12 +333,27 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
       paidCredits: 4545,
       totalCallsMade: 12,
-      freeCallsRemaining: 0,
-      freeCallsPerYear: 0,
+      trialCallsRemaining: 27,
+      trialCallsPerVisitor: 27,
       lamportsPerCall: 2200000,
       hasWallet: true
     },
     tags: ['credits', 'balance']
+  },
+  {
+    id: 'trial-status',
+    name: 'Check Trial Calls',
+    suite: 'keys',
+    method: 'GET',
+    path: '/api/trial/status',
+    summary: 'Shows how many anonymous trial calls remain in this browser.',
+    description: 'Reads the server-side count associated with this browser’s first-party trial cookie. Shared trial usage applies across HTTP and MCP calls. Does not consume a call.',
+    priceLamports: 0,
+    category: 'Account',
+    isLive: true,
+    queryParams: [],
+    sampleResponse: { scope: 'visitor_cookie', trialCallsPerVisitor: 27, callsUsed: 0, callsRemaining: 27, priceAfterTrialLamports: 2200000 },
+    tags: ['trial', 'usage']
   },
   {
     id: 'claim-deposit-info',
@@ -357,7 +372,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       payout_address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
       price_per_call_lamports: 2200000,
       price_per_call_sol: 0.0022,
-      free_calls_per_year: 0
+      trial_calls_per_visitor: 27
     },
     tags: ['claim', 'deposit']
   },

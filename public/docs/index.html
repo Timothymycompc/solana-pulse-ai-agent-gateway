@@ -144,8 +144,8 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       </div>
       <div class="arrow"><span>checks the order</span><span>checks the request</span></div>
       <div class="step">
-        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Water is free. Full dishes go on a prepaid tab.</small></div>
-        <div class="cell gate"><span class="who">Rate limit and credits</span><b>Free reads are rate limited. Paid calls need your key and a credit.</b><small>Decides whether the call goes ahead.</small></div>
+        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Visitors can try 27 calls before opening a prepaid tab.</small></div>
+        <div class="cell gate"><span class="who">Trial and credits</span><b>Counts visitor calls, then checks your key and credits.</b><small>Decides whether the call goes ahead.</small></div>
       </div>
       <div class="arrow"><span>hands the ticket to</span><span>runs the code</span></div>
       <div class="step">
@@ -172,21 +172,21 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
   </section>
 
   <section id="paths" aria-labelledby="paths-h">
-    <h2 id="paths-h">Free reads and paid calls</h2>
-    <p>Basic lookups are free, because many providers give them away. Calls that do real work for you are paid, at <strong>0.0022 SOL per call</strong>, from credits you add to your wallet.</p>
+    <h2 id="paths-h">Try calls, then pay per call</h2>
+    <p>Each visitor gets <strong>27 free calls</strong>, tracked by a first-party cookie and shared between HTTP and MCP. No wallet sign-in is needed to try the service. After the trial, each successful call costs <strong>0.0022 SOL</strong> (one credit); sign in with a wallet to add credits.</p>
     <div class="lanes">
       <div class="lane free">
-        <h3>Free reads <span class="tag free">FREE</span></h3>
-        <p class="muted">Balance, latest blockhash, token holdings, recent transactions, token account address</p>
+        <h3>27-call trial <span class="tag free">TRY</span></h3>
+        <p class="muted">Use the live data calls to test the API and MCP tools before paying.</p>
         <ol>
-          <li><b>You send a request</b><small>No key needed.</small></li>
-          <li><b>The gateway checks and prepares it</b><small>Applies a rate limit and fills in anything you left blank.</small></li>
+          <li><b>You send a request</b><small>27 calls are tracked by a browser cookie, no sign-in needed.</small></li>
+          <li><b>The gateway checks and prepares it</b><small>Fills in supported defaults and validates inputs.</small></li>
           <li><b>Live data is fetched from Solana</b><small>Nothing is stored or guessed.</small></li>
           <li><b>You get a clean answer</b><small>Structured JSON.</small></li>
         </ol>
       </div>
       <div class="lane paid">
-        <h3>Paid calls <span class="tag paid">0.0022 SOL</span></h3>
+        <h3>After the trial <span class="tag paid">0.0022 SOL / call</span></h3>
         <p class="muted">Transaction preview, pre-flight safety check, token safety report, priority fee advice, explain transaction</p>
         <ol>
           <li><b>You send a request with your key</b><small>Header <code>x-api-key</code>.</small></li>
@@ -205,18 +205,17 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <table>
         <thead><tr><th>You want to know</th><th>Use</th><th>Cost</th><th>You send</th></tr></thead>
         <tbody>
-          <tr class="group"><td colspan="4">Free reads</td></tr>
-          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
-          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag free">Free</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
-          <tr class="group"><td colspan="4">Paid calls</td></tr>
-          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">Paid</span></td><td><code>mint</code></td></tr>
-          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">Paid</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">Paid</span></td><td><code>signature</code></td></tr>
+          <tr class="group"><td colspan="4">All data calls: 27 trial calls, then one credit (0.0022 SOL) per successful call</td></tr>
+          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
+          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
+          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>mint</code></td></tr>
+          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">Trial, then 1 credit</span></td><td><code>signature</code></td></tr>
         </tbody>
       </table>
     </div>
@@ -241,7 +240,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
 
   <section id="key" aria-labelledby="key-h">
     <h2 id="key-h">Get a key and add credits</h2>
-    <p>You only need a key for paid calls. There is no signup form and no email. You prove you own a Solana wallet, and the wallet is your account.</p>
+    <p>You can try 27 data calls without signing in. After that, sign in with a Solana wallet to add credits. There is no signup form and no email.</p>
     <div class="steps">
       <div><span class="n">Step 1</span><h3>Sign in with your wallet</h3><p>Request a short message, sign it with your wallet, and send the signature back. Signing in is free and sends nothing to the network. You get an API key.</p></div>
       <div><span class="n">Step 2</span><h3>Add credits</h3><p>Send SOL from the same wallet to the gateway address. Credits are added automatically when the deposit is detected, at 0.0022 SOL per paid call.</p></div>

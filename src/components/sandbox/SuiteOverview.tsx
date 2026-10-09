@@ -14,7 +14,7 @@ export const SuiteOverview: React.FC<SuiteOverviewProps> = ({ selectedSuite, set
     { id: "safety", name: "Transaction Toolkit", desc: "Validate and simulate, decode logs, priority fees", icon: Shield, color: "indigo" },
     { id: "intel", name: "Token Intelligence", desc: "Decimals, supply, mint and freeze authority flags", icon: Sparkles, color: "purple" },
     { id: "keys", name: "Claim & Keys", desc: "Deposit info, sign-in challenge, key check, usage history", icon: Key, color: "amber" },
-    { id: "free", name: "Free RPC", desc: "Balances, blockhash, token accounts, history, ATA", icon: Layers, color: "cyan" },
+    { id: "free", name: "Core Solana Data", desc: "Balance, blockhash, holdings, history, ATA (27 visitor trial calls)", icon: Layers, color: "cyan" },
   ] as const;
 
   return (

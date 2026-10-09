@@ -4,8 +4,10 @@ Solana blockchain API and Model Context Protocol (MCP) server. The gateway provi
 
 ## Pricing
 - Paid calls cost 0.0022 SOL (one credit) each.
-- There is no annual or lifetime free-call allowance for paid endpoints.
-- Balance, blockhash, token accounts, recent transactions, and associated token account (ATA) lookups are free and rate-limited to 120 requests per minute per IP.
+- Each visitor gets 27 free calls tracked by a first-party cookie. Trial calls are shared between HTTP and MCP and do not require wallet sign-in.
+- Command-line and Streamable HTTP clients should retain the returned `pulse_trial` cookie (for example, cURL `-b visitor-cookies.txt -c visitor-cookies.txt`) to keep the same visitor quota.
+- After the trial, every API and MCP data call costs one credit per successful call. Operational routes such as authentication, credit lookup, and usage status do not consume a call credit.
+- Requests are rate-limited to 120 per minute per IP.
 
 ## HTTP API
 - `GET /api/solana/balance?wallet=<address>` — native SOL balance.
@@ -18,13 +20,15 @@ Solana blockchain API and Model Context Protocol (MCP) server. The gateway provi
 - `GET /api/solana/token-profile?mint=<mint>` — mint authorities, token details, risk signal, and top holders.
 - `GET /api/solana/optimal-fee` — recent priority-fee estimates.
 - `GET /api/solana/decode-tx?signature=<signature>` — transaction summary and balance changes.
+- `GET /api/trial/status` — remaining calls for this visitor's first-party cookie.
 
-## MCP
+## MCP Tools (20)
 - Streamable HTTP endpoint: `POST /mcp`.
 - SSE endpoint: `/mcp/sse` (messages at `/mcp/messages`).
 - Tool manifest: `/.well-known/mcp.json`.
-- Ten tools: `get_solana_balance`, `get_solana_blockhash`, `get_token_accounts`, `get_recent_transactions`, `simulate_solana_transaction`, `find_ata`, `token_profile`, `optimal_fee`, `decode_tx`, and `validate_transaction`.
-- The first four listed lookup tools plus `find_ata` are free. The other five cost one credit per call.
+- Core tools: `get_solana_balance`, `get_solana_blockhash`, `get_token_accounts`, `get_recent_transactions`, `simulate_solana_transaction`, `find_ata`, `token_profile`, `optimal_fee`, `decode_tx`, and `validate_transaction`.
+- Intelligence tools: `get_wallet_snapshot`, `summarize_wallet_activity`, `resolve_token_symbol`, `get_token_market_snapshot`, `analyze_token_concentration`, `compare_tokens`, `inspect_address`, `explain_transaction_effects`, `analyze_wallet_portfolio`, and `estimate_transaction_cost`.
+- Each tool uses the visitor's shared 27-call trial allowance, then costs one credit per successful call.
 
 ## Authentication and credits
 Paid requests require an API key in the `x-api-key` header. Obtain a key by signing in with a Solana wallet at `/api/auth/challenge` and `/api/auth/login`. Top up by sending SOL to the deposit address returned from `/api/claim/deposit-info`.

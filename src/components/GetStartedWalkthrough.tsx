@@ -294,9 +294,9 @@ export const GetStartedWalkthrough: React.FC = () => {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold text-white">Get started: sign in, add credits, make your first call</h2>
+        <h2 className="text-xl font-bold text-white">Try 27 calls, then add credits if you need more</h2>
         <p className="mt-1 text-xs text-slate-400">
-          Your wallet is your account. There is no signup form and no email. Every step below is a real call to the gateway, and each one is listed at the bottom with its full response.
+          You can try the HTTP API or MCP without a wallet first. The 27-call visitor trial is tracked by a browser cookie. Use the steps below when you are ready to sign in and continue with credits; every step is a real call shown in the log below.
         </p>
       </div>
 
@@ -430,7 +430,7 @@ export const GetStartedWalkthrough: React.FC = () => {
         )}
       </Step>
 
-      <Step n={6} title="Make your first paid call" route="GET /api/solana/token-profile" done={stepDone[5]} active={act(5)}>
+      <Step n={6} title="Make a token analysis call" route="GET /api/solana/token-profile" done={stepDone[5]} active={act(5)}>
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={mint}
@@ -439,15 +439,15 @@ export const GetStartedWalkthrough: React.FC = () => {
             placeholder="Token mint address"
           />
           <button className={btn} disabled={!(act(5) || firstDone) || !!busy} onClick={firstCall}>
-            {busy === 'first' ? 'Calling...' : firstDone ? 'Call again' : 'Make my first paid call'}
+            {busy === 'first' ? 'Calling...' : firstDone ? 'Call again' : 'Run token analysis'}
           </button>
         </div>
         {firstDone && (
           <p className="text-xs text-emerald-300">
-            It worked. Credits left: {credits ?? 'unknown'}. Open the call log below to see the full response, then use the same header on any paid call.
+            It worked. Credits left: {credits ?? 'unknown'}. If visitor trial calls remain, this used one; otherwise it used a credit. Open the call log below to see the full response.
           </p>
         )}
-        <p className="text-[11px] text-slate-500">A call that ends in an error is refunded, so it does not cost a credit.</p>
+        <p className="text-[11px] text-slate-500">A call that ends in an error is refunded and does not consume a trial call or credit.</p>
       </Step>
 
       <div className="flex justify-end">

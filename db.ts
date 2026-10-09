@@ -57,6 +57,15 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE call_history ADD COLUMN IF NOT EXISTS status INTEGER;`).catch((e: any) => console.error('call_history status column:', e.message));
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS anonymous_trial_usage (
+      visitor_hash TEXT PRIMARY KEY,
+      calls_used INTEGER NOT NULL DEFAULT 0 CHECK (calls_used >= 0 AND calls_used <= 27),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_call_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS service_usage (
       id BIGSERIAL PRIMARY KEY,
       endpoint TEXT NOT NULL,

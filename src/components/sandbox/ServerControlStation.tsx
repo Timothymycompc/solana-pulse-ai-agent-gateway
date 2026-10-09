@@ -40,7 +40,7 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
           <div className="p-3 rounded-2xl bg-indigo-500/15 text-indigo-300"><Activity className="w-6 h-6" /></div>
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight">Hosted Gateway Checks</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Requests run against this deployment. This panel cannot start or stop the hosted service.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Requests run live and use up to five visitor trial calls. This panel cannot start or stop the hosted service.</p>
           </div>
         </div>
         <button
@@ -72,7 +72,7 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
         </div>
       </div>
 
-      {batchStats && <p className="text-xs text-slate-400">{passRate}% passed · {batchStats.failed} failed. Checks call the available free GET routes only; no paid credits are used.</p>}
+      {batchStats && <p className="text-xs text-slate-400">{passRate}% passed · {batchStats.failed} failed. These live checks use visitor trial calls; they do not send an API key or spend wallet credits.</p>}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

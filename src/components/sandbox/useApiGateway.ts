@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Buffer } from 'buffer';
 import { Keypair, SystemProgram, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import type { TestExecutionResult, ApiEndpoint } from '../../types';
@@ -17,7 +17,12 @@ type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | '
 
 const initialEndpoint = API_ENDPOINTS.find((endpoint) => endpoint.id === 'solana-balance') ?? API_ENDPOINTS[0];
 const methods: RequestMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
-const paidRoutes = new Set([
+const meteredRoutes = new Set([
+  '/api/solana/balance',
+  '/api/solana/blockhash',
+  '/api/solana/token-accounts',
+  '/api/solana/transactions',
+  '/api/solana/find-ata',
   '/api/solana/simulate',
   '/api/solana/validate-and-simulate',
   '/api/solana/token-profile',
@@ -38,9 +43,8 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-export const useApiGateway = () => {
-  const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
-  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('all');
+export const useApiGateway = (authHeaders: Record<string, string>) => {
+  const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('free');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(initialEndpoint);
@@ -49,10 +53,16 @@ export const useApiGateway = () => {
   const [requestHeadersText, setRequestHeadersText] = useState('{}');
   const [requestBodyText, setRequestBodyText] = useState('');
   const [exampleNotice, setExampleNotice] = useState('');
-  const isPaidRequest = (() => {
-    try { return paidRoutes.has(new URL(requestPath, window.location.origin).pathname); }
+  const isMeteredRequest = (() => {
+    try { return meteredRoutes.has(new URL(requestPath, window.location.origin).pathname); }
     catch { return false; }
   })();
+  const [trialCallsRemaining, setTrialCallsRemaining] = useState(27);
+  useEffect(() => {
+    fetch('/api/trial/status').then((response) => response.ok ? response.json() : null)
+      .then((body) => { if (Number.isFinite(body?.callsRemaining)) setTrialCallsRemaining(body.callsRemaining); })
+      .catch(() => undefined);
+  }, []);
   const sampleGeneration = useRef(0);
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -81,7 +91,9 @@ export const useApiGateway = () => {
     const matchesMethod = methodFilter === 'all' || endpoint.method === methodFilter;
     const query = searchQuery.toLowerCase();
     const matchesSearch = !query || endpoint.name.toLowerCase().includes(query) ||
-      endpoint.path.toLowerCase().includes(query) || endpoint.category.toLowerCase().includes(query);
+      endpoint.path.toLowerCase().includes(query) || endpoint.category.toLowerCase().includes(query) ||
+      endpoint.summary.toLowerCase().includes(query) || endpoint.description.toLowerCase().includes(query) ||
+      endpoint.tags.some((tag) => tag.toLowerCase().includes(query));
     return matchesSuite && matchesMethod && matchesSearch;
   }), [selectedSuite, methodFilter, searchQuery]);
 
@@ -171,11 +183,11 @@ export const useApiGateway = () => {
     }
 
     const pathAndQuery = `${url.pathname}${url.search}`;
-    const isPaid = paidRoutes.has(url.pathname);
+    const isMetered = url.pathname.startsWith('/api/solana/') && meteredRoutes.has(url.pathname);
     const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod);
-    if (isPaid || isMutating) {
+    if ((isMetered && trialCallsRemaining === 0 && Object.keys(authHeaders).length > 0) || isMutating) {
       const warnings = [
-        ...(isPaid ? ['This endpoint costs 0.0022 SOL per successful call.'] : []),
+        ...(isMetered && trialCallsRemaining === 0 ? ['Your visitor trial is used. This request will cost one credit (0.0022 SOL) if it succeeds.'] : []),
         ...(isMutating ? ['This request may change account or server state.'] : []),
       ];
       if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;
@@ -185,9 +197,13 @@ export const useApiGateway = () => {
     const startedAt = performance.now();
     try {
       const hasBody = !['GET', 'HEAD'].includes(requestMethod) && requestBodyText.length > 0;
+      const requestHeaders = { ...headers };
+      if (hasBody && !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')) {
+        requestHeaders['Content-Type'] = 'application/json';
+      }
       const response = await fetch(url, {
         method: requestMethod,
-        headers,
+        headers: requestHeaders,
         body: hasBody ? requestBodyText : undefined,
       });
       const latencyMs = Math.round(performance.now() - startedAt);
@@ -196,6 +212,8 @@ export const useApiGateway = () => {
         ? await response.json().catch(() => ({ error: 'The gateway returned invalid JSON.' }))
         : await response.text();
       const responseHeaders = Object.fromEntries(response.headers.entries());
+      const trialRemainingHeader = response.headers.get('x-trial-calls-remaining');
+      if (trialRemainingHeader !== null) setTrialCallsRemaining(Number(trialRemainingHeader));
       addServerLog(requestMethod, pathAndQuery, response.status, latencyMs);
       window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
@@ -264,8 +282,20 @@ export const useApiGateway = () => {
   const generatedCurl = useMemo(() => {
     let headers: Record<string, string> = {};
     try { headers = { ...authHeaders, ...parseHeaders() }; } catch { /* Invalid JSON is shown by the header editor. */ }
-    const url = new URL(requestPath || '/', window.location.origin).toString();
-    const parts = [`curl -X ${requestMethod}`, shellQuote(url)];
+    let url: string;
+    try { url = new URL(requestPath || '/', window.location.origin).toString(); }
+    catch { return '# Fix the request path before copying this cURL command.'; }
+    const hasBody = !['GET', 'HEAD'].includes(requestMethod) && requestBodyText.length > 0;
+    if (hasBody && !Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const urlObj = new URL(url);
+    const isDataCall = urlObj.pathname.startsWith('/api/solana/');
+    const parts = [
+      `curl -X ${requestMethod}`,
+      ...(isDataCall ? ['--cookie pulse-trial-cookies.txt', '--cookie-jar pulse-trial-cookies.txt'] : []),
+      shellQuote(url),
+    ];
     Object.entries(headers).forEach(([key, value]) => parts.push(`-H ${shellQuote(`${key}: ${value}`)}`));
     if (!['GET', 'HEAD'].includes(requestMethod) && requestBodyText) parts.push(`--data-raw ${shellQuote(requestBodyText)}`);
     return parts.join(' \\\n  ');
@@ -297,7 +327,8 @@ export const useApiGateway = () => {
       requestBodyText,
       exampleNotice,
       methods,
-      isPaidRequest,
+      isMeteredRequest,
+      trialCallsRemaining,
       isExecuting,
       testResult,
       copiedCurl,
@@ -311,7 +342,6 @@ export const useApiGateway = () => {
     },
     actions: {
       setSelectedSuite,
-      setAuthHeaders,
       setMethodFilter,
       setSearchQuery,
       handleSelectEndpoint,
