@@ -20,8 +20,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { meterCall, meterMiddleware, refundCredit } from "./meter";
-import { FREE_TOOL_NAMES, PRICE_LAMPORTS, getTool, buildDescription } from "./toolRegistry";
-import { buildMcpManifest, buildLlmsTxt, SERVER_VERSION } from "./discovery";
 import { z } from "zod";
 
 async function startServer() {
@@ -89,15 +87,6 @@ async function startServer() {
 
   app.use("/api/", apiLimiter);
   app.use("/mcp/", apiLimiter);
-
-  // Reject unknown networks instead of silently falling back to mainnet.
-  app.use("/api/", (req: any, res: any, next: any) => {
-    const n = req.query?.network ?? (req.body && typeof req.body === "object" ? req.body.network : undefined);
-    if (n !== undefined && n !== null && n !== "" && n !== "mainnet-beta" && n !== "devnet") {
-      return res.status(400).json({ error: `Invalid network "${String(n).slice(0, 40)}". Use "mainnet-beta" or "devnet".` });
-    }
-    next();
-  });
 
   const stats = { totalRequests: 0, solanaRpcCalls: 0 };
 
@@ -985,21 +974,18 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
-  const FREE_TOOLS = new Set(FREE_TOOL_NAMES);
+  const FREE_TOOLS = new Set(["get_solana_balance", "get_solana_blockhash", "get_token_accounts", "get_recent_transactions", "find_ata"]);
 
   const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
-  const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: SERVER_VERSION });
+  const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
   const rawTool = (mcpServer as any).tool.bind(mcpServer);
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
-    const reg = getTool(name);
-    if (reg && typeof rest[0] === "string") rest[0] = buildDescription(reg);
-    else console.warn(`[registry] MCP tool "${name}" is not in toolRegistry.ts`);
     return rawTool(name, ...rest, async (...args: any[]) => {
       if (FREE_TOOLS.has(name)) return handler(...args);
-      const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: PRICE_LAMPORTS });
+      const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
       if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || PRICE_LAMPORTS, payTo: GATEWAY_WALLET, note: "Payment required. Send x-api-key with credits." }) }], isError: true };
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Payment required. Send x-api-key with credits." }) }], isError: true };
       }
       let result: any;
       try { result = await handler(...args); }
@@ -1392,7 +1378,30 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   app.get("/api/debug/ip", noCache, (req, res) => res.json({ ip: req.ip, xff: req.headers["x-forwarded-for"] || null, trustProxy: app.get("trust proxy") }));
   app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
-    res.json(buildMcpManifest());
+    res.json({
+      "name": "Solana Pulse AI Agent Gateway",
+      "version": "1.0.0",
+      "description": "The definitive MCP server for Solana AI Agents. Abstracts raw RPC plumbing into high-level intelligence endpoints for asset resolution, security auditing, and transaction interpretation.",
+      "capabilities": {
+        "tools": {
+          "description": "Provides a suite of tools for balance checks, token profile security audits, ATA derivation, and transaction decoding."
+        }
+      },
+      "instructions": "Connect via the SSE endpoint listed below. This server is optimized for autonomous agents; it provides structured JSON and human-readable summaries to prevent hallucination during blockchain interactions.",
+      "mcp_sse_endpoint": "/mcp/sse",
+      "tools": [
+        { "name": "get_solana_balance", "description": "Free. Get a wallet's SOL balance." },
+        { "name": "get_solana_blockhash", "description": "Free. Get the latest finalized blockhash for building a transaction." },
+        { "name": "get_token_accounts", "description": "Free. List every SPL token account a wallet owns, with mint and balance." },
+        { "name": "get_recent_transactions", "description": "Free. List a wallet's recent transaction signatures, newest first." },
+        { "name": "simulate_solana_transaction", "description": "1 credit. Dry-run a base64 transaction against live chain state without sending it." },
+        { "name": "find_ata", "description": "Free. Derive a wallet's Associated Token Account for a mint and check if it exists." },
+        { "name": "token_profile", "description": "1 credit. Token safety profile: decimals, supply, freeze and mint authority, top holders." },
+        { "name": "optimal_fee", "description": "1 credit. Live low, medium and high priority-fee tiers for current congestion." },
+        { "name": "decode_tx", "description": "1 credit. Explain a confirmed transaction: category, status, fee, balance changes, logs." },
+        { "name": "validate_transaction", "description": "1 credit. Pre-send check: SAFE or UNSAFE verdict with fix hints." }
+      ]
+    });
   });
 
   // LLM Crawler Discovery
@@ -1403,7 +1412,27 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   app.get("/llms.txt", noCache, (req, res) => {
     res.type("text/plain");
-    res.send(buildLlmsTxt());
+    res.send(`# Solana Pulse AI Agent Gateway\n
+High-performance Model Context Protocol (MCP) server for Solana Blockchain Intelligence.
+
+## Critical Specs for Agents
+- Base Price: 0.0022 SOL per call
+- Free Tier: 110 calls per year per IP address. Balance, blockhash, token accounts, recent transactions and find-ata are always free (rate limited)
+
+## Core Capabilities
+- Atomic Risk Scoring (Honeypot/Freeze authority detection)
+- Address Resolution (ATA derivation & Owner lookups)
+- Priority fee estimation and pre-flight transaction checks
+- Human-readable transaction decoding
+
+## Authentication
+- Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message
+- Send the returned key in the x-api-key header
+- Add credits by sending SOL to the address from GET /api/claim/deposit-info
+
+## Entry Points
+- MCP SSE Endpoint: /mcp/sse
+- Tool Manifest: /.well-known/mcp.json`);
   });
 
   // IndexNow Verification Route
