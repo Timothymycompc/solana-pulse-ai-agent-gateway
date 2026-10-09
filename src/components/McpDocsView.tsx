@@ -13,7 +13,7 @@ export const McpDocsView: React.FC = () => {
   const claudeConfig = JSON.stringify({
     "mcpServers": {
       "solana-pulse": {
-        "url": "https://solana-pulse-gateway-x23jefx3zq-uc.a.run.app/mcp/sse",
+        "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp/sse",
         "headers": {
           "x-api-key": "<YOUR_API_KEY>"
         }
@@ -25,37 +25,72 @@ export const McpDocsView: React.FC = () => {
     {
       name: "get_solana_balance",
       price: "FREE",
-      description: "Returns the native SOL balance for any Solana wallet address across mainnet-beta or devnet.",
+      description: "Free. Returns the native SOL balance for a wallet on mainnet-beta or devnet.",
       params: { wallet: "string (Base58 public key)", network: "mainnet-beta | devnet (optional)" },
       exampleOutput: { wallet: "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU", network: "mainnet-beta", balance_sol: 1.45 }
     },
     {
       name: "get_solana_blockhash",
       price: "FREE",
-      description: "Fetches the latest finalized blockhash and valid block height directly from the Solana cluster.",
+      description: "Free. Fetches the latest finalized blockhash directly from the Solana cluster.",
       params: { network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { network: "mainnet-beta", blockhash: "4uQeVj5tqViQh7yWWGStvfEG1Zmhx6uasJtWCJziofM", lastValidBlockHeight: 289410294 }
+      exampleOutput: { network: "mainnet-beta", blockhash: "4uQeVj5tqViQh7yWWGStvfEG1Zmhx6uasJtWCJziofM", timestamp: "2026-10-08T12:00:00.000Z" }
     },
     {
       name: "get_token_accounts",
-      price: "5,000 lamports (~$0.00075)",
-      description: "Scans all SPL Token accounts, token mint addresses, and balances owned by a wallet address.",
+      price: "FREE",
+      description: "Lists every SPL token account, mint address, balance, and decimals owned by a wallet.",
       params: { wallet: "string (Base58 public key)", network: "mainnet-beta | devnet (optional)" },
       exampleOutput: { wallet: "Brpc8...", tokenCount: 2, tokens: [{ mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: 250.5, decimals: 6 }] }
     },
     {
       name: "get_recent_transactions",
-      price: "5,000 lamports (~$0.00075)",
-      description: "Fetches recent confirmed transaction signatures, confirmation statuses, and timestamps for an address.",
-      params: { wallet: "string (Base58 public key)", limit: "number (optional, default: 10)", network: "mainnet-beta | devnet" },
+      price: "FREE",
+      description: "Lists recent transaction signatures for a wallet, newest first.",
+      params: { wallet: "string (Base58 public key)", limit: "integer (optional, default: 10, range: 1-1000)", network: "mainnet-beta | devnet (optional)" },
       exampleOutput: { wallet: "Brpc8...", count: 1, signatures: [{ signature: "5K7e...", slot: 28941000, err: null }] }
     },
     {
       name: "simulate_solana_transaction",
-      price: "10,000 lamports (~$0.0015)",
-      description: "Simulates a serialized base64 transaction on Solana to evaluate gas units and verify execution success before broadcasting.",
+      price: "0.0022 SOL (1 credit)",
+      description: "Simulates a serialized base64 transaction against live chain state without broadcasting it.",
       params: { transaction: "string (Base64 serialized transaction)", network: "mainnet-beta | devnet" },
       exampleOutput: { network: "mainnet-beta", success: true, unitsConsumed: 450, error: null }
+    },
+    {
+      name: "find_ata",
+      price: "FREE",
+      description: "Derives the associated token account for a wallet and mint, and checks whether it exists on-chain.",
+      params: { wallet: "string (Base58 public key)", mint: "string (Base58 token mint)", network: "mainnet-beta | devnet (optional)" },
+      exampleOutput: { owner: "Brpc8...", mint: "EPjFW...", ataAddress: "9z...", exists: true, network: "mainnet-beta" }
+    },
+    {
+      name: "token_profile",
+      price: "0.0022 SOL (1 credit)",
+      description: "Returns token mint details, freeze and mint authority status, and up to 10 largest holders. The freeze-authority risk flag is a heuristic, not honeypot detection. Cached for 60 seconds.",
+      params: { mint: "string (Base58 token mint)", network: "mainnet-beta | devnet (optional)" },
+      exampleOutput: { mint: "EPjFW...", decimals: 6, security: { isHoneypotRisk: false, riskLevel: "LOW" }, topHolders: [] }
+    },
+    {
+      name: "optimal_fee",
+      price: "0.0022 SOL (1 credit)",
+      description: "Returns live low, medium, and high priority-fee recommendations based on recent network fees.",
+      params: { network: "mainnet-beta | devnet (optional)" },
+      exampleOutput: { network: "mainnet-beta", current_congestion: "LOW", tiers: { low: { lamports: 0 }, medium: { lamports: 0 }, high: { lamports: 0 } } }
+    },
+    {
+      name: "decode_tx",
+      price: "0.0022 SOL (1 credit)",
+      description: "Explains a confirmed transaction with category, status, fee, account SOL balance changes, and logs.",
+      params: { signature: "string (Base58 transaction signature)", network: "mainnet-beta | devnet (optional)" },
+      exampleOutput: { signature: "5K7e...", category: "Transfer", details: { status: "SUCCESS" }, balance_changes: [] }
+    },
+    {
+      name: "validate_transaction",
+      price: "0.0022 SOL (1 credit)",
+      description: "Checks a transaction's fee payer balance and simulates it, returning a SAFE or UNSAFE verdict and fix hints. Does not broadcast.",
+      params: { transaction: "string (Base64 serialized VersionedTransaction)", network: "mainnet-beta | devnet (optional)" },
+      exampleOutput: { verdict: "SAFE", safe: true, issues: [], simulation: { success: true, unitsConsumed: 450 } }
     }
   ];
 
@@ -67,7 +102,7 @@ export const McpDocsView: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Standard Model Context Protocol (MCP 1.0)</span>
+              <span>Model Context Protocol (MCP)</span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">
               Connect Autonomous LLMs to Solana
@@ -79,7 +114,7 @@ export const McpDocsView: React.FC = () => {
           <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl min-w-[280px]">
             <div className="text-xs text-slate-400 font-medium mb-1">Live MCP SSE Endpoint:</div>
             <div className="text-xs text-indigo-400 font-mono break-all select-all">
-              https://solana-pulse-gateway-x23jefx3zq-uc.a.run.app/mcp/sse
+              https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp/sse
             </div>
           </div>
         </div>
@@ -94,7 +129,7 @@ export const McpDocsView: React.FC = () => {
             </div>
             <div>
               <h3 className="text-base font-bold text-white">Claude Desktop & Cursor Configuration</h3>
-              <p className="text-xs text-slate-400">Add this snippet to your <code className="text-indigo-300">claude_desktop_config.json</code> to enable all 5 tools instantly.</p>
+              <p className="text-xs text-slate-400">Add this snippet to your <code className="text-indigo-300">claude_desktop_config.json</code> to enable all 10 tools instantly.</p>
             </div>
           </div>
           <button

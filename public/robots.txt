@@ -26,4 +26,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://solana-pulse-ai-agent-gateway.ai.studio/sitemap.xml
+Sitemap: https://solana-pulse-gateway-1021990235790.us-central1.run.app/sitemap.xml

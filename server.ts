@@ -1381,13 +1381,13 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     res.json({
       "name": "Solana Pulse AI Agent Gateway",
       "version": "1.0.0",
-      "description": "The definitive MCP server for Solana AI Agents. Abstracts raw RPC plumbing into high-level intelligence endpoints for asset resolution, security auditing, and transaction interpretation.",
+      "description": "Solana blockchain lookups and transaction analysis through 10 Model Context Protocol tools for mainnet-beta and devnet.",
       "capabilities": {
         "tools": {
-          "description": "Provides a suite of tools for balance checks, token profile security audits, ATA derivation, and transaction decoding."
+          "description": "Five free read-only lookup tools and five credit-metered tools for transaction simulation, token authority profiles, priority-fee estimates, and transaction decoding. Paid calls cost 0.0022 SOL per credit."
         }
       },
-      "instructions": "Connect via the SSE endpoint listed below. This server is optimized for autonomous agents; it provides structured JSON and human-readable summaries to prevent hallucination during blockchain interactions.",
+      "instructions": "Connect using POST /mcp (Streamable HTTP) or /mcp/sse (SSE). The five free lookup tools are rate-limited. The five paid tools require an x-api-key with credits and cost 0.0022 SOL per call. Token authority risk fields are heuristics, not honeypot detection. Transaction simulation is not a guarantee of execution success.",
       "mcp_sse_endpoint": "/mcp/sse",
       "tools": [
         { "name": "get_solana_balance", "description": "Free. Get a wallet's SOL balance." },
@@ -1396,7 +1396,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
         { "name": "get_recent_transactions", "description": "Free. List a wallet's recent transaction signatures, newest first." },
         { "name": "simulate_solana_transaction", "description": "1 credit. Dry-run a base64 transaction against live chain state without sending it." },
         { "name": "find_ata", "description": "Free. Derive a wallet's Associated Token Account for a mint and check if it exists." },
-        { "name": "token_profile", "description": "1 credit. Token safety profile: decimals, supply, freeze and mint authority, top holders." },
+        { "name": "token_profile", "description": "1 credit. Token profile with decimals, supply, freeze and mint authorities, and top holders. Freeze-authority risk is a heuristic, not honeypot detection." },
         { "name": "optimal_fee", "description": "1 credit. Live low, medium and high priority-fee tiers for current congestion." },
         { "name": "decode_tx", "description": "1 credit. Explain a confirmed transaction: category, status, fee, balance changes, logs." },
         { "name": "validate_transaction", "description": "1 credit. Pre-send check: SAFE or UNSAFE verdict with fix hints." }
@@ -1407,23 +1407,34 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   // LLM Crawler Discovery
   app.get("/robots.txt", noCache, (req, res) => {
     res.type("text/plain");
-    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: /llms.txt");
+    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: https://solana-pulse-gateway-1021990235790.us-central1.run.app/sitemap.xml");
   });
 
   app.get("/llms.txt", noCache, (req, res) => {
     res.type("text/plain");
     res.send(`# Solana Pulse AI Agent Gateway\n
-High-performance Model Context Protocol (MCP) server for Solana Blockchain Intelligence.
+Solana blockchain API and Model Context Protocol (MCP) server. Provides read-only lookups, transaction simulation, token metadata, priority-fee estimates, and transaction decoding on mainnet-beta and devnet.
 
-## Critical Specs for Agents
-- Base Price: 0.0022 SOL per call
-- Free Tier: 110 calls per year per IP address. Balance, blockhash, token accounts, recent transactions and find-ata are always free (rate limited)
+## Pricing
+- Paid calls cost 0.0022 SOL (one credit) each.
+- There is no annual or lifetime free-call allowance for paid endpoints.
+- Balance, blockhash, token accounts, recent transactions, and find-ata lookups are free and rate-limited to 120 requests per minute per IP.
 
-## Core Capabilities
-- Atomic Risk Scoring (Honeypot/Freeze authority detection)
-- Address Resolution (ATA derivation & Owner lookups)
-- Priority fee estimation and pre-flight transaction checks
-- Human-readable transaction decoding
+## HTTP API
+- GET /api/solana/balance?wallet=<address> — native SOL balance.
+- GET /api/solana/blockhash — latest finalized blockhash.
+- GET /api/solana/token-accounts?wallet=<address> — SPL token accounts.
+- GET /api/solana/transactions?wallet=<address> — recent signatures (maximum 50).
+- GET /api/solana/find-ata?wallet=<address>&mint=<mint> — derive an ATA and check whether it exists.
+- POST /api/solana/simulate — simulate a base64 serialized VersionedTransaction without broadcasting.
+- POST /api/solana/validate-and-simulate — simulate a transaction and return a safety verdict with fix hints.
+- GET /api/solana/token-profile?mint=<mint> — token details, mint authorities, risk signal, and top holders.
+- GET /api/solana/optimal-fee — recent priority-fee estimates.
+- GET /api/solana/decode-tx?signature=<signature> — transaction summary and balance changes.
+
+## MCP Tools
+- Ten tools: get_solana_balance, get_solana_blockhash, get_token_accounts, get_recent_transactions, simulate_solana_transaction, find_ata, token_profile, optimal_fee, decode_tx, and validate_transaction.
+- The first four lookup tools plus find_ata are free. The other five cost one credit per call.
 
 ## Authentication
 - Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message
@@ -1431,6 +1442,7 @@ High-performance Model Context Protocol (MCP) server for Solana Blockchain Intel
 - Add credits by sending SOL to the address from GET /api/claim/deposit-info
 
 ## Entry Points
+- Streamable HTTP endpoint: POST /mcp
 - MCP SSE Endpoint: /mcp/sse
 - Tool Manifest: /.well-known/mcp.json`);
   });

@@ -156,11 +156,11 @@ export const OwnerAnalyticsPortal: React.FC = () => {
 
 ⚡ Features:
 - Real-time Solana RPC bridge (Mainnet & Devnet)
-- Model Context Protocol (MCP 1.0) for Claude Desktop, Cursor & LLMs
-- 3-Tier Bot Rebate: Refer 1,000 bot calls for 15% fee discount
+- Model Context Protocol tools for Claude Desktop, Cursor, and compatible clients
+- Free wallet lookups and paid transaction simulation, token profiles, fee estimates, and transaction decoding
 
-🔌 MCP Server: https://solana-pulse-ai-agent-gateway.ai.studio/.well-known/mcp.json
-📖 LLMs Context: https://solana-pulse-ai-agent-gateway.ai.studio/llms.txt
+🔌 MCP Server: https://solana-pulse-gateway-1021990235790.us-central1.run.app/.well-known/mcp.json
+📖 LLMs Context: https://solana-pulse-gateway-1021990235790.us-central1.run.app/llms.txt
 
 #Solana #AIAgents #Claude #MCP #Python #Web3`
     },
@@ -168,21 +168,21 @@ export const OwnerAnalyticsPortal: React.FC = () => {
       title: 'Reddit Developer Subreddits (r/solanadev, r/ClaudeAI, r/LocalLLaMA)',
       directUrl: 'https://www.reddit.com/r/solanadev/submit',
       platformName: 'r/solanadev / r/ClaudeAI',
-      text: `[Tool] Open Solana RPC Gateway with Model Context Protocol (MCP 1.0) & Devnet Broadcaster
+      text: `[Tool] Solana RPC Gateway with Model Context Protocol (MCP) tools
 
 Hey devs,
 
 I built and deployed an open-access Solana RPC & Devnet Gateway tailored specifically for autonomous AI agents and bot operators.
 
 Key Capabilities:
-- Zero-Binary pure Python backend deployed on Google Cloud Run
-- Dual RPC support: Solana Mainnet-Beta and Devnet
-- Native MCP 1.0 integration for Claude Desktop, Cursor IDE, and LangChain agents
-- Automated 3-tier bot referral incentive model (refer leads for up to 55% off RPC calls)
+- Node.js and TypeScript API deployed on Google Cloud Run
+- Solana Mainnet-Beta and Devnet lookups
+- MCP tools for Claude Desktop, Cursor, and compatible clients
+- Free read-only lookups; paid calls cost 0.0022 SOL per credit
 
-Gateway Root: https://solana-pulse-ai-agent-gateway.ai.studio
-MCP Manifest: https://solana-pulse-ai-agent-gateway.ai.studio/.well-known/mcp.json
-LLM Spec: https://solana-pulse-ai-agent-gateway.ai.studio/llms.txt
+Gateway Root: https://solana-pulse-gateway-1021990235790.us-central1.run.app
+MCP Manifest: https://solana-pulse-gateway-1021990235790.us-central1.run.app/.well-known/mcp.json
+LLM Spec: https://solana-pulse-gateway-1021990235790.us-central1.run.app/llms.txt
 
 Feedback and bot pull requests are welcome!`
     },
@@ -190,21 +190,21 @@ Feedback and bot pull requests are welcome!`
       title: 'Discord Communities (Anthropic Claude, Solana Tech, Cursor)',
       directUrl: 'https://discord.com/app',
       platformName: 'Discord Developer Servers',
-      text: `**Solana Pulse AI Agent Gateway (MCP 1.0)**
-🔗 **URL**: https://solana-pulse-ai-agent-gateway.ai.studio
-⚙️ **MCP Endpoint**: https://solana-pulse-ai-agent-gateway.ai.studio/.well-known/mcp.json
-🛠️ **Features**: Query Solana Mainnet/Devnet balances, broadcast signed transactions, token risk inspection, and zero-binary pure-Python micro-services.
-🎁 **Bot Operator Program**: Active 3-tier discount model for high-frequency agents!`
+      text: `**Solana Pulse AI Agent Gateway (MCP)**
+🔗 **URL**: https://solana-pulse-gateway-1021990235790.us-central1.run.app
+⚙️ **MCP Manifest**: https://solana-pulse-gateway-1021990235790.us-central1.run.app/.well-known/mcp.json
+🛠️ **Features**: Query Solana Mainnet/Devnet, inspect token authorities, simulate transactions, estimate priority fees, and decode confirmed transactions.
+💳 **Pricing**: Basic lookups are free; paid calls cost 0.0022 SOL per credit.`
     },
     mcp_hub: {
       title: 'MCP Directories (mcp.so, awesome-mcp-servers, Glama.ai)',
       directUrl: 'https://github.com/punkpeye/awesome-mcp-servers',
       platformName: 'Awesome MCP Servers GitHub / Glama.ai',
       text: `### Solana Pulse MCP Gateway
-- **Description**: Real-time Solana Blockchain RPC Bridge, Devnet Broadcaster, and MCP 1.0 Server for Claude Desktop and autonomous AI agents.
+- **Description**: Solana blockchain lookup and transaction analysis tools over MCP for compatible AI clients.
 - **Server Type**: SSE / HTTP
-- **Manifest URL**: \`https://solana-pulse-ai-agent-gateway.ai.studio/.well-known/mcp.json\`
-- **Documentation**: \`https://solana-pulse-ai-agent-gateway.ai.studio/llms.txt\`
+- **Manifest URL**: \`https://solana-pulse-gateway-1021990235790.us-central1.run.app/.well-known/mcp.json\`
+- **Documentation**: \`https://solana-pulse-gateway-1021990235790.us-central1.run.app/llms.txt\`
 - **Author Wallet / Sponsor**: \`5GuzhMZDWAHoEZiJZiqtiJ7op7KmFE7VqW6f9irJKrSH\``
     }
   };
@@ -325,14 +325,14 @@ Feedback and bot pull requests are welcome!`
                 Owner Private Session Authenticated
               </span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
-                Cloud Run 24/7 Engine
+                Owner dashboard
               </span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">
               Executive Analytics & Promotion Distribution Hub
             </h2>
             <p className="text-xs text-slate-300">
-              Live server-verified stats for visitors, transactions, revenue, and 1-click launch posts for top crypto & AI platforms.
+              Promotion activity and gateway analytics available to this owner account, plus copy-ready post drafts.
             </p>
           </div>
 
@@ -350,10 +350,10 @@ Feedback and bot pull requests are welcome!`
             <button
               onClick={handleResetToAuthenticZero}
               className="px-3 py-2 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
-              title="Reset all demo counters to authentic zero"
+              title="Reset promotion counters and local campaign cache"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Reset to Authentic Zero
+              Reset promotion counters
             </button>
 
             <button
@@ -416,7 +416,7 @@ Feedback and bot pull requests are welcome!`
               +{analytics.today_api_transactions} today
             </span>
           </div>
-          <p className="text-[11px] text-slate-500">RPC balance calls, risk audits, Devnet broadcasts & MCP queries.</p>
+              <p className="text-[11px] text-slate-500">RPC lookups, token profiles, transaction simulations, and MCP tool calls.</p>
         </div>
 
         {/* SOL Earned Card */}
@@ -454,7 +454,7 @@ Feedback and bot pull requests are welcome!`
               @ ~$145/SOL
             </span>
           </div>
-          <p className="text-[11px] text-slate-500">Calculated in real-time based on active Solana market index.</p>
+          <p className="text-[11px] text-slate-500">Estimate uses the configured SOL conversion value; it may differ from the current market price.</p>
         </div>
       </div>
 
@@ -467,7 +467,7 @@ Feedback and bot pull requests are welcome!`
               1-Click Promotional Post Generator & Direct Submit Links
             </h3>
             <p className="text-xs text-slate-400">
-              Select a target platform below, copy the pre-tailored viral message, and click the direct link to submit instantly!
+              Choose a platform, copy a prepared post, and open its submission page to review and publish it yourself.
             </p>
           </div>
 

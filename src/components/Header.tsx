@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
                 Solana Pulse Gateway
               </h1>
               <span className="text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
-                MCP 1.0 Live
+                MCP Live
               </span>
             </div>
             <p className="text-xs text-slate-400">

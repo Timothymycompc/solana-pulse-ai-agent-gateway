@@ -1,5 +1,4 @@
-import type React from 'react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { TestExecutionResult, ApiEndpoint } from '../../types';
 import { API_ENDPOINTS } from '../../data/endpointsData';
 
@@ -10,16 +9,9 @@ interface ServerAccessLog {
   path: string;
   status: number;
   latencyMs: number;
-  clientIp: string;
-  bytes: number;
 }
 
-interface UseApiGatewayProps {
-  isServerRunning: boolean;
-  setIsServerRunning: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGatewayProps) => {
+export const useApiGateway = () => {
   const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
   const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
@@ -45,9 +37,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   const [testResult, setTestResult] = useState<TestExecutionResult | null>(null);
   const [copiedCurl, setCopiedCurl] = useState(false);
 
-  // Server Engine State
-  const [isBootingServer, setIsBootingServer] = useState(false);
-  const [serverUptimeSeconds, setServerUptimeSeconds] = useState(0);
+  // Browser session request history
   const [serverLogs, setServerLogs] = useState<ServerAccessLog[]>([]);
   const [copiedLogs, setCopiedLogs] = useState(false);
 
@@ -56,23 +46,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchStats, setBatchStats] = useState<{ total: number; passed: number; failed: number; avgLatency: number } | null>(null);
 
-  // Uptime ticker
-  useEffect(() => {
-    if (!isServerRunning) return;
-    const interval = setInterval(() => {
-      setServerUptimeSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isServerRunning]);
-
-  const formatUptime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${hrs}:${mins}:${secs}`;
-  };
-
-  const addServerLog = (method: string, path: string, status: number, latencyMs: number, bytes: number) => {
+  const addServerLog = (method: string, path: string, status: number, latencyMs: number) => {
     const newLog: ServerAccessLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       timestamp: new Date().toLocaleTimeString(),
@@ -80,24 +54,8 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       path,
       status,
       latencyMs,
-      clientIp: '127.0.0.1',
-      bytes
     };
     setServerLogs(prev => [newLog, ...prev.slice(0, 49)]);
-  };
-
-  const handleToggleServer = () => {
-    setIsBootingServer(true);
-    setTimeout(() => {
-      setIsServerRunning(prev => {
-        if (!prev) {
-          setServerUptimeSeconds(0);
-          addServerLog('GET', '/healthz', 200, 4, 64);
-        }
-        return !prev;
-      });
-      setIsBootingServer(false);
-    }, 600);
   };
 
   const filteredEndpoints = useMemo(() => {
@@ -142,23 +100,6 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   };
 
   const handleExecuteRequest = async (triggerTypo = false) => {
-    if (!isServerRunning) {
-      setTestResult({
-        endpointId: selectedEndpoint.id,
-        url: selectedEndpoint.path,
-        method: selectedEndpoint.method,
-        status: 503,
-        latencyMs: 2,
-        timestamp: new Date().toLocaleTimeString(),
-        headers: { 'content-type': 'application/json' },
-        responseBody: {
-          error: 'Connection Refused: Master Gateway Server is OFFLINE.',
-          hint: 'Click "Start Gateway Server" in the control panel below to enable live routing across all 60 endpoints.'
-        }
-      });
-      return;
-    }
-
     setIsExecuting(true);
     const startTime = performance.now();
     const targetPath = triggerTypo && selectedEndpoint.typoPath ? selectedEndpoint.typoPath : selectedEndpoint.path;
@@ -188,7 +129,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       const status = isJson ? res.status : 404;
       const hdrs: Record<string, string> = { 'content-type': ctype || 'unknown' };
       ['x-free-calls-remaining', 'x-credits-remaining'].forEach(h => { const v = res.headers.get(h); if (v !== null) hdrs[h] = v; });
-      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration, JSON.stringify(body).length); window.dispatchEvent(new Event('pulse:call-done'));
+      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration); window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
         endpointId: selectedEndpoint.id, url: fullUrl, method: selectedEndpoint.method, status,
         latencyMs: liveDuration, timestamp: new Date().toLocaleTimeString(), headers: hdrs,
@@ -196,7 +137,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       });
     } catch (err: any) {
       const duration = Math.round(performance.now() - startTime);
-      addServerLog(selectedEndpoint.method, fullUrl, 500, duration, 90);
+      addServerLog(selectedEndpoint.method, fullUrl, 500, duration);
       setTestResult({
         endpointId: selectedEndpoint.id,
         url: fullUrl,
@@ -213,12 +154,12 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   };
 
   const handleRunBatchTestSuite = async () => {
-    if (!isServerRunning) {
-      setIsServerRunning(true);
-    }
     setIsBatchTesting(true);
     setBatchProgress(0);
-    const testable = API_ENDPOINTS.filter(e => e.suite === 'free' || (e.suite === 'keys' && Boolean(authHeaders['x-api-key'])));
+    const testable = API_ENDPOINTS.filter(e =>
+      e.suite === 'free' && e.method === 'GET' &&
+      (e.queryParams || []).every(param => !param.required || Boolean(param.default))
+    );
     const total = testable.length;
     let passed = 0;
     let totalLatency = 0;
@@ -235,7 +176,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
         status = (r.headers.get('content-type') || '').includes('json') ? r.status : 404;
       } catch { status = 500; }
       const lat = Math.round(performance.now() - t0);
-      addServerLog(ep.method, url, status, lat, 0);
+      addServerLog(ep.method, url, status, lat);
       totalLatency += lat;
       if (status === 200) passed++;
       setBatchProgress(i + 1);
@@ -252,7 +193,7 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
   };
 
   const generatedCurl = useMemo(() => {
-    let curl = `curl -X ${selectedEndpoint.method} "http://localhost:3000${selectedEndpoint.path}`;
+    let curl = `curl -X ${selectedEndpoint.method} "${window.location.origin}${selectedEndpoint.path}`;
     if (selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0) {
       const q = selectedEndpoint.queryParams.map(p => `${p.name}=${queryParams[p.name] || p.default || ''}`).join('&');
       curl += `?${q}`;
@@ -289,8 +230,6 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       isExecuting,
       testResult,
       copiedCurl,
-      isBootingServer,
-      serverUptimeSeconds,
       serverLogs,
       copiedLogs,
       isBatchTesting,
@@ -308,13 +247,11 @@ export const useApiGateway = ({ isServerRunning, setIsServerRunning }: UseApiGat
       setQueryParams,
       setRequestBodyText,
       handleExecuteRequest,
-      handleToggleServer,
       handleRunBatchTestSuite,
       copyCurl,
       copyAllLogs,
       setServerLogs,
       loadPreset,
-      formatUptime,
     },
   };
 };

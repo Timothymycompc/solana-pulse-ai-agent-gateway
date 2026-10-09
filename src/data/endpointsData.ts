@@ -171,7 +171,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       live_status: 'SUCCESS'
     },
 
-    tags: ['simplifier', 'security', 'honeypot'],
+    tags: ['simplifier', 'security', 'freeze-authority'],
     presets: [
       {
         label: 'Test USDC',
@@ -321,8 +321,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     suite: 'free',
     method: 'GET',
     path: '/api/credits',
-    summary: 'Shows paid credits and free calls remaining for a wallet address.',
-    description: 'Read-only lookup. Returns paid credits, lifetime usage, and free calls left for the calling connection. Costs nothing and never returns an API key.',
+    summary: 'Shows the paid credit balance and usage for a wallet address.',
+    description: 'Read-only lookup. Returns paid credits and lifetime usage. Costs nothing and never returns an API key.',
     priceLamports: 0,
     category: 'Core Solana',
     isLive: true,
@@ -333,8 +333,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
       paidCredits: 4545,
       totalCallsMade: 12,
-      freeCallsRemaining: 110,
-      freeCallsPerYear: 110,
+      freeCallsRemaining: 0,
+      freeCallsPerYear: 0,
       lamportsPerCall: 2200000,
       hasWallet: true
     },
@@ -357,7 +357,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       payout_address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
       price_per_call_lamports: 2200000,
       price_per_call_sol: 0.0022,
-      free_calls_per_year: 110
+      free_calls_per_year: 0
     },
     tags: ['claim', 'deposit']
   },

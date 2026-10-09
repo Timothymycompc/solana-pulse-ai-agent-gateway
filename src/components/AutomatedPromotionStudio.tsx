@@ -68,8 +68,8 @@ const INITIAL_CAMPAIGNS: PromotionCampaign[] = [
     name: 'X (Twitter) Autonomous Bot Blitz',
     channel: 'twitter',
     referrerTag: 'solana-agent-x-5Guzh',
-    discoveryHeadline: '⚡ Deploy & Broadcast Solana Devnet Transactions via MCP & Python Gateway',
-    discoveryText: 'Autonomous AI agents & trading bots: Connect your Claude/Cursor agents to the Solana Pulse Gateway. Refer 1,000 verified bot leads to unlock a 15% discount on your next 2,500 RPC calls! Zero-binary pure-Python setup on Cloud Run.',
+    discoveryHeadline: '⚡ Solana Data and Transaction Simulation via MCP',
+    discoveryText: 'Connect compatible AI clients to Solana Pulse for wallet lookups, token profiles, transaction simulation, priority fee estimates, and transaction decoding. Paid calls cost 0.0022 SOL per credit.',
     targetAudience: 'Crypto Bot Devs & AI Agents',
     utmSource: 'twitter',
     utmMedium: 'social_bot',
@@ -78,15 +78,15 @@ const INITIAL_CAMPAIGNS: PromotionCampaign[] = [
     totalPings: 42,
     successfulPings: 41,
     leadsDelivered: 128,
-    activeDiscountTier: 'Tier 1 (15% on 2,500 calls)'
+    activeDiscountTier: 'Standard pricing'
   },
   {
     id: 'camp-telegram-alpha',
     name: 'Telegram Solana Alpha Channel Broadcast',
     channel: 'telegram',
     referrerTag: 'tg-alpha-pulse-5Guzh',
-    discoveryHeadline: '🤖 Instant Solana Devnet Broadcaster & RPC Micro-Gateway for Telegram Bots',
-    discoveryText: 'Plug SolanaPulse into your bot workflows for instant balance inspection, keypair signing, and risk auditing. Anti-stacking 3-tier discount model active: refer leads for up to 55% off.',
+    discoveryHeadline: '🤖 Solana Lookups and Analysis for AI Agents',
+    discoveryText: 'Use Solana Pulse for wallet balance and token account lookups, token authority checks, transaction simulation, priority fee estimates, and transaction decoding.',
     targetAudience: 'Telegram Bot Operators & Alpha Groups',
     utmSource: 'telegram',
     utmMedium: 'bot_broadcast',
@@ -95,14 +95,14 @@ const INITIAL_CAMPAIGNS: PromotionCampaign[] = [
     totalPings: 29,
     successfulPings: 29,
     leadsDelivered: 84,
-    activeDiscountTier: 'Tier 1 (15% on 2,500 calls)'
+    activeDiscountTier: 'Standard pricing'
   },
   {
     id: 'camp-mcp-registry',
     name: 'MCP Hub & Claude Desktop Registry',
     channel: 'mcp_hub',
     referrerTag: 'mcp-hub-registry-5Guzh',
-    discoveryHeadline: '🔌 Official Model Context Protocol (MCP 1.0) Server for Solana Blockchain',
+    discoveryHeadline: '🔌 Solana Blockchain Tools over Model Context Protocol (MCP)',
     discoveryText: 'Enable Claude Desktop and autonomous LLMs to query Solana Mainnet & Devnet directly. Machine-readable manifest at /.well-known/mcp.json and full /llms.txt support.',
     targetAudience: 'Claude Desktop, Cursor & LangChain Users',
     utmSource: 'mcp_registry',
@@ -112,7 +112,7 @@ const INITIAL_CAMPAIGNS: PromotionCampaign[] = [
     totalPings: 67,
     successfulPings: 66,
     leadsDelivered: 215,
-    activeDiscountTier: 'Tier 1 (15% on 2,500 calls)'
+    activeDiscountTier: 'Standard pricing'
   }
 ];
 
@@ -146,7 +146,7 @@ const INITIAL_LOGS: DatabasePingLog[] = [
 ];
 
 export const AutomatedPromotionStudio: React.FC = () => {
-  const baseUrl = 'https://solana-pulse-ai-agent-gateway.ai.studio';
+  const baseUrl = 'https://solana-pulse-gateway-1021990235790.us-central1.run.app';
 
   // State
   const [campaigns, setCampaigns] = useState<PromotionCampaign[]>(() => {
@@ -283,8 +283,6 @@ export const AutomatedPromotionStudio: React.FC = () => {
     if (camp.utmSource) params.set('utm_source', camp.utmSource);
     if (camp.utmMedium) params.set('utm_medium', camp.utmMedium);
     if (camp.utmCampaign) params.set('utm_campaign', camp.utmCampaign);
-    params.set('tier_discount', '15pct_active');
-    params.set('auto_ping', 'true');
     return `${baseUrl}/?${params.toString()}`;
   };
 
@@ -313,8 +311,8 @@ export const AutomatedPromotionStudio: React.FC = () => {
       name: 'New Custom Bot Campaign',
       channel: 'custom',
       referrerTag: `bot-partner-${Math.floor(100 + Math.random() * 900)}`,
-      discoveryHeadline: '🚀 Connect Solana Pulse RPC & Devnet Broadcaster',
-      discoveryText: 'Integrate the Solana Pulse MCP AI Agent Gateway. Refer 1,000 leads for 15% discount on 2,500 calls.',
+      discoveryHeadline: '🚀 Connect to the Solana Pulse MCP Gateway',
+      discoveryText: 'Integrate Solana Pulse MCP tools for free wallet lookups and paid transaction simulation, token profiles, priority fee estimates, and transaction decoding.',
       targetAudience: 'Autonomous AI Agents & Developers',
       utmSource: 'custom_portal',
       utmMedium: 'agent_api',
@@ -323,7 +321,7 @@ export const AutomatedPromotionStudio: React.FC = () => {
       totalPings: 0,
       successfulPings: 0,
       leadsDelivered: 0,
-      activeDiscountTier: 'Tier 1 (15% on 2,500 calls)'
+      activeDiscountTier: 'Standard pricing'
     };
 
     setCampaigns(prev => [newCampaign, ...prev]);
@@ -435,7 +433,7 @@ export const AutomatedPromotionStudio: React.FC = () => {
               Custom Discovery-Text, Persistent URL Tracker & Server-Side Database Logger
             </h2>
             <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-              Inbound agent calls to <code>/v1/solana/...</code> and <code>/.well-known/mcp.json</code> are now captured <strong>server-side on Google Cloud Run 24/7</strong> even when your computer is asleep.
+              This workspace manages campaign drafts and referral links. Gateway API usage is not shown in this campaign log.
             </p>
           </div>
 
@@ -739,8 +737,6 @@ export const AutomatedPromotionStudio: React.FC = () => {
                       description: formData.discoveryText,
                       url: generateTrackedUrl(formData),
                       referrer_tag: formData.referrerTag,
-                      anti_stacking_enforced: true,
-                      discount_tier: "15pct_active"
                     }, null, 2), 'json-ld')}
                     className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] flex items-center gap-1"
                   >
@@ -779,11 +775,11 @@ export const AutomatedPromotionStudio: React.FC = () => {
                   Cloud Run Server-Side Interaction & Ping Logger
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
-                  {serverDbStatus === 'connected' ? '● Server Synced (24/7)' : 'Standalone'}
+                  {serverDbStatus === 'connected' ? '● Campaign data synced' : 'Local campaign data'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                All requests to <code>/v1/solana/...</code>, <code>/llms.txt</code>, and <code>/.well-known/mcp.json</code> are permanently logged to the server database even when your browser is closed.
+                This view shows campaign and referral events accepted by the promotion endpoints. It is not a complete log of gateway API or MCP calls.
               </p>
             </div>
 
@@ -874,7 +870,7 @@ export const AutomatedPromotionStudio: React.FC = () => {
               </button>
             </div>
 
-            <span className="font-mono text-[11px] text-emerald-400">Server Backend: FastAPI on Cloud Run 24/7</span>
+            <span className="font-mono text-[11px] text-emerald-400">Gateway backend: Node.js and TypeScript on Cloud Run</span>
           </div>
 
           {/* Database Table */}

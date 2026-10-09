@@ -4,7 +4,7 @@ A monetized Model Context Protocol (MCP) gateway bridging autonomous AI agents (
 
 ## Why this exists
 
-LLM agents that call raw Solana RPC directly tend to hallucinate or mishandle results: they misread transaction logs, miss honeypot/freeze-authority risks on tokens, derive the wrong token account address, or get transactions stuck from bad priority fee estimates. This gateway does that interpretation work server-side and returns clean, structured, agent-ready JSON.
+LLM agents that call raw Solana RPC directly must interpret transaction logs, token authorities, token-account addresses, and fee estimates themselves. This gateway provides those lookups and transaction analysis as structured JSON. Token authority checks are heuristics and do not detect honeypots.
 
 ## Architecture
 
@@ -17,8 +17,8 @@ LLM agents that call raw Solana RPC directly tend to hallucinate or mishandle re
 ## Pricing
 
 * Flat rate: 0.0022 SOL per paid call
-* Free tier: 50 lifetime calls per wallet/API key, capped at 15 free calls per day within that pool
-* `GET /api/solana/balance` and `GET /api/solana/blockhash` are free, uncapped
+* Free lookups: balance, blockhash, token accounts, recent transactions, and ATA lookup. These routes are rate-limited to 120 requests per minute per IP.
+* There is no annual or lifetime free-call allowance for paid endpoints.
 
 ## Live Endpoints
 
@@ -29,7 +29,7 @@ LLM agents that call raw Solana RPC directly tend to hallucinate or mishandle re
 * `POST /api/solana/simulate` — simulate a base64-encoded transaction without broadcasting
 * `POST /api/solana/validate-and-simulate` — simulate a transaction and get a plain-language Safe/Unsafe verdict with a specific fix for common failure modes (insufficient balance, missing account, bad fee payer)
 * `GET /api/solana/find-ata?wallet=<base58>&mint=<base58>` — derive an Associated Token Account address
-* `GET /api/solana/token-profile?mint=<base58>` — mint decimals/supply, freeze & mint authority, honeypot risk flag, top holders
+* `GET /api/solana/token-profile?mint=<base58>` — mint decimals/supply, freeze & mint authority, top holders; freeze-authority risk is a heuristic, not honeypot detection
 * `GET /api/solana/optimal-fee` — tiered priority fee recommendations based on live network congestion
 * `GET /api/solana/decode-tx?signature=<sig>` — translate raw transaction logs into a plain-English summary
 * `GET /.well-known/mcp.json` — MCP tool manifest for agent auto-discovery

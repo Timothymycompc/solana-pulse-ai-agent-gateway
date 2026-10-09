@@ -1,0 +1,10 @@
+.gcloudignore
+.git/
+.gitignore
+node_modules/
+dist/
+cloud-sql-proxy
+*.log
+*.swp
+SESSION_LOG*
+HANDOFF.md

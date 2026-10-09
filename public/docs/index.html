@@ -214,7 +214,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
           <tr class="group"><td colspan="4">Paid calls</td></tr>
           <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
           <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">Paid</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">Is this token risky to hold or trade?</td><td class="call"><b>Token safety report</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">Paid</span></td><td><code>mint</code></td></tr>
+          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">Paid</span></td><td><code>mint</code></td></tr>
           <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">Paid</span></td><td>nothing required</td></tr>
           <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">Paid</span></td><td><code>signature</code></td></tr>
         </tbody>
@@ -222,6 +222,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
     </div>
     <div class="note">
       <p><strong>About the pre-flight check.</strong> It tells you what it checked, for example whether the fee payer can cover the base fee, and shows the result of a dry run. It is a check for common mistakes, not a guarantee that a transaction will succeed.</p>
+      <p><strong>About token authority risk.</strong> The token profile reports mint and freeze authorities. Its freeze-authority risk flag is a heuristic and does not detect honeypots or guarantee whether a token is safe to trade.</p>
     </div>
     <h3>If something goes wrong</h3>
     <div class="tablebox">

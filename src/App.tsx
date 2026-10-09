@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import type { AppTab } from './components/Header';
 import Toolbar from './components/Toolbar';
 import { Terminal, Bot, Coins, Lock } from 'lucide-react';
@@ -13,21 +13,8 @@ import { ContactCustomRequests } from './components/ContactCustomRequests';
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('api');
   const [ownerSubTab, setOwnerSubTab] = useState<'promo' | 'analytics'>('promo');
-  const [isServerRunning, setIsServerRunning] = useState(true);
-  const [freeLeft, setFreeLeft] = useState<number | null>(null);
   const [showUpsell, setShowUpsell] = useState(() => { try { return localStorage.getItem('pulse_stay_free') !== '1'; } catch { return true; } });
   const ownerMode = new URLSearchParams(window.location.search).get('owner') === '1';
-  useEffect(() => {
-    const orig = window.fetch;
-    window.fetch = async (...args: Parameters<typeof fetch>) => {
-      const res = await orig(...args);
-      const v = res.headers.get('x-free-calls-remaining');
-      if (v !== null && v.trim() !== '' && !Number.isNaN(Number(v))) setFreeLeft(Number(v));
-      return res;
-    };
-    return () => { window.fetch = orig; };
-  }, []);
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
       <Toolbar
@@ -35,7 +22,6 @@ export function App() {
         ownerItems={ownerMode ? [{ id: 'owner_studio', label: 'Owner Hub', icon: Lock }] : []}
         active={activeTab}
         onSelect={(id) => (id === 'docs' ? window.open('/docs/', '_blank') : setActiveTab(id as AppTab))}
-        freeLeft={freeLeft}
         showUpsell={showUpsell}
         onUpgrade={() => setActiveTab('monetization')}
         onStayFree={() => { setShowUpsell(false); try { localStorage.setItem('pulse_stay_free', '1'); } catch { /* ignore */ } }}
@@ -44,7 +30,7 @@ export function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8">
         {activeTab === 'api' && (
           <div>
-            <ApiGatewaySandbox isServerRunning={isServerRunning} setIsServerRunning={setIsServerRunning} />
+            <ApiGatewaySandbox />
             <ContactCustomRequests />
           </div>
         )}

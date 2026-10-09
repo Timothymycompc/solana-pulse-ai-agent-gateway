@@ -1,6 +1,6 @@
 import { AccountPanel } from './AccountPanel';
+import type React from 'react';
 import { CreditsCheck } from './CreditsCheck';
-import React from 'react';
 import { SecureWalletClaim } from './SecureWalletClaim';
 import { useApiGateway } from './sandbox/useApiGateway';
 import { SuiteOverview } from './sandbox/SuiteOverview';
@@ -10,9 +10,6 @@ import { ServerControlStation } from './sandbox/ServerControlStation';
 import { PanelFrame, PanelsMenu, usePanels } from './sandbox/PanelFrame';
 
 interface ApiGatewaySandboxProps {
-  gatewayStatus: 'online' | 'offline' | 'checking';
-  isServerRunning: boolean;
-  setIsServerRunning: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PANELS = [
@@ -26,11 +23,8 @@ const PANELS = [
 ];
 const T = (id: string) => PANELS.find((p) => p.id === id)!.title;
 
-export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
-  isServerRunning,
-  setIsServerRunning,
-}) => {
-  const { state, actions } = useApiGateway({ isServerRunning, setIsServerRunning });
+export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = () => {
+  const { state, actions } = useApiGateway();
   const panels = usePanels();
 
   return (
@@ -110,16 +104,11 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({
 
       <PanelFrame id="server" title={T('server')} api={panels}>
         <ServerControlStation
-          isServerRunning={isServerRunning}
-          isBootingServer={state.isBootingServer}
-          serverUptimeSeconds={state.serverUptimeSeconds}
           serverLogs={state.serverLogs}
           copiedLogs={state.copiedLogs}
           isBatchTesting={state.isBatchTesting}
           batchProgress={state.batchProgress}
           batchStats={state.batchStats}
-          formatUptime={actions.formatUptime}
-          handleToggleServer={actions.handleToggleServer}
           handleRunBatchTestSuite={actions.handleRunBatchTestSuite}
           copyAllLogs={actions.copyAllLogs}
           clearLogs={() => actions.setServerLogs([])}
