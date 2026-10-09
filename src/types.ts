@@ -18,6 +18,8 @@ export interface ApiEndpoint {
   sampleRequestBody?: Record<string, any>;
   sampleResponse: Record<string, any>;
   tags: string[];
+  /** The MCP JSON-RPC call is POST-based but the tool itself is read-only. */
+  readOnly?: boolean;
 }
 
 export interface TestExecutionResult {
@@ -31,4 +33,3 @@ export interface TestExecutionResult {
   responseBody: any;
   isTypoTriggered?: boolean;
 }
-

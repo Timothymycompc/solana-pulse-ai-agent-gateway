@@ -30,6 +30,14 @@ const meteredRoutes = new Set([
   '/api/solana/decode-tx',
 ]);
 
+function isMeteredToolCall(path: string, body: string): boolean {
+  try {
+    const url = new URL(path, window.location.origin);
+    if (meteredRoutes.has(url.pathname)) return true;
+    return url.pathname === '/mcp' && JSON.parse(body || '{}')?.method === 'tools/call';
+  } catch { return false; }
+}
+
 function endpointPath(endpoint: ApiEndpoint): string {
   const params = new URLSearchParams();
   endpoint.queryParams?.forEach((param) => {
@@ -53,10 +61,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
   const [requestHeadersText, setRequestHeadersText] = useState('{}');
   const [requestBodyText, setRequestBodyText] = useState('');
   const [exampleNotice, setExampleNotice] = useState('');
-  const isMeteredRequest = (() => {
-    try { return meteredRoutes.has(new URL(requestPath, window.location.origin).pathname); }
-    catch { return false; }
-  })();
+  const isMeteredRequest = isMeteredToolCall(requestPath, requestBodyText);
   const [trialCallsRemaining, setTrialCallsRemaining] = useState(27);
   useEffect(() => {
     fetch('/api/trial/status').then((response) => response.ok ? response.json() : null)
@@ -183,11 +188,13 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     }
 
     const pathAndQuery = `${url.pathname}${url.search}`;
-    const isMetered = url.pathname.startsWith('/api/solana/') && meteredRoutes.has(url.pathname);
-    const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod);
-    if ((isMetered && trialCallsRemaining === 0 && Object.keys(authHeaders).length > 0) || isMutating) {
+    const isMetered = isMeteredToolCall(pathAndQuery, requestBodyText);
+    const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod) && !selectedEndpoint.readOnly;
+    if ((isMetered && trialCallsRemaining === 0) || isMutating) {
       const warnings = [
-        ...(isMetered && trialCallsRemaining === 0 ? ['Your visitor trial is used. This request will cost one credit (0.0022 SOL) if it succeeds.'] : []),
+        ...(isMetered && trialCallsRemaining === 0 ? [Object.keys(authHeaders).length > 0
+          ? 'Your visitor trial is used. This request will cost one credit (0.0022 SOL) if it succeeds.'
+          : 'Your visitor trial is used. Add an API key to run paid calls after the trial.'] : []),
         ...(isMutating ? ['This request may change account or server state.'] : []),
       ];
       if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;
@@ -214,6 +221,14 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
       const responseHeaders = Object.fromEntries(response.headers.entries());
       const trialRemainingHeader = response.headers.get('x-trial-calls-remaining');
       if (trialRemainingHeader !== null) setTrialCallsRemaining(Number(trialRemainingHeader));
+      const mcpTrialRemaining = responseBody && typeof responseBody === 'object'
+        ? responseBody.result?._meta?.trialCallsRemaining
+        : undefined;
+      if (Number.isFinite(mcpTrialRemaining)) setTrialCallsRemaining(mcpTrialRemaining);
+      else if (isMetered && url.pathname === '/mcp') {
+        const status = await fetch('/api/trial/status').then((r) => r.ok ? r.json() : null).catch(() => null);
+        if (Number.isFinite(status?.callsRemaining)) setTrialCallsRemaining(status.callsRemaining);
+      }
       addServerLog(requestMethod, pathAndQuery, response.status, latencyMs);
       window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
@@ -290,7 +305,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
       headers['Content-Type'] = 'application/json';
     }
     const urlObj = new URL(url);
-    const isDataCall = urlObj.pathname.startsWith('/api/solana/');
+    const isDataCall = urlObj.pathname.startsWith('/api/solana/') || isMeteredToolCall(requestPath, requestBodyText);
     const parts = [
       `curl -X ${requestMethod}`,
       ...(isDataCall ? ['--cookie pulse-trial-cookies.txt', '--cookie-jar pulse-trial-cookies.txt'] : []),

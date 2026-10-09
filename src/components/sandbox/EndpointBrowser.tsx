@@ -107,11 +107,11 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                   </span>
                 </div>
                 <span className={`text-[10px] font-medium ${ep.priceLamports ? 'text-amber-300' : 'text-emerald-300'}`}>
-                  {ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · Trial' : 'Trial · then 1 credit') : 'No call credit'}
+                  {ep.id.startsWith('mcp-') ? 'MCP · Trial then 1 credit' : ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · Trial' : 'Trial · then 1 credit') : 'No call credit'}
                 </span>
               </div>
 
-              <p className="text-[11px] font-mono text-slate-400 line-clamp-1">{ep.path}</p>
+              <p className="text-[11px] font-mono text-slate-400 line-clamp-1">{ep.id.startsWith('mcp-') ? `POST /mcp · ${ep.id.slice(4)}` : ep.path}</p>
               <p className="text-[11px] text-slate-500 line-clamp-1">{ep.summary}</p>
             </button>
           );

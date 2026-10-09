@@ -1,5 +1,29 @@
 import { ApiEndpoint } from '../types';
 
+const mcpToolEndpoint = (
+  name: string,
+  summary: string,
+  description: string,
+  args: Record<string, unknown>,
+  tags: string[],
+): ApiEndpoint => ({
+  id: `mcp-${name}`,
+  name,
+  suite: 'intel',
+  method: 'POST',
+  path: '/mcp',
+  summary,
+  description: `${description} This is an MCP tools/call request sent to /mcp. Edit the JSON arguments before running.`,
+  priceLamports: 2200000,
+  category: 'MCP Tool',
+  isLive: true,
+  readOnly: true,
+  requestBodySchema: { jsonrpc: '2.0', id: 'number', method: 'tools/call', params: { name, arguments: args } },
+  sampleRequestBody: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } },
+  sampleResponse: { result: { content: [{ type: 'text', text: 'Live response returned by the MCP tool.' }] } },
+  tags: ['mcp', 'intelligence', ...tags],
+});
+
 export const API_ENDPOINTS: ApiEndpoint[] = [
   {
     id: 'solana-validate-and-simulate',
@@ -479,5 +503,15 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       ]
     },
     tags: ['keys', 'history']
-  }
+  },
+  mcpToolEndpoint('get_wallet_snapshot', 'Wallet snapshot', 'Combines SOL balance, token accounts, and recent activity in one response.', { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', network: 'mainnet-beta' }, ['wallet', 'portfolio']),
+  mcpToolEndpoint('summarize_wallet_activity', 'Wallet activity summary', 'Counts recent successful and failed transactions and returns recent signatures.', { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', limit: 20, network: 'mainnet-beta' }, ['wallet', 'activity']),
+  mcpToolEndpoint('resolve_token_symbol', 'Resolve token symbol', 'Searches token pairs by ticker or name and ranks matching Solana mints by reported liquidity.', { query: 'BONK' }, ['token', 'search']),
+  mcpToolEndpoint('get_token_market_snapshot', 'Token market snapshot', 'Returns the most liquid matching DEX pair, price, liquidity, 24-hour volume, and pair link.', { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' }, ['token', 'market']),
+  mcpToolEndpoint('analyze_token_concentration', 'Token concentration', 'Measures the top ten token accounts’ combined share of supply and reports mint authorities.', { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', network: 'mainnet-beta' }, ['token', 'holders']),
+  mcpToolEndpoint('compare_tokens', 'Compare tokens', 'Compares two mints by supply, authorities, and top-account concentration.', { mintA: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', mintB: 'So11111111111111111111111111111111111111112', network: 'mainnet-beta' }, ['token', 'compare']),
+  mcpToolEndpoint('inspect_address', 'Inspect Solana address', 'Classifies an address using account owner, executable status, parsed token data, and balance.', { address: '11111111111111111111111111111111', network: 'mainnet-beta' }, ['address', 'account']),
+  mcpToolEndpoint('explain_transaction_effects', 'Explain transaction effects', 'Summarizes a confirmed transaction’s status, fees, SOL and token balance changes, and programs touched.', { signature: '<paste a confirmed 88-character transaction signature>', network: 'mainnet-beta' }, ['transaction', 'explain']),
+  mcpToolEndpoint('analyze_wallet_portfolio', 'Estimate wallet portfolio value', 'Combines wallet balances with available DEX prices and marks missing prices in the estimate.', { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', network: 'mainnet-beta' }, ['wallet', 'portfolio', 'market']),
+  mcpToolEndpoint('estimate_transaction_cost', 'Estimate transaction cost', 'Estimates base and configured priority fees, then simulates a serialized transaction without broadcasting.', { transaction: '<paste base64 serialized VersionedTransaction>', network: 'devnet' }, ['transaction', 'fees', 'simulation']),
 ];
