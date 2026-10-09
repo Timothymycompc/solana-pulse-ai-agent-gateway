@@ -6,22 +6,20 @@ import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import fs from "fs";
-import { randomUUID, timingSafeEqual, randomBytes, createHash, createHmac } from "crypto";
+import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { pool, ensureSchema, recordProcessedPayment, recordServiceUsage } from "./db";
+import { pool, ensureSchema, recordProcessedPayment } from "./db";
+import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
 import { makeAutofill } from "./resolver";
 import { lookupUser, saveDefaults, cleanDefaults } from "./userDefaults";
 import { keyFromReq } from "./authKey";
 import { loadSecrets } from "./src/secrets";
-import { registerIntelligenceTools } from "./src/mcp/intelligenceTools";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { getTrialStatus, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_VISITOR, trialMeterMiddleware } from "./meter";
-import { FREE_TOOL_NAMES, getTool, buildDescription } from "./toolRegistry";
-import { buildMcpManifest, buildLlmsTxt, SERVER_VERSION } from "./discovery";
+import { meterCall, meterMiddleware, refundCredit } from "./meter";
 import { z } from "zod";
 
 async function startServer() {
@@ -34,91 +32,13 @@ async function startServer() {
   console.log("startup: trust proxy =", app.get("trust proxy"));
   const PORT = Number(process.env.PORT) || 3000;
 
-  // Cloud Run terminates TLS before requests reach Express; send the policy to HTTPS clients.
-  app.use((_req, res, next) => {
-    res.setHeader("Strict-Transport-Security", "max-age=31536000");
-    next();
-  });
-
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
   app.use(express.json({
     verify: (req: any, res, buf) => { req.rawBody = buf; }
   }));
 
-  const trialCookieName = "pulse_trial";
-  const trialCookieSecret = process.env.TRIAL_COOKIE_SECRET || process.env.HELIUS_WEBHOOK_SECRET || process.env.DATABASE_URL || "local-development-trial-secret";
-  const signTrialVisitor = (visitorId: string) => createHmac("sha256", trialCookieSecret).update(visitorId).digest("hex");
-  const getTrialVisitorId = (req: any): string | null => {
-    const cookies = String(req.headers.cookie || "").split(";");
-    const entry = cookies.map((part: string) => part.trim()).find((part: string) => part.startsWith(`${trialCookieName}=`));
-    if (!entry) return null;
-    let value = "";
-    try { value = decodeURIComponent(entry.slice(trialCookieName.length + 1)); } catch { return null; }
-    const [visitorId, signature] = value.split(".");
-    if (!/^[0-9a-f-]{36}$/i.test(visitorId || "") || !/^[0-9a-f]{64}$/i.test(signature || "")) return null;
-    const expected = Buffer.from(signTrialVisitor(visitorId), "hex");
-    const supplied = Buffer.from(signature, "hex");
-    return expected.length === supplied.length && timingSafeEqual(expected, supplied) ? visitorId : null;
-  };
-  const ensureTrialVisitor = (req: any, res: any, next: any) => {
-    let visitorId = getTrialVisitorId(req);
-    if (!visitorId) {
-      visitorId = randomUUID();
-      const secure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
-      const cookie = `${trialCookieName}=${visitorId}.${signTrialVisitor(visitorId)}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
-      res.append("Set-Cookie", cookie);
-    }
-    req.trialVisitorId = visitorId;
-    next();
-  };
-  app.use("/api", ensureTrialVisitor);
-  app.use("/mcp", ensureTrialVisitor);
-
-  // Record route-level usage without storing query values, request bodies, or IP addresses.
-  const trackServiceUsage = (req: any, res: any, next: any) => {
-    const pathOnly = String(req.originalUrl || req.url).split("?")[0];
-    if (pathOnly === "/api/analytics/usage") return next();
-    const apiKey = keyFromReq(req);
-    res.once("finish", () => {
-      const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
-      const endpoint = pathOnly === "/mcp" && typeof toolName === "string"
-        ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}`
-        : pathOnly;
-      void (async () => {
-        try {
-          let wallet = req.user?.wallet || null;
-          if (!wallet && apiKey) {
-            const keyHash = createHash("sha256").update(apiKey).digest("hex");
-            const user = await pool.query(
-              "SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE",
-              [keyHash]
-            );
-            wallet = user.rows[0]?.address || null;
-          }
-          await recordServiceUsage({ wallet, endpoint, method: req.method, status: res.statusCode });
-        } catch (error) {
-          console.error("service usage tracking failed:", error);
-        }
-      })();
-    });
-    next();
-  };
-  app.use("/api", trackServiceUsage);
-  app.use("/mcp", trackServiceUsage);
-
-  // Fail closed on typos so a request for devnet can never silently query mainnet.
-  const allowedNetworks = new Set(["mainnet-beta", "devnet"]);
-  app.use("/api", (req: any, res: any, next: any) => {
-    const network = req.query?.network ?? req.body?.network;
-    if (network === undefined || network === null || network === "") return next();
-    if (typeof network !== "string" || !allowedNetworks.has(network)) {
-      return res.status(400).json({ error: 'Unsupported network. Use "mainnet-beta" or "devnet".' });
-    }
-    next();
-  });
-
-  // Core data routes use their dedicated request limiter below; all data calls are also metered.
-  const DEDICATED_RATE_LIMIT_PATHS = new Set([
+  // ---- Free tier (raw RPC data layer) ----
+  const FREE_PATHS = new Set([
     "/api/solana/balance",
     "/api/solana/blockhash",
     "/api/solana/token-accounts",
@@ -129,12 +49,12 @@ async function startServer() {
   ]);
 
   const FREE_REQUESTS_PER_MINUTE = 120;
-  const readRateLimiter = rateLimit({
+  const freeLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: FREE_REQUESTS_PER_MINUTE,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: "Request rate limit reached (" + FREE_REQUESTS_PER_MINUTE + " requests per minute). Slow down or retry shortly." }
+    message: { error: "Free tier rate limit reached (" + FREE_REQUESTS_PER_MINUTE + " requests per minute). Slow down or retry shortly." }
   });
 
   const claimLimiter = rateLimit({
@@ -159,7 +79,7 @@ async function startServer() {
   const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 120,
-    skip: (req: any) => DEDICATED_RATE_LIMIT_PATHS.has(String(req.originalUrl).split("?")[0]),
+    skip: (req: any) => FREE_PATHS.has(String(req.originalUrl).split("?")[0]),
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests, please try again later." }
@@ -168,26 +88,13 @@ async function startServer() {
   app.use("/api/", apiLimiter);
   app.use("/mcp/", apiLimiter);
 
-  // Reject unknown networks instead of silently falling back to mainnet.
-  app.use("/api/", (req: any, res: any, next: any) => {
-    const n = req.query?.network ?? (req.body && typeof req.body === "object" ? req.body.network : undefined);
-    if (n !== undefined && n !== null && n !== "" && n !== "mainnet-beta" && n !== "devnet") {
-      return res.status(400).json({ error: `Invalid network "${String(n).slice(0, 40)}". Use "mainnet-beta" or "devnet".` });
-    }
-    next();
-  });
-
   const stats = { totalRequests: 0, solanaRpcCalls: 0 };
 
   const mainnetRpcUrl = process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl('mainnet-beta');
   const devnetRpcUrl = process.env.SOLANA_DEVNET_RPC_URL || clusterApiUrl('devnet');
   const mainnetConnection = new Connection(mainnetRpcUrl, 'confirmed');
   const devnetConnection = new Connection(devnetRpcUrl, 'confirmed');
-  const getConnection = (network: string) => {
-    if (network === 'devnet') return devnetConnection;
-    if (network === 'mainnet-beta') return mainnetConnection;
-    throw new Error('Unsupported network. Use "mainnet-beta" or "devnet".');
-  };
+  const getConnection = (network: string) => network === 'devnet' ? devnetConnection : mainnetConnection;
 
   const noCache = (req: any, res: any, next: any) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -199,7 +106,7 @@ async function startServer() {
 
   const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 
-  const requirePayment = (min: number) => trialMeterMiddleware(min, GATEWAY_WALLET);
+  const requirePayment = (min: number) => meterMiddleware(min, GATEWAY_WALLET);
 
   const PRICE_PER_CALL_LAMPORTS = 2200000;
 
@@ -362,7 +269,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/balance", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/solana/balance", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -375,7 +282,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/blockhash", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/solana/blockhash", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const network = (req.query.network as string) || 'mainnet-beta';
@@ -387,7 +294,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/token-accounts", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/solana/token-accounts", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -417,7 +324,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/transactions", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/solana/transactions", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -570,7 +477,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/find-ata", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/solana/find-ata", freeLimiter, noCache, autofill, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { wallet, mint, network = 'mainnet-beta' } = req.query;
@@ -840,8 +747,8 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         lamports: calls * PRICE_PER_CALL_LAMPORTS,
         sol: (calls * PRICE_PER_CALL_LAMPORTS) / 1e9,
       })),
-      trial_calls_per_visitor: TRIAL_CALLS_PER_VISITOR,
-      note: "New visitors can make 27 trial calls without signing in. After the trial, credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples from the wallet you will sign in with."
+      free_calls_per_year: 0,
+      note: "Credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples of the price. Send from the wallet you will sign in with."
     });
   });
 
@@ -874,7 +781,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   
   // Verify a personal API key and the header it was sent in (free, read-only, never echoes the key)
-  app.get("/api/keys/verify", readRateLimiter, noCache, async (req, res) => {
+  app.get("/api/keys/verify", freeLimiter, noCache, async (req, res) => {
     try {
       const xKey = req.headers["x-api-key"] as string | undefined;
       const authHdr = req.headers["authorization"]?.toString();
@@ -903,7 +810,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   // Per-key live defaults: what blank calls fill in with (signed-in wallets only)
 
-  app.get("/api/keys/defaults", readRateLimiter, noCache, async (req, res) => {
+  app.get("/api/keys/defaults", freeLimiter, noCache, async (req, res) => {
     try {
       const k = keyFromReq(req);
       if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
@@ -920,7 +827,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.put("/api/keys/defaults", readRateLimiter, noCache, express.json(), async (req, res) => {
+  app.put("/api/keys/defaults", freeLimiter, noCache, express.json(), async (req, res) => {
     try {
       const k = keyFromReq(req);
       if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
@@ -938,7 +845,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
   });
 
   // Free credits lookup (read-only, consumes nothing, never returns a key)
-  app.get("/api/credits", readRateLimiter, noCache, autofill, async (req, res) => {
+  app.get("/api/credits", freeLimiter, noCache, autofill, async (req, res) => {
     try {
       const address = String(req.query.address || "").trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
@@ -949,30 +856,20 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         [address]
       );
       const row = w.rows[0];
-      const trial = await getTrialStatus((req as any).trialVisitorId);
+      const freeLeft = await peekFree(req.ip || "");
       return res.json({
         address,
         paidCredits: Number(row?.paid_credits || 0),
         totalCallsMade: Number(row?.total_calls_made || 0),
         totalPaidCreditsEver: Number(row?.total_paid_credits_ever || 0),
-        trialCallsRemaining: trial.remaining,
-        trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR,
+        freeCallsRemaining: freeLeft,
+        freeCallsPerYear: FREE_PER_YEAR,
         lamportsPerCall: 2200000,
         hasWallet: Boolean(row)
       });
     } catch (err: any) {
       console.error("Error in /api/credits:", err);
       return res.status(500).json({ error: "Failed to look up credits" });
-    }
-  });
-
-  app.get("/api/trial/status", noCache, async (req: any, res) => {
-    try {
-      const status = await getTrialStatus(req.trialVisitorId);
-      res.json({ scope: "visitor_cookie", trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR, callsUsed: status.used, callsRemaining: status.remaining, priceAfterTrialLamports: PRICE_PER_CALL_LAMPORTS });
-    } catch (error) {
-      console.error("trial status lookup failed:", error);
-      res.status(503).json({ error: "Trial status is temporarily unavailable." });
     }
   });
 
@@ -1073,87 +970,35 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   app.get("/api/analytics/live", noCache, (req, res) => res.json(stats));
 
-  app.get("/api/analytics/usage", readRateLimiter, noCache, async (_req, res) => {
-    try {
-      const [totals, services] = await Promise.all([
-        pool.query(`
-          SELECT
-            COUNT(*)::bigint AS calls,
-            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::bigint AS calls_24h,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS identified_wallets_24h,
-            COUNT(*) FILTER (WHERE endpoint LIKE '/api/%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS http_calls_24h,
-            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS mcp_calls_24h,
-            MAX(created_at) AS last_call_at
-          FROM service_usage
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
-        `),
-        pool.query(`
-          SELECT endpoint, COUNT(*)::bigint AS calls,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
-            MAX(created_at) AS last_call_at
-          FROM service_usage
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
-          GROUP BY endpoint
-          ORDER BY COUNT(*) DESC, endpoint ASC
-          LIMIT 12
-        `),
-      ]);
-      const row = totals.rows[0] || {};
-      res.json({
-        window: "rolling_24h",
-        calls: Number(row.calls_24h || 0),
-        identifiedWallets: Number(row.identified_wallets_24h || 0),
-        httpCalls: Number(row.http_calls_24h || 0),
-        mcpCalls: Number(row.mcp_calls_24h || 0),
-        lastCallAt: row.last_call_at || null,
-        services: services.rows.map((service: any) => ({
-          endpoint: service.endpoint,
-          calls: Number(service.calls),
-          identifiedWallets: Number(service.identified_wallets),
-          lastCallAt: service.last_call_at,
-        })),
-        note: "Calls include anonymous requests. Wallet counts include only authenticated wallet accounts; anonymous callers are not individually identified.",
-      });
-    } catch (error: any) {
-      console.error("usage analytics query failed:", error);
-      res.status(503).json({ error: "Live usage counts are temporarily unavailable." });
-    }
-  });
-
   // ==========================================
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
-  const FREE_TOOLS = new Set(FREE_TOOL_NAMES);
+  const FREE_TOOLS = new Set(["get_solana_balance", "get_solana_blockhash", "get_token_accounts", "get_recent_transactions", "find_ata"]);
 
-  const createMcpServer = (ctx: { apiKey?: string; ip: string; visitorId: string } = { ip: "unknown", visitorId: "" }) => {
-  const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: SERVER_VERSION });
+  const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
+  const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
   const rawTool = (mcpServer as any).tool.bind(mcpServer);
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
-    const reg = getTool(name);
-    if (reg && typeof rest[0] === "string") rest[0] = buildDescription(reg);
-    else console.warn(`[registry] MCP tool "${name}" is not in toolRegistry.ts`);
     return rawTool(name, ...rest, async (...args: any[]) => {
       if (FREE_TOOLS.has(name)) return handler(...args);
-      const m: any = await meterTrialOrCredit({ apiKey: ctx.apiKey, ip: ctx.ip, visitorId: ctx.visitorId, priceLamports: PRICE_PER_CALL_LAMPORTS });
+      const m: any = await meterCall({ apiKey: ctx.apiKey, ip: ctx.ip, priceLamports: 2200000 });
       if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || PRICE_PER_CALL_LAMPORTS, trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR, trialCallsUsed: m.trialCallsUsed ?? undefined, payTo: GATEWAY_WALLET, note: "The anonymous trial is used. Sign in with a wallet, add credits, and reconnect with x-api-key." }) }], isError: true };
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || 2200000, payTo: GATEWAY_WALLET, note: "Payment required. Send x-api-key with credits." }) }], isError: true };
       }
       let result: any;
       try { result = await handler(...args); }
-      catch (e) { await refundTrialOrCredit(m, ctx.visitorId); throw e; }
-      if (result && result.isError) await refundTrialOrCredit(m, ctx.visitorId);
-      const trialCallsRemaining = m.via === "trial" ? m.trialCallsRemaining : 0;
-      return { ...result, _meta: { ...(result?._meta || {}), trialCallsRemaining } };
+      catch (e) { if (m.via === "credits") await refundCredit(m.wallet); throw e; }
+      if (m.via === "credits" && result && result.isError) await refundCredit(m.wallet);
+      return result;
     });
   };
 
   const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe('Cluster to query: "mainnet-beta" (real funds; the default) or "devnet" (test network). Optional.');
   const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
-  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: free. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose SOL balance to read: base58 public key, 32-44 characters (required)."), network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
     stats.solanaRpcCalls++;
@@ -1163,7 +1008,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"network\":\"mainnet-beta\"}", {
+  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: free. Example: {\"network\":\"mainnet-beta\"}", {
     network: NETWORK
   }, READ_ONLY, async ({ network }) => {
     stats.solanaRpcCalls++;
@@ -1173,7 +1018,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: free. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose token accounts to list: base58 public key, 32-44 characters (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
@@ -1197,7 +1042,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
+  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: free. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
     wallet: z.string().describe("Wallet whose transaction history to list: base58 public key, 32-44 characters (required)."),
     limit: z.number().int().min(1).max(1000).optional().default(10).describe("How many signatures to return, newest first: integer 1-1000 (optional, default 10)."),
     network: NETWORK
@@ -1241,7 +1086,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   // ---- Added: remaining gateway endpoints exposed as MCP tools ----
 
-  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: free. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
     wallet: z.string().describe("Owner of the token account: a regular wallet address (base58 public key, 32-44 characters), not a program-derived address (required)."),
     mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v is USDC."),
     network: NETWORK
@@ -1495,11 +1340,6 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  registerIntelligenceTools(mcpServer, {
-    getConnection,
-    onRpcCall: () => { stats.solanaRpcCalls++; },
-  });
-
     return mcpServer;
   };
 
@@ -1509,7 +1349,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     transports.set(sessionId, transport);
-    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", visitorId: (req as any).trialVisitorId }).connect(transport);
+    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" }).connect(transport);
     res.on("close", () => transports.delete(sessionId));
   });
 
@@ -1522,7 +1362,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   });
 
   app.post("/mcp", express.json(), async (req, res) => {
-    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", visitorId: (req as any).trialVisitorId });
+    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {
@@ -1538,18 +1378,61 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   app.get("/api/debug/ip", noCache, (req, res) => res.json({ ip: req.ip, xff: req.headers["x-forwarded-for"] || null, trustProxy: app.get("trust proxy") }));
   app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
-    res.json(buildMcpManifest());
+    res.json({
+      "name": "Solana Pulse AI Agent Gateway",
+      "version": "1.0.0",
+      "description": "The definitive MCP server for Solana AI Agents. Abstracts raw RPC plumbing into high-level intelligence endpoints for asset resolution, security auditing, and transaction interpretation.",
+      "capabilities": {
+        "tools": {
+          "description": "Provides a suite of tools for balance checks, token profile security audits, ATA derivation, and transaction decoding."
+        }
+      },
+      "instructions": "Connect via the SSE endpoint listed below. This server is optimized for autonomous agents; it provides structured JSON and human-readable summaries to prevent hallucination during blockchain interactions.",
+      "mcp_sse_endpoint": "/mcp/sse",
+      "tools": [
+        { "name": "get_solana_balance", "description": "Free. Get a wallet's SOL balance." },
+        { "name": "get_solana_blockhash", "description": "Free. Get the latest finalized blockhash for building a transaction." },
+        { "name": "get_token_accounts", "description": "Free. List every SPL token account a wallet owns, with mint and balance." },
+        { "name": "get_recent_transactions", "description": "Free. List a wallet's recent transaction signatures, newest first." },
+        { "name": "simulate_solana_transaction", "description": "1 credit. Dry-run a base64 transaction against live chain state without sending it." },
+        { "name": "find_ata", "description": "Free. Derive a wallet's Associated Token Account for a mint and check if it exists." },
+        { "name": "token_profile", "description": "1 credit. Token safety profile: decimals, supply, freeze and mint authority, top holders." },
+        { "name": "optimal_fee", "description": "1 credit. Live low, medium and high priority-fee tiers for current congestion." },
+        { "name": "decode_tx", "description": "1 credit. Explain a confirmed transaction: category, status, fee, balance changes, logs." },
+        { "name": "validate_transaction", "description": "1 credit. Pre-send check: SAFE or UNSAFE verdict with fix hints." }
+      ]
+    });
   });
 
   // LLM Crawler Discovery
   app.get("/robots.txt", noCache, (req, res) => {
     res.type("text/plain");
-    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: https://solana-pulse-gateway-1021990235790.us-central1.run.app/sitemap.xml");
+    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: /llms.txt");
   });
 
   app.get("/llms.txt", noCache, (req, res) => {
     res.type("text/plain");
-    res.send(buildLlmsTxt());
+    res.send(`# Solana Pulse AI Agent Gateway\n
+High-performance Model Context Protocol (MCP) server for Solana Blockchain Intelligence.
+
+## Critical Specs for Agents
+- Base Price: 0.0022 SOL per call
+- Free Tier: 110 calls per year per IP address. Balance, blockhash, token accounts, recent transactions and find-ata are always free (rate limited)
+
+## Core Capabilities
+- Atomic Risk Scoring (Honeypot/Freeze authority detection)
+- Address Resolution (ATA derivation & Owner lookups)
+- Priority fee estimation and pre-flight transaction checks
+- Human-readable transaction decoding
+
+## Authentication
+- Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message
+- Send the returned key in the x-api-key header
+- Add credits by sending SOL to the address from GET /api/claim/deposit-info
+
+## Entry Points
+- MCP SSE Endpoint: /mcp/sse
+- Tool Manifest: /.well-known/mcp.json`);
   });
 
   // IndexNow Verification Route
