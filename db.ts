@@ -57,6 +57,20 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE call_history ADD COLUMN IF NOT EXISTS status INTEGER;`).catch((e: any) => console.error('call_history status column:', e.message));
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_usage (
+      id BIGSERIAL PRIMARY KEY,
+      endpoint TEXT NOT NULL,
+      method TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      wallet_address TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_created_idx ON service_usage (created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_endpoint_idx ON service_usage (endpoint, created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_wallet_idx ON service_usage (wallet_address) WHERE wallet_address IS NOT NULL;`);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS processed_payments (
       tx_signature TEXT PRIMARY KEY,
       payer_wallet TEXT NOT NULL,
@@ -75,6 +89,17 @@ export async function logCall(params: { wallet: string | null; endpoint: string;
     );
   } catch (e) {
     console.error("call_history insert failed:", e);
+  }
+}
+
+export async function recordServiceUsage(params: { wallet: string | null; endpoint: string; method: string; status: number }) {
+  try {
+    await pool.query(
+      `INSERT INTO service_usage (wallet_address, endpoint, method, status) VALUES ($1, $2, $3, $4)`,
+      [params.wallet, params.endpoint, params.method, params.status]
+    );
+  } catch (e) {
+    console.error('service_usage insert failed:', e);
   }
 }
 

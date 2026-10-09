@@ -50,7 +50,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/simulate',
     summary: 'Shows what a transaction would do on the live network, without sending it.',
     description: 'A read-only test run of your transaction against the current state of the live chain. Nothing is sent and nothing is spent. Returns the network own result, including logs, compute used, and the error if it would fail.',
-    priceLamports: 10000000,
+    priceLamports: 2200000,
     category: 'Simulation',
     isLive: true,
     requestBodySchema: {
@@ -79,14 +79,14 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/decode-tx',
     summary: 'Turns a transaction signature into plain English: what happened and who paid what.',
     description: 'Fetches a real transaction from the chain and translates its logs and instructions into a readable summary. Give a signature, or just a wallet to explain its latest transaction, or add a time to explain the one closest to then.',
-    priceLamports: 5000000,
+    priceLamports: 2200000,
     category: 'Translator',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: false, description: 'Use this wallet latest transaction when no signature is given' },
+      { name: 'wallet', type: 'string', required: false, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'Wallet whose latest transaction will be explained if no signature is supplied' },
       { name: 'at', type: 'string', required: false, description: 'ISO time or unix seconds. Picks the transaction closest to then.' },
-      { name: 'signature', type: 'string', required: false, description: 'The transaction signature (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query' }
+      { name: 'signature', type: 'string', required: false, default: '3wAtt2GXZN5C4CHfmuT18j5eWhy95pzgqb2PTC4kagd7rSFaPqxoMUrF4LN9uyMBGmpTBX9C5AX8Em4njGt5SKyA', description: 'A confirmed transaction signature' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
       signature: '5K7e...xyz',
@@ -113,7 +113,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/optimal-fee',
     summary: 'Recommends a priority fee tier based on current network conditions.',
     description: 'Reads recent fees paid on the live network and recommends low, medium and high priority fee levels so your transaction lands without overpaying.',
-    priceLamports: 5000000,
+    priceLamports: 2200000,
     category: 'Pre-Flight',
     isLive: true,
     queryParams: [
@@ -135,19 +135,19 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
   },
   {
     id: 'solana-token-profile',
-    name: 'Token Safety Report',
+    name: 'Token Profile',
     suite: 'intel',
     method: 'GET',
     path: '/api/solana/token-profile',
-    summary: 'Decimals, supply, and mint and freeze authority flags for any token.',
-    description: 'Reads a token directly from the chain and reports its decimals, total supply, and whether anyone can still mint more or freeze accounts. Give a mint address or just a ticker like BONK and the mint is looked up for you.',
-    priceLamports: 5000000,
+    summary: 'On-chain mint details, supply, authorities, and top holders for a token.',
+    description: 'Reports mint decimals, supply, mint and freeze authorities, and top holders. The freeze-authority risk field is a heuristic; this endpoint does not detect honeypots or guarantee trading safety.',
+    priceLamports: 2200000,
     category: 'Simplifier',
     isLive: true,
     queryParams: [
       { name: 'symbol', type: 'string', required: false, description: 'Ticker such as BONK. The mint is looked up for you.' },
-      { name: 'mint', type: 'string', required: false, description: 'The token mint address (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query' }
+      { name: 'mint', type: 'string', required: false, default: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', description: 'A valid token mint address' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
       mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
@@ -191,8 +191,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Core Solana',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (Base58) (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query (mainnet-beta or devnet)' }
+      { name: 'wallet', type: 'string', required: false, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address (Base58)' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query (mainnet-beta or devnet)' }
     ],
     sampleResponse: {
       wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
@@ -215,7 +215,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Core Solana',
     isLive: true,
     queryParams: [
-      { name: 'network', type: 'string', required: false, description: 'Network to query' }
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
       network: 'mainnet-beta',
@@ -233,13 +233,13 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/token-accounts',
     summary: 'Every token a wallet holds, with amounts.',
-    description: 'Lists all token accounts owned by a wallet with mint, balance and decimals, read live from the chain. Leave the wallet blank to try a live example.',
-    priceLamports: 5000000,
+    description: 'Lists token accounts owned by a wallet with mint, balance, and decimals, read live from the chain.',
+    priceLamports: 0,
     category: 'SPL Tokens',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query' }
+      { name: 'wallet', type: 'string', required: false, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address (Base58)' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
       wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
@@ -264,13 +264,13 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/transactions',
     summary: 'A wallet most recent transactions, newest first.',
-    description: 'Returns the latest transaction signatures for a wallet with time and success or failure status. Leave the wallet blank to try a live example.',
-    priceLamports: 5000000,
+    description: 'Returns recent transaction signatures for a wallet, newest first.',
+    priceLamports: 0,
     category: 'History',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query' },
+      { name: 'wallet', type: 'string', required: false, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' },
       { name: 'limit', type: 'number', required: false, default: '10', description: 'Number of signatures to return' }
     ],
     sampleResponse: {
@@ -289,15 +289,15 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/find-ata',
     summary: 'Works out the token account address for a wallet and a token, and whether it exists yet.',
-    description: 'Derives the associated token account for a wallet and mint and checks whether it already exists on chain. Give a mint or just a ticker like BONK.',
-    priceLamports: 5000000,
+    description: 'Derives the associated token account for a wallet and mint and checks whether it exists on chain.',
+    priceLamports: 0,
     category: 'Simplifier',
     isLive: true,
     queryParams: [
-      { name: 'symbol', type: 'string', required: false, description: 'Ticker such as BONK. The mint is looked up for you.' },
-      { name: 'wallet', type: 'string', required: false, description: 'The Solana wallet address (optional, filled in if blank)' },
-      { name: 'mint', type: 'string', required: false, description: 'The token mint address (optional, filled in if blank)' },
-      { name: 'network', type: 'string', required: false, description: 'Network to query' }
+      { name: 'symbol', type: 'string', required: false, description: 'Token symbol; pass the mint to avoid ticker ambiguity' },
+      { name: 'wallet', type: 'string', required: false, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address' },
+      { name: 'mint', type: 'string', required: false, default: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', description: 'USDC mint address on mainnet' },
+      { name: 'network', type: 'string', required: false, default: 'mainnet-beta', description: 'Network to query' }
     ],
     sampleResponse: {
       owner: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
@@ -327,7 +327,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Core Solana',
     isLive: true,
     queryParams: [
-      { name: 'address', type: 'string', required: true, description: 'The Solana wallet address (Base58)' }
+      { name: 'address', type: 'string', required: true, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address (Base58)' }
     ],
     sampleResponse: {
       address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
@@ -373,7 +373,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     category: 'Core Solana',
     isLive: true,
     queryParams: [
-      { name: 'wallet', type: 'string', required: true, description: 'The wallet you deposited from (Base58)' }
+      { name: 'wallet', type: 'string', required: true, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'The Solana wallet address (Base58)' }
     ],
     sampleResponse: {
       wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',

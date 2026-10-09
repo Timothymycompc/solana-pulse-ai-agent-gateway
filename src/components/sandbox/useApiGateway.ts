@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
-import { TestExecutionResult, ApiEndpoint } from '../../types';
+import { useMemo, useRef, useState } from 'react';
+import { Buffer } from 'buffer';
+import { Keypair, SystemProgram, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
+import type { TestExecutionResult, ApiEndpoint } from '../../types';
 import { API_ENDPOINTS } from '../../data/endpointsData';
 
 interface ServerAccessLog {
@@ -11,142 +13,213 @@ interface ServerAccessLog {
   latencyMs: number;
 }
 
+type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
+
+const initialEndpoint = API_ENDPOINTS.find((endpoint) => endpoint.id === 'solana-balance') ?? API_ENDPOINTS[0];
+const methods: RequestMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
+const paidRoutes = new Set([
+  '/api/solana/simulate',
+  '/api/solana/validate-and-simulate',
+  '/api/solana/token-profile',
+  '/api/solana/optimal-fee',
+  '/api/solana/decode-tx',
+]);
+
+function endpointPath(endpoint: ApiEndpoint): string {
+  const params = new URLSearchParams();
+  endpoint.queryParams?.forEach((param) => {
+    if (param.default) params.set(param.name, param.default);
+  });
+  const query = params.toString();
+  return query ? `${endpoint.path}?${query}` : endpoint.path;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 export const useApiGateway = () => {
   const [authHeaders, setAuthHeaders] = useState<Record<string, string>>({});
   const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(API_ENDPOINTS[0]);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(initialEndpoint);
+  const [requestMethod, setRequestMethod] = useState<RequestMethod>(initialEndpoint.method);
+  const [requestPath, setRequestPath] = useState(() => endpointPath(initialEndpoint));
+  const [requestHeadersText, setRequestHeadersText] = useState('{}');
+  const [requestBodyText, setRequestBodyText] = useState('');
+  const [exampleNotice, setExampleNotice] = useState('');
+  const isPaidRequest = (() => {
+    try { return paidRoutes.has(new URL(requestPath, window.location.origin).pathname); }
+    catch { return false; }
+  })();
+  const sampleGeneration = useRef(0);
 
-  // Parameter and body states
-  const [queryParams, setQueryParams] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
-    if (API_ENDPOINTS[0].queryParams) {
-      API_ENDPOINTS[0].queryParams.forEach(p => {
-        if (p.default !== undefined) initial[p.name] = p.default;
-      });
-    }
-    return initial;
-  });
-  const [requestBodyText, setRequestBodyText] = useState<string>(
-    JSON.stringify(API_ENDPOINTS[0].defaultParams || { sample_param: 'test' }, null, 2)
-  );
-
-  // Execution result
   const [isExecuting, setIsExecuting] = useState(false);
   const [testResult, setTestResult] = useState<TestExecutionResult | null>(null);
   const [copiedCurl, setCopiedCurl] = useState(false);
-
-  // Browser session request history
   const [serverLogs, setServerLogs] = useState<ServerAccessLog[]>([]);
   const [copiedLogs, setCopiedLogs] = useState(false);
-
-  // Batch Test Suite State
   const [isBatchTesting, setIsBatchTesting] = useState(false);
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchStats, setBatchStats] = useState<{ total: number; passed: number; failed: number; avgLatency: number } | null>(null);
 
   const addServerLog = (method: string, path: string, status: number, latencyMs: number) => {
     const newLog: ServerAccessLog = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       timestamp: new Date().toLocaleTimeString(),
       method,
       path,
       status,
       latencyMs,
     };
-    setServerLogs(prev => [newLog, ...prev.slice(0, 49)]);
+    setServerLogs((previous) => [newLog, ...previous.slice(0, 49)]);
   };
 
-  const filteredEndpoints = useMemo(() => {
-    return API_ENDPOINTS.filter(ep => {
-      const matchesSuite = selectedSuite === 'all' || ep.suite === selectedSuite;
-      const matchesMethod = methodFilter === 'all' || ep.method === methodFilter;
-      const matchesSearch =
-        !searchQuery ||
-        ep.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ep.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ep.category.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredEndpoints = useMemo(() => API_ENDPOINTS.filter((endpoint) => {
+    const matchesSuite = selectedSuite === 'all' || endpoint.suite === selectedSuite;
+    const matchesMethod = methodFilter === 'all' || endpoint.method === methodFilter;
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = !query || endpoint.name.toLowerCase().includes(query) ||
+      endpoint.path.toLowerCase().includes(query) || endpoint.category.toLowerCase().includes(query);
+    return matchesSuite && matchesMethod && matchesSearch;
+  }), [selectedSuite, methodFilter, searchQuery]);
 
-      return matchesSuite && matchesMethod && matchesSearch;
-    });
-  }, [selectedSuite, methodFilter, searchQuery]);
-
-  const handleSelectEndpoint = (ep: ApiEndpoint) => {
-    setSelectedEndpoint(ep);
-
-    // Populate query params with this endpoint's own defaults so inputs
-    // are pre-filled and testable without typing anything first.
-    const freshParams: Record<string, string> = {};
-    if (ep.queryParams) {
-      ep.queryParams.forEach(p => {
-        if (p.default !== undefined) freshParams[p.name] = p.default;
-      });
-    }
-    setQueryParams(freshParams);
-
-    if (ep.defaultParams) {
-      setRequestBodyText(JSON.stringify(ep.defaultParams, null, 2));
-    } else if (ep.sampleRequestBody) {
-      setRequestBodyText(JSON.stringify(ep.sampleRequestBody, null, 2));
-    } else {
-      setRequestBodyText('');
-    }
+  const handleSelectEndpoint = async (endpoint: ApiEndpoint) => {
+    const generation = ++sampleGeneration.current;
+    setSelectedEndpoint(endpoint);
+    setRequestMethod(endpoint.method);
+    setRequestPath(endpointPath(endpoint));
     setTestResult(null);
+    setExampleNotice('');
+
+    if (endpoint.method !== 'POST') {
+      setRequestBodyText('');
+      return;
+    }
+
+    if (endpoint.sampleRequestBody?.transaction) {
+      setRequestBodyText(JSON.stringify({ transaction: '', network: 'devnet' }, null, 2));
+      setExampleNotice('Preparing a signed, throwaway devnet transaction with a fresh blockhash…');
+      try {
+        const blockhashResponse = await fetch('/api/solana/blockhash?network=devnet');
+        const blockhashData = await blockhashResponse.json();
+        if (!blockhashResponse.ok || typeof blockhashData.blockhash !== 'string') {
+          throw new Error(blockhashData.error || 'Could not load a fresh devnet blockhash.');
+        }
+
+        const payer = Keypair.generate();
+        const recipient = Keypair.generate().publicKey;
+        const message = new TransactionMessage({
+          payerKey: payer.publicKey,
+          recentBlockhash: blockhashData.blockhash,
+          instructions: [SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: recipient, lamports: 1 })],
+        }).compileToV0Message();
+        const transaction = new VersionedTransaction(message);
+        transaction.sign([payer]);
+
+        if (generation === sampleGeneration.current) {
+          setRequestBodyText(JSON.stringify({ transaction: Buffer.from(transaction.serialize()).toString('base64'), network: 'devnet' }, null, 2));
+          setExampleNotice('Fresh signed devnet example ready. It uses a throwaway unfunded wallet and is never broadcast.');
+        }
+      } catch (error) {
+        if (generation === sampleGeneration.current) {
+          setExampleNotice(error instanceof Error ? `${error.message} Paste a serialized VersionedTransaction to continue.` : 'Could not prepare an example. Paste a serialized VersionedTransaction to continue.');
+        }
+      }
+      return;
+    }
+
+    setRequestBodyText(JSON.stringify(endpoint.sampleRequestBody ?? endpoint.defaultParams ?? {}, null, 2));
   };
 
   const loadPreset = (preset: Record<string, string>) => {
-    setQueryParams(prev => ({ ...prev, ...preset }));
+    try {
+      const url = new URL(requestPath, window.location.origin);
+      Object.entries(preset).forEach(([key, value]) => url.searchParams.set(key, value));
+      setRequestPath(`${url.pathname}${url.search}`);
+    } catch {
+      // Keep the current request path if it is still being edited.
+    }
+  };
+
+  const parseHeaders = (): Record<string, string> => {
+    const parsed = requestHeadersText.trim() ? JSON.parse(requestHeadersText) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Headers must be a JSON object.');
+    return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]));
   };
 
   const handleExecuteRequest = async (triggerTypo = false) => {
-    setIsExecuting(true);
-    const startTime = performance.now();
-    const targetPath = triggerTypo && selectedEndpoint.typoPath ? selectedEndpoint.typoPath : selectedEndpoint.path;
-
-    const queryParts: string[] = [];
-    if (selectedEndpoint.queryParams) {
-      selectedEndpoint.queryParams.forEach(q => {
-        const val = queryParams[q.name] || q.default;
-        if (val) queryParts.push(`${encodeURIComponent(q.name)}=${encodeURIComponent(val)}`);
-      });
-    }
-    const fullUrl = `${targetPath}${queryParts.length > 0 ? `?${queryParts.join('&')}` : ''}`;
-
+    let url: URL;
+    let headers: Record<string, string>;
     try {
-      const t0 = performance.now();
-      const res = await fetch(fullUrl, {
-        method: selectedEndpoint.method,
-        headers: { ...(selectedEndpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : {}), ...authHeaders },
-        body: selectedEndpoint.method === 'POST' ? requestBodyText : undefined
-      });
-      const liveDuration = Math.round(performance.now() - t0);
-      const ctype = res.headers.get('content-type') || '';
-      const isJson = ctype.includes('json');
-      const body = isJson
-        ? await res.json().catch(() => ({ error: 'Invalid JSON from server' }))
-        : { error: 'Route not found: the server returned a web page, not an API response.' };
-      const status = isJson ? res.status : 404;
-      const hdrs: Record<string, string> = { 'content-type': ctype || 'unknown' };
-      ['x-free-calls-remaining', 'x-credits-remaining'].forEach(h => { const v = res.headers.get(h); if (v !== null) hdrs[h] = v; });
-      addServerLog(selectedEndpoint.method, fullUrl, status, liveDuration); window.dispatchEvent(new Event('pulse:call-done'));
-      setTestResult({
-        endpointId: selectedEndpoint.id, url: fullUrl, method: selectedEndpoint.method, status,
-        latencyMs: liveDuration, timestamp: new Date().toLocaleTimeString(), headers: hdrs,
-        responseBody: body, isTypoTriggered: triggerTypo
-      });
-    } catch (err: any) {
-      const duration = Math.round(performance.now() - startTime);
-      addServerLog(selectedEndpoint.method, fullUrl, 500, duration);
+      url = new URL(triggerTypo && selectedEndpoint.typoPath ? selectedEndpoint.typoPath : requestPath, window.location.origin);
+      if (url.origin !== window.location.origin) throw new Error('Requests are limited to this gateway origin.');
+      headers = { ...authHeaders, ...parseHeaders() };
+    } catch (error) {
       setTestResult({
         endpointId: selectedEndpoint.id,
-        url: fullUrl,
-        method: selectedEndpoint.method,
-        status: 500,
-        latencyMs: duration,
+        url: requestPath,
+        method: requestMethod,
+        status: 0,
+        latencyMs: 0,
         timestamp: new Date().toLocaleTimeString(),
-        headers: { 'content-type': 'application/json' },
-        responseBody: { error: err.message || 'Connection failed' }
+        headers: {},
+        responseBody: { error: error instanceof Error ? error.message : 'Invalid request configuration' },
+      });
+      return;
+    }
+
+    const pathAndQuery = `${url.pathname}${url.search}`;
+    const isPaid = paidRoutes.has(url.pathname);
+    const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod);
+    if (isPaid || isMutating) {
+      const warnings = [
+        ...(isPaid ? ['This endpoint costs 0.0022 SOL per successful call.'] : []),
+        ...(isMutating ? ['This request may change account or server state.'] : []),
+      ];
+      if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;
+    }
+
+    setIsExecuting(true);
+    const startedAt = performance.now();
+    try {
+      const hasBody = !['GET', 'HEAD'].includes(requestMethod) && requestBodyText.length > 0;
+      const response = await fetch(url, {
+        method: requestMethod,
+        headers,
+        body: hasBody ? requestBodyText : undefined,
+      });
+      const latencyMs = Math.round(performance.now() - startedAt);
+      const contentType = response.headers.get('content-type') || '';
+      const responseBody = contentType.includes('json')
+        ? await response.json().catch(() => ({ error: 'The gateway returned invalid JSON.' }))
+        : await response.text();
+      const responseHeaders = Object.fromEntries(response.headers.entries());
+      addServerLog(requestMethod, pathAndQuery, response.status, latencyMs);
+      window.dispatchEvent(new Event('pulse:call-done'));
+      setTestResult({
+        endpointId: selectedEndpoint.id,
+        url: pathAndQuery,
+        method: requestMethod,
+        status: response.status,
+        latencyMs,
+        timestamp: new Date().toLocaleTimeString(),
+        headers: responseHeaders,
+        responseBody,
+      });
+    } catch (error) {
+      const latencyMs = Math.round(performance.now() - startedAt);
+      addServerLog(requestMethod, pathAndQuery, 0, latencyMs);
+      setTestResult({
+        endpointId: selectedEndpoint.id,
+        url: pathAndQuery,
+        method: requestMethod,
+        status: 0,
+        latencyMs,
+        timestamp: new Date().toLocaleTimeString(),
+        headers: {},
+        responseBody: { error: error instanceof Error ? error.message : 'Request failed.' },
       });
     } finally {
       setIsExecuting(false);
@@ -156,64 +229,57 @@ export const useApiGateway = () => {
   const handleRunBatchTestSuite = async () => {
     setIsBatchTesting(true);
     setBatchProgress(0);
-    const testable = API_ENDPOINTS.filter(e =>
-      e.suite === 'free' && e.method === 'GET' &&
-      (e.queryParams || []).every(param => !param.required || Boolean(param.default))
+    const testable = API_ENDPOINTS.filter((endpoint) =>
+      endpoint.suite === 'free' && endpoint.method === 'GET' &&
+      (endpoint.queryParams || []).every((param) => !param.required || Boolean(param.default))
     );
-    const total = testable.length;
     let passed = 0;
     let totalLatency = 0;
-
-    for (let i = 0; i < total; i++) {
-      const ep = testable[i];
-      const qp: string[] = [];
-      (ep.queryParams || []).forEach(q => { if (q.default) qp.push(encodeURIComponent(q.name) + '=' + encodeURIComponent(q.default)); });
-      const url = ep.path + (qp.length ? '?' + qp.join('&') : '');
-      const t0 = performance.now();
+    for (let i = 0; i < testable.length; i++) {
+      const endpoint = testable[i];
+      const path = endpointPath(endpoint);
+      const startedAt = performance.now();
       let status = 0;
       try {
-        const r = await fetch(url, ep.method === 'POST' ? { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders }, body: '{}' } : { headers: authHeaders });
-        status = (r.headers.get('content-type') || '').includes('json') ? r.status : 404;
-      } catch { status = 500; }
-      const lat = Math.round(performance.now() - t0);
-      addServerLog(ep.method, url, status, lat);
-      totalLatency += lat;
-      if (status === 200) passed++;
+        const response = await fetch(path);
+        status = response.status;
+      } catch {
+        status = 0;
+      }
+      const latencyMs = Math.round(performance.now() - startedAt);
+      addServerLog(endpoint.method, path, status, latencyMs);
+      totalLatency += latencyMs;
+      if (status >= 200 && status < 300) passed++;
       setBatchProgress(i + 1);
-
     }
-
     setBatchStats({
-      total,
+      total: testable.length,
       passed,
-      failed: total - passed,
-      avgLatency: Math.round(totalLatency / total)
+      failed: testable.length - passed,
+      avgLatency: testable.length ? Math.round(totalLatency / testable.length) : 0,
     });
     setIsBatchTesting(false);
   };
 
   const generatedCurl = useMemo(() => {
-    let curl = `curl -X ${selectedEndpoint.method} "${window.location.origin}${selectedEndpoint.path}`;
-    if (selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0) {
-      const q = selectedEndpoint.queryParams.map(p => `${p.name}=${queryParams[p.name] || p.default || ''}`).join('&');
-      curl += `?${q}`;
-    }
-    curl += `" \\\n  -H "Content-Type: application/json"`;
-    if (selectedEndpoint.method === 'POST' && requestBodyText) {
-      curl += ` \\\n  -d '${requestBodyText.replace(/\\n/g, '')}'`;
-    }
-    return curl;
-  }, [selectedEndpoint, queryParams, requestBodyText]);
+    let headers: Record<string, string> = {};
+    try { headers = { ...authHeaders, ...parseHeaders() }; } catch { /* Invalid JSON is shown by the header editor. */ }
+    const url = new URL(requestPath || '/', window.location.origin).toString();
+    const parts = [`curl -X ${requestMethod}`, shellQuote(url)];
+    Object.entries(headers).forEach(([key, value]) => parts.push(`-H ${shellQuote(`${key}: ${value}`)}`));
+    if (!['GET', 'HEAD'].includes(requestMethod) && requestBodyText) parts.push(`--data-raw ${shellQuote(requestBodyText)}`);
+    return parts.join(' \\\n  ');
+  }, [requestMethod, requestPath, requestHeadersText, requestBodyText, authHeaders]);
 
-  const copyCurl = () => {
-    navigator.clipboard.writeText(generatedCurl);
+  const copyCurl = async () => {
+    await navigator.clipboard.writeText(generatedCurl);
     setCopiedCurl(true);
     setTimeout(() => setCopiedCurl(false), 2000);
   };
 
-  const copyAllLogs = () => {
-    const formatted = serverLogs.map(l => `[${l.timestamp}] ${l.method} ${l.path} -> ${l.status} (${l.latencyMs}ms)`).join('\\n');
-    navigator.clipboard.writeText(formatted);
+  const copyAllLogs = async () => {
+    const formatted = serverLogs.map((log) => `[${log.timestamp}] ${log.method} ${log.path} -> ${log.status} (${log.latencyMs}ms)`).join('\n');
+    await navigator.clipboard.writeText(formatted);
     setCopiedLogs(true);
     setTimeout(() => setCopiedLogs(false), 2000);
   };
@@ -225,8 +291,13 @@ export const useApiGateway = () => {
       methodFilter,
       searchQuery,
       selectedEndpoint,
-      queryParams,
+      requestMethod,
+      requestPath,
+      requestHeadersText,
       requestBodyText,
+      exampleNotice,
+      methods,
+      isPaidRequest,
       isExecuting,
       testResult,
       copiedCurl,
@@ -244,7 +315,9 @@ export const useApiGateway = () => {
       setMethodFilter,
       setSearchQuery,
       handleSelectEndpoint,
-      setQueryParams,
+      setRequestMethod,
+      setRequestPath,
+      setRequestHeadersText,
       setRequestBodyText,
       handleExecuteRequest,
       handleRunBatchTestSuite,

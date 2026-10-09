@@ -1,221 +1,121 @@
 import React from 'react';
-import { Activity, Play, Copy, Check, Clock, AlertTriangle } from 'lucide-react';
-import { ApiEndpoint, TestExecutionResult } from '../../types';
+import { Activity, AlertTriangle, Check, Clock, Copy, Play, ShieldCheck } from 'lucide-react';
+import type { ApiEndpoint, TestExecutionResult } from '../../types';
 
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 interface ExecutionPaneProps {
   selectedEndpoint: ApiEndpoint;
-  queryParams: Record<string, string>;
-  setQueryParams: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  requestMethod: Method;
+  setRequestMethod: (method: Method) => void;
+  requestPath: string;
+  setRequestPath: (path: string) => void;
+  requestHeadersText: string;
+  setRequestHeadersText: (headers: string) => void;
   requestBodyText: string;
-  setRequestBodyText: React.Dispatch<React.SetStateAction<string>>;
+  setRequestBodyText: (body: string) => void;
+  exampleNotice: string;
+  methods: Method[];
+  isPaidRequest: boolean;
   isExecuting: boolean;
   testResult: TestExecutionResult | null;
   copiedCurl: boolean;
   generatedCurl: string;
-  handleExecuteRequest: (triggerTypo?: boolean) => Promise<void>;
+  hasAuth: boolean;
+  handleExecuteRequest: () => Promise<void>;
   copyCurl: () => void;
   loadPreset: (preset: Record<string, string>) => void;
 }
 
-export const ExecutionPane: React.FC<ExecutionPaneProps> = ({
-  selectedEndpoint,
-  queryParams,
-  setQueryParams,
-  requestBodyText,
-  setRequestBodyText,
-  isExecuting,
-  testResult,
-  copiedCurl,
-  generatedCurl,
-  handleExecuteRequest,
-  copyCurl,
-  loadPreset,
-}) => {
+const editorClass = 'w-full rounded-lg border border-slate-800 bg-[#080d18] px-3 py-2.5 font-mono text-xs text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/10';
+
+export const ExecutionPane: React.FC<ExecutionPaneProps> = (props) => {
+  const { selectedEndpoint: endpoint } = props;
+  const paid = props.isPaidRequest;
+  const resultOk = props.testResult !== null && props.testResult.status >= 200 && props.testResult.status < 300;
+
   return (
-    <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[740px] overflow-y-auto space-y-6">
-      {/* Endpoint Header */}
-      <div className="space-y-2 pb-4 border-b border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                selectedEndpoint.method === 'GET'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-              }`}
-            >
-              {selectedEndpoint.method}
+    <div className="flex h-full min-h-[760px] flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/75 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800 pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-md px-2 py-1 font-mono text-[10px] font-bold ${props.requestMethod === 'GET' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-indigo-500/10 text-indigo-300'}`}>{props.requestMethod}</span>
+            <h3 className="text-sm font-semibold text-white">{endpoint.name}</h3>
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] ${paid ? 'border-amber-500/20 text-amber-200' : 'border-emerald-500/20 text-emerald-300'}`}>
+              {paid ? '0.0022 SOL / call' : 'Free'}
             </span>
-            <h3 className="text-base font-bold text-white">{selectedEndpoint.name}</h3>
           </div>
-          <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700">
-            {selectedEndpoint.category}
+          <p className="mt-1.5 text-xs leading-5 text-slate-400">{endpoint.summary}</p>
+        </div>
+        <span className="rounded-md border border-slate-800 bg-slate-950 px-2 py-1 text-[10px] text-slate-500">{endpoint.category}</span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[130px_minmax(0,1fr)]">
+        <label className="space-y-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Method</span>
+          <select value={props.requestMethod} onChange={(e) => props.setRequestMethod(e.target.value as Method)} className={editorClass}>
+            {props.methods.map((method) => <option key={method} value={method}>{method}</option>)}
+          </select>
+        </label>
+        <label className="min-w-0 space-y-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Request path and query</span>
+          <input value={props.requestPath} onChange={(e) => props.setRequestPath(e.target.value)} spellCheck={false} className={editorClass} placeholder="/api/solana/balance?wallet=…" />
+        </label>
+      </div>
+
+      {endpoint.presets?.length ? <div className="flex flex-wrap gap-2">
+        <span className="py-1 text-[10px] text-slate-500">Examples:</span>
+        {endpoint.presets.map((preset) => <button key={preset.label} onClick={() => props.loadPreset(preset.params)} className="rounded-md border border-slate-700 px-2 py-1 text-[10px] text-indigo-200 hover:border-indigo-400 hover:bg-indigo-500/5">{preset.label}</button>)}
+      </div> : null}
+
+      <div className="grid flex-1 content-start gap-3 lg:grid-cols-2">
+        <label className="flex min-h-36 flex-col gap-1.5">
+          <span className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <span>Headers · JSON</span><span className="normal-case tracking-normal text-slate-600">{props.hasAuth ? 'wallet key attached privately' : 'no API key attached'}</span>
           </span>
-        </div>
-        <p className="text-xs text-slate-300 font-mono bg-slate-950 p-2 rounded-xl border border-slate-800">
-          {selectedEndpoint.path}
-        </p>
-        <p className="text-xs text-slate-400">{selectedEndpoint.description}</p>
+          <textarea value={props.requestHeadersText} onChange={(e) => props.setRequestHeadersText(e.target.value)} spellCheck={false} className={`${editorClass} min-h-32 flex-1 resize-y`} placeholder={'{\n  "Content-Type": "application/json"\n}'} />
+        </label>
+        <label className="flex min-h-36 flex-col gap-1.5">
+          <span className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <span>Body · raw JSON/text</span><span className="normal-case tracking-normal text-slate-600">{['GET', 'HEAD'].includes(props.requestMethod) ? 'ignored for this method' : 'sent as entered'}</span>
+          </span>
+          <textarea value={props.requestBodyText} onChange={(e) => props.setRequestBodyText(e.target.value)} spellCheck={false} className={`${editorClass} min-h-32 flex-1 resize-y`} placeholder={'{\n  "transaction": "<base64 serialized transaction>",\n  "network": "devnet"\n}'} />
+        </label>
       </div>
 
-      {/* Parameters & Request Body Input */}
-      <div className="space-y-4">
-        {selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Query Parameters
-              </h4>
-              <span className="text-[10px] text-slate-500 italic">Required: marked with *</span>
-            </div>
-            {selectedEndpoint.presets && selectedEndpoint.presets.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedEndpoint.presets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => loadPreset(preset.params)}
-                    className="px-2 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-[10px] font-medium text-indigo-300 transition"
-                  >
-                    ⚡ {preset.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="grid grid-cols-1 gap-2">
-              {selectedEndpoint.queryParams.map((param) => (
-                <div key={param.name} className="flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                  <div className="w-28">
-                    <span className="text-xs font-mono font-semibold text-slate-200">{param.name}</span>
-                    {param.required && <span className="text-rose-400 text-[10px] ml-1">*</span>}
-                    <p className="text-[10px] text-slate-500">{param.type}</p>
-                  </div>
-                  <input
-                    type="text"
-                    value={queryParams[param.name] ?? param.default ?? ''}
-                    onChange={(e) => setQueryParams({ ...queryParams, [param.name]: e.target.value })}
-                    placeholder={param.description}
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {props.exampleNotice && <div role="status" className="flex gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 text-[11px] leading-5 text-indigo-200"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />{props.exampleNotice}</div>}
+      {paid && <div className="flex gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>This route uses one credit (0.0022 SOL). The request prompts for confirmation before it runs.</span></div>}
 
-        {selectedEndpoint.method === 'POST' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                JSON Request Body
-              </h4>
-              <button
-                onClick={() => setRequestBodyText(JSON.stringify(selectedEndpoint.sampleRequestBody || {}, null, 2))}
-                className="text-[11px] text-indigo-400 hover:underline"
-              >
-                Reset to Sample Body
-              </button>
-            </div>
-            {selectedEndpoint.requestBodySchema && (
-              <div className="p-2 bg-slate-950/50 border border-slate-800 rounded-xl mb-2">
-                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Expected Schema</p>
-                <pre className="text-[10px] font-mono text-slate-400">
-                  {JSON.stringify(selectedEndpoint.requestBodySchema, null, 2)}
-                </pre>
-              </div>
-            )}
-            <textarea
-              rows={4}
-              value={requestBodyText}
-              onChange={(e) => setRequestBodyText(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Sample Response Preview - shown before executing so users know the shape */}
-      {selectedEndpoint.sampleResponse && !testResult && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Example Response Structure
-          </h4>
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto max-h-64 font-mono text-xs text-slate-400">
-            <pre>{JSON.stringify(selectedEndpoint.sampleResponse, null, 2)}</pre>
-          </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3 pt-2">
-        <button
-          onClick={() => handleExecuteRequest(false)}
-          disabled={isExecuting}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition"
-        >
-          {isExecuting ? <Activity className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          Execute Live Request
+      <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
+        <button onClick={() => void props.handleExecuteRequest()} disabled={props.isExecuting} className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-60">
+          {props.isExecuting ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}{props.isExecuting ? 'Sending request…' : 'Run request'}
         </button>
-
-        {selectedEndpoint.typoPath && (
-          <button
-            onClick={() => handleExecuteRequest(true)}
-            disabled={isExecuting}
-            className="px-3.5 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 text-rose-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition"
-            title="Simulates testing with a typo URL like /v1/solans/... to reproduce the 404 error"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-            Test Typo Path ({selectedEndpoint.typoPath.slice(0, 16)}...)
-          </button>
-        )}
-
-        <button
-          onClick={copyCurl}
-          className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1.5 transition ml-auto border border-slate-700"
-        >
-          {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          {copiedCurl ? 'Copied cURL!' : 'Copy cURL'}
+        <button onClick={props.copyCurl} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white">
+          {props.copiedCurl ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}{props.copiedCurl ? 'Copied cURL' : 'Copy cURL'}
         </button>
+        <details className="ml-auto max-w-full">
+          <summary className="cursor-pointer text-[10px] text-slate-500 hover:text-slate-300">View generated cURL</summary>
+          <pre className="mt-2 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-slate-800 bg-[#080d18] p-3 font-mono text-[10px] leading-5 text-slate-400">{props.generatedCurl}</pre>
+        </details>
       </div>
 
-      {/* Response Output Box */}
-      {testResult && (
-        <div className="space-y-2 pt-2 border-t border-slate-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
-                  testResult.status === 200
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                }`}
-              >
-                HTTP {testResult.status} {testResult.status === 200 ? 'OK' : testResult.status === 503 ? 'SERVER OFFLINE' : 'NOT FOUND'}
-              </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {testResult.latencyMs}ms
-              </span>
+      <section aria-live="polite" className="min-h-32 rounded-xl border border-slate-800 bg-[#080d18]">
+        {!props.testResult ? <div className="grid min-h-32 place-items-center px-4 text-center">
+          <p className="max-w-sm text-xs leading-5 text-slate-500">The live response will appear here after you run a request. Example data isn’t shown as if it came from the API.</p>
+        </div> : <div className="p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-md border px-2 py-1 font-mono text-[10px] font-bold ${resultOk ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300' : 'border-rose-500/20 bg-rose-500/5 text-rose-300'}`}>HTTP {props.testResult.status || 'NETWORK ERROR'}</span>
+              <span className="text-[10px] text-slate-500">{props.testResult.method} {props.testResult.url}</span>
             </div>
-            <span className="text-[11px] text-slate-500">{testResult.timestamp}</span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500"><Clock className="h-3 w-3" />{props.testResult.latencyMs} ms</span>
           </div>
-
-          {testResult.isTypoTriggered && (
-            <div className="p-3 bg-amber-950/40 border border-amber-800 rounded-xl text-xs text-amber-300 space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                Simulated 404 Diagnostics:
-              </p>
-              <p className="text-[11px] text-amber-200/90">
-                This demonstrates the exact 404 error returned in your Termux test script. Notice how requesting <code className="bg-amber-900/60 px-1 py-0.5 rounded">/v1/solans/...</code> fails because the router is registered on <code className="bg-amber-900/60 px-1 py-0.5 rounded">/v1/solana/...</code>.
-              </p>
-            </div>
-          )}
-
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto max-h-64 font-mono text-xs text-slate-200">
-            <pre>{JSON.stringify(testResult.responseBody, null, 2)}</pre>
-          </div>
-        </div>
-      )}
+          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-slate-200">{typeof props.testResult.responseBody === 'string' ? props.testResult.responseBody : JSON.stringify(props.testResult.responseBody, null, 2)}</pre>
+          <details className="mt-3 border-t border-slate-800 pt-2">
+            <summary className="cursor-pointer text-[10px] text-slate-500 hover:text-slate-300">Response headers</summary>
+            <pre className="mt-2 overflow-auto font-mono text-[10px] leading-4 text-slate-500">{JSON.stringify(props.testResult.headers, null, 2)}</pre>
+          </details>
+        </div>}
+      </section>
     </div>
   );
 };

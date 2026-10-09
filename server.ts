@@ -9,7 +9,7 @@ import fs from "fs";
 import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { pool, ensureSchema, recordProcessedPayment } from "./db";
+import { pool, ensureSchema, recordProcessedPayment, recordServiceUsage } from "./db";
 import { peekFree, FREE_CALLS_PER_YEAR as FREE_PER_YEAR } from "./meter";
 import { makeAutofill } from "./resolver";
 import { lookupUser, saveDefaults, cleanDefaults } from "./userDefaults";
@@ -32,10 +32,48 @@ async function startServer() {
   console.log("startup: trust proxy =", app.get("trust proxy"));
   const PORT = Number(process.env.PORT) || 3000;
 
+  // Cloud Run terminates TLS before requests reach Express; send the policy to HTTPS clients.
+  app.use((_req, res, next) => {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000");
+    next();
+  });
+
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
   app.use(express.json({
     verify: (req: any, res, buf) => { req.rawBody = buf; }
   }));
+
+  // Record route-level usage without storing query values, request bodies, or IP addresses.
+  const trackServiceUsage = (req: any, res: any, next: any) => {
+    const pathOnly = String(req.originalUrl || req.url).split("?")[0];
+    if (pathOnly === "/api/analytics/usage") return next();
+    const apiKey = keyFromReq(req);
+    res.once("finish", () => {
+      const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
+      const endpoint = pathOnly === "/mcp" && typeof toolName === "string"
+        ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}`
+        : pathOnly;
+      void (async () => {
+        try {
+          let wallet = req.user?.wallet || null;
+          if (!wallet && apiKey) {
+            const keyHash = createHash("sha256").update(apiKey).digest("hex");
+            const user = await pool.query(
+              "SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE",
+              [keyHash]
+            );
+            wallet = user.rows[0]?.address || null;
+          }
+          await recordServiceUsage({ wallet, endpoint, method: req.method, status: res.statusCode });
+        } catch (error) {
+          console.error("service usage tracking failed:", error);
+        }
+      })();
+    });
+    next();
+  };
+  app.use("/api", trackServiceUsage);
+  app.use("/mcp", trackServiceUsage);
 
   // ---- Free tier (raw RPC data layer) ----
   const FREE_PATHS = new Set([
@@ -969,6 +1007,54 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   });
 
   app.get("/api/analytics/live", noCache, (req, res) => res.json(stats));
+
+  app.get("/api/analytics/usage", freeLimiter, noCache, async (_req, res) => {
+    try {
+      const [totals, services] = await Promise.all([
+        pool.query(`
+          SELECT
+            COUNT(*)::bigint AS calls,
+            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::bigint AS calls_24h,
+            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
+            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS identified_wallets_24h,
+            COUNT(*) FILTER (WHERE endpoint LIKE '/api/%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS http_calls_24h,
+            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS mcp_calls_24h,
+            MAX(created_at) AS last_call_at
+          FROM service_usage
+          WHERE created_at >= NOW() - INTERVAL '24 hours'
+        `),
+        pool.query(`
+          SELECT endpoint, COUNT(*)::bigint AS calls,
+            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
+            MAX(created_at) AS last_call_at
+          FROM service_usage
+          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          GROUP BY endpoint
+          ORDER BY COUNT(*) DESC, endpoint ASC
+          LIMIT 12
+        `),
+      ]);
+      const row = totals.rows[0] || {};
+      res.json({
+        window: "rolling_24h",
+        calls: Number(row.calls_24h || 0),
+        identifiedWallets: Number(row.identified_wallets_24h || 0),
+        httpCalls: Number(row.http_calls_24h || 0),
+        mcpCalls: Number(row.mcp_calls_24h || 0),
+        lastCallAt: row.last_call_at || null,
+        services: services.rows.map((service: any) => ({
+          endpoint: service.endpoint,
+          calls: Number(service.calls),
+          identifiedWallets: Number(service.identified_wallets),
+          lastCallAt: service.last_call_at,
+        })),
+        note: "Calls include anonymous requests. Wallet counts include only authenticated wallet accounts; anonymous callers are not individually identified.",
+      });
+    } catch (error: any) {
+      console.error("usage analytics query failed:", error);
+      res.status(503).json({ error: "Live usage counts are temporarily unavailable." });
+    }
+  });
 
   // ==========================================
   // 3. MCP SERVER (FOR LLMs / AGENTS)

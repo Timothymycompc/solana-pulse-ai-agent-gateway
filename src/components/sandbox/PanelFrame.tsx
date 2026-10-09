@@ -55,6 +55,7 @@ export const PanelFrame: React.FC<PanelFrameProps> = ({
   const resize = min ? 'resize-none' : resizeWidth ? 'resize-y lg:resize' : 'resize-y';
   return (
     <div
+      id={id}
       className={`flex flex-col overflow-hidden min-w-0 ${resize} ${min ? '' : height} ${className}`}
       style={min ? { height: 'auto' } : undefined}
     >
