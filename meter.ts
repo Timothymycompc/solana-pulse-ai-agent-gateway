@@ -6,50 +6,95 @@ import { pool, logCall } from "./db";
 export const TRIAL_CALLS_PER_VISITOR = 27;
 const hashVisitor = (visitorId: string) => createHash("sha256").update(visitorId).digest("hex");
 
-async function reserveTrialCall(visitorId: string): Promise<number | null> {
+// Per-IP trial cap: stops clients that drop the visitor cookie from getting a fresh trial on every request.
+export const TRIAL_CALLS_PER_IP = Math.max(Number(process.env.TRIAL_CALLS_PER_IP) || 54, TRIAL_CALLS_PER_VISITOR);
+function normalizeIp(raw: string): string {
+  const ip = (raw || "unknown").replace(/^::ffff:/i, "");
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const full = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return full.slice(0, 4).map((x) => x.toLowerCase().replace(/^0+(?=.)/, "")).join(":");
+}
+const hashIp = (ip: string) => createHash("sha256").update("ip:" + normalizeIp(ip)).digest("hex");
+
+async function reserveTrialCall(visitorId: string, ip: string): Promise<{ remaining: number; ipKey?: string } | null> {
   const visitorHash = hashVisitor(visitorId);
-  const result = await pool.query(
-    `INSERT INTO anonymous_trial_usage (visitor_hash, calls_used)
-     VALUES ($1, 1)
-     ON CONFLICT (visitor_hash) DO UPDATE SET
-       calls_used = anonymous_trial_usage.calls_used + 1,
-       last_call_at = NOW()
-     WHERE anonymous_trial_usage.calls_used < $2
-     RETURNING calls_used`,
-    [visitorHash, TRIAL_CALLS_PER_VISITOR]
-  );
-  return result.rowCount ? Number(result.rows[0].calls_used) : null;
+  const ipKey = ip && ip !== "unknown" ? hashIp(ip) : undefined;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const v = await client.query(
+      `INSERT INTO anonymous_trial_usage (visitor_hash, calls_used)
+       VALUES ($1, 1)
+       ON CONFLICT (visitor_hash) DO UPDATE SET
+         calls_used = anonymous_trial_usage.calls_used + 1,
+         last_call_at = NOW()
+       WHERE anonymous_trial_usage.calls_used < $2
+       RETURNING calls_used`,
+      [visitorHash, TRIAL_CALLS_PER_VISITOR]
+    );
+    let remaining = v.rowCount ? Math.max(TRIAL_CALLS_PER_VISITOR - Number(v.rows[0].calls_used), 0) : -1;
+    if (v.rowCount && ipKey) {
+      const i = await client.query(
+        `INSERT INTO anonymous_trial_ip_usage (ip_hash, calls_used)
+         VALUES ($1, 1)
+         ON CONFLICT (ip_hash) DO UPDATE SET
+           calls_used = anonymous_trial_ip_usage.calls_used + 1,
+           last_call_at = NOW()
+         WHERE anonymous_trial_ip_usage.calls_used < $2
+         RETURNING calls_used`,
+        [ipKey, TRIAL_CALLS_PER_IP]
+      );
+      remaining = i.rowCount ? Math.min(remaining, Math.max(TRIAL_CALLS_PER_IP - Number(i.rows[0].calls_used), 0)) : -1;
+    }
+    if (remaining < 0) { await client.query("ROLLBACK"); return null; }
+    await client.query("COMMIT");
+    return { remaining, ipKey };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
-async function refundTrialCall(visitorId: string): Promise<void> {
+async function refundTrialCall(visitorId: string, ipKey?: string): Promise<void> {
   try {
     await pool.query(
-      `UPDATE anonymous_trial_usage
-       SET calls_used = GREATEST(calls_used - 1, 0)
-       WHERE visitor_hash = $1`,
+      `UPDATE anonymous_trial_usage SET calls_used = GREATEST(calls_used - 1, 0) WHERE visitor_hash = $1`,
       [hashVisitor(visitorId)]
     );
+    if (ipKey) {
+      await pool.query(
+        `UPDATE anonymous_trial_ip_usage SET calls_used = GREATEST(calls_used - 1, 0) WHERE ip_hash = $1`,
+        [ipKey]
+      );
+    }
   } catch (error) { console.error("trial refund failed:", error); }
 }
 
-export async function getTrialStatus(visitorId: string): Promise<{ used: number; remaining: number }> {
-  const result = await pool.query(
-    `SELECT calls_used FROM anonymous_trial_usage WHERE visitor_hash = $1`,
-    [hashVisitor(visitorId)]
-  );
-  const used = Number(result.rows[0]?.calls_used || 0);
-  return { used, remaining: Math.max(TRIAL_CALLS_PER_VISITOR - used, 0) };
+export async function getTrialStatus(visitorId: string, ip?: string): Promise<{ used: number; remaining: number }> {
+  const v = await pool.query(`SELECT calls_used FROM anonymous_trial_usage WHERE visitor_hash = $1`, [hashVisitor(visitorId)]);
+  const used = Number(v.rows[0]?.calls_used || 0);
+  let remaining = Math.max(TRIAL_CALLS_PER_VISITOR - used, 0);
+  if (ip && ip !== "unknown") {
+    const i = await pool.query(`SELECT calls_used FROM anonymous_trial_ip_usage WHERE ip_hash = $1`, [hashIp(ip)]);
+    remaining = Math.min(remaining, Math.max(TRIAL_CALLS_PER_IP - Number(i.rows[0]?.calls_used || 0), 0));
+  }
+  return { used, remaining };
 }
 
 export type TrialMeterOutcome =
-  | { ok: true; via: "trial"; trialCallsRemaining: number }
+  | { ok: true; via: "trial"; trialCallsRemaining: number; ipKey?: string }
   | { ok: true; via: "credits"; creditsRemaining: number; wallet: string }
   | { ok: false; status: 402 | 503; error: string; priceLamports: number; trialCallsUsed?: number };
 
 export async function meterTrialOrCredit(o: { apiKey?: string; ip: string; visitorId: string; priceLamports: number }): Promise<TrialMeterOutcome> {
   try {
-    const used = await reserveTrialCall(o.visitorId);
-    if (used !== null) return { ok: true, via: "trial", trialCallsRemaining: Math.max(TRIAL_CALLS_PER_VISITOR - used, 0) };
+    const reserved = await reserveTrialCall(o.visitorId, o.ip);
+    if (reserved) return { ok: true, via: "trial", trialCallsRemaining: reserved.remaining, ipKey: reserved.ipKey };
   } catch (error) {
     console.error("trial metering error:", error);
     return { ok: false, status: 503, error: "Trial usage temporarily unavailable", priceLamports: o.priceLamports };
@@ -62,7 +107,7 @@ export async function meterTrialOrCredit(o: { apiKey?: string; ip: string; visit
 }
 
 export async function refundTrialOrCredit(metering: Extract<TrialMeterOutcome, { ok: true }>, visitorId: string): Promise<void> {
-  if (metering.via === "trial") return refundTrialCall(visitorId);
+  if (metering.via === "trial") return refundTrialCall(visitorId, metering.ipKey);
   return refundCredit(metering.wallet);
 }
 

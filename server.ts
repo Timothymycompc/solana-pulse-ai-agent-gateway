@@ -949,7 +949,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         [address]
       );
       const row = w.rows[0];
-      const trial = await getTrialStatus((req as any).trialVisitorId);
+      const trial = await getTrialStatus((req as any).trialVisitorId, (req as any).ip || "unknown");
       return res.json({
         address,
         paidCredits: Number(row?.paid_credits || 0),
@@ -968,7 +968,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   app.get("/api/trial/status", noCache, async (req: any, res) => {
     try {
-      const status = await getTrialStatus(req.trialVisitorId);
+      const status = await getTrialStatus(req.trialVisitorId, req.ip || "unknown");
       res.json({ scope: "visitor_cookie", trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR, callsUsed: status.used, callsRemaining: status.remaining, priceAfterTrialLamports: PRICE_PER_CALL_LAMPORTS });
     } catch (error) {
       console.error("trial status lookup failed:", error);

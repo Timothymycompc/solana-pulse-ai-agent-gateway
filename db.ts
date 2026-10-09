@@ -64,6 +64,14 @@ export async function ensureSchema() {
       last_call_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS anonymous_trial_ip_usage (
+      ip_hash TEXT PRIMARY KEY,
+      calls_used INTEGER NOT NULL DEFAULT 0 CHECK (calls_used >= 0),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_call_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS service_usage (
