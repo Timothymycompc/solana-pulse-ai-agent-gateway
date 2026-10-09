@@ -1,7 +1,7 @@
 import React from 'react';
-import { Shield, Terminal, Bot, Coins, Sparkles, Lock, Radio } from 'lucide-react';
+import { Shield, Terminal, Bot, Coins } from 'lucide-react';
 
-export type AppTab = 'api' | 'mcp_docs' | 'monetization' | 'owner_studio';
+export type AppTab = 'api' | 'mcp_docs' | 'monetization';
 
 interface HeaderProps {
   activeTab: AppTab;
@@ -80,17 +80,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Pricing & Top-Up</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('owner_studio')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              activeTab === 'owner_studio'
-                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
-                : 'text-amber-400/70 hover:text-amber-300 hover:bg-amber-950/30'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Owner Hub</span>
-          </button>
         </div>
 
         {/* Live Network Pulse Indicator */}
