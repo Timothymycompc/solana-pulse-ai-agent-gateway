@@ -13,7 +13,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { pool, ensureSchema, recordServiceUsage } from "./db";
 import { keyFromReq } from "./authKey";
 import { loadSecrets } from "./src/secrets";
-import { admitCall, getFreeCallStatus, hashIp, paidRouteMiddleware, refundFreeCall } from "./meter";
+import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
@@ -22,7 +22,7 @@ const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 
 async function startServer() {
-  await loadSecrets(["DATABASE_URL", "HELIUS_WEBHOOK_SECRET", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL"]);
+  await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET"]);
   await ensureSchema();
 
   const app = express();
@@ -43,7 +43,7 @@ async function startServer() {
     res.once("finish", () => {
       const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
       const endpoint = pathOnly === "/mcp" && typeof toolName === "string" ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}` : pathOnly;
-      void recordServiceUsage({ wallet: null, endpoint, method: req.method, status: res.statusCode, callerHash, client });
+      void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client });
     });
     next();
   };
@@ -175,6 +175,32 @@ async function startServer() {
     } catch (error: any) {
       console.error("usage analytics query failed:", error);
       res.status(503).json({ error: "Live usage counts are temporarily unavailable." });
+    }
+  });
+
+  // Owner-only revenue view: send the OWNER_API_KEY as x-api-key.
+  app.get("/api/owner/payments", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    try {
+      const [totals, byTool, recent] = await Promise.all([
+        pool.query(`SELECT COUNT(*)::bigint AS payments, COALESCE(SUM(amount_base_units), 0)::bigint AS total,
+          COALESCE(SUM(amount_base_units) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours'), 0)::bigint AS total_24h,
+          COALESCE(SUM(amount_base_units) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days'), 0)::bigint AS total_7d,
+          COUNT(DISTINCT payer)::bigint AS payers FROM x402_payments`),
+        pool.query(`SELECT tool, COUNT(*)::bigint AS payments, SUM(amount_base_units)::bigint AS total FROM x402_payments GROUP BY tool ORDER BY total DESC`),
+        pool.query(`SELECT tx_signature, tool, payer, amount_base_units, created_at FROM x402_payments ORDER BY created_at DESC LIMIT 25`),
+      ]);
+      const usdc = (v: unknown) => Number(v ?? 0) / 1e6;
+      const t = totals.rows[0];
+      res.json({
+        asset: "USDC", payments: Number(t.payments), distinctPayers: Number(t.payers),
+        revenueUsdc: { allTime: usdc(t.total), last7Days: usdc(t.total_7d), last24Hours: usdc(t.total_24h) },
+        byTool: byTool.rows.map((r: any) => ({ tool: r.tool, payments: Number(r.payments), revenueUsdc: usdc(r.total) })),
+        recent: recent.rows.map((r: any) => ({ txSignature: r.tx_signature, tool: r.tool, payer: r.payer, amountUsdc: usdc(r.amount_base_units), at: r.created_at })),
+      });
+    } catch (error) {
+      console.error("payments query failed:", error);
+      res.status(503).json({ error: "Payments are temporarily unavailable." });
     }
   });
 

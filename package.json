@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "preview": "vite preview",
-    "prebuild": "./check-before-build.sh"
+    "prebuild": "tsc --noEmit"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^7.1.0",

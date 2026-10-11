@@ -126,28 +126,33 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
 
   <section id="calls" aria-labelledby="calls-h">
     <h2 id="calls-h">Which call should I use?</h2>
-    <p>Start from the question you want answered. Every call also accepts an optional <code>network</code> (default <code>mainnet-beta</code>). Where an input is left blank, the gateway picks a sensible live value for most calls and reports what it chose.</p>
+    <p>Start from the question you want answered. Every tool is called with <code>POST /api/tools/&lt;name&gt;</code> and a JSON body of inputs, or by name over MCP. Most accept an optional <code>network</code> (default <code>mainnet-beta</code>). Every input, with how to get it, and every returned field, with how it is computed, is documented at <a href="/api/tools"><code>/api/tools</code></a> and on the MCP &amp; Agents page.</p>
     <div class="tablebox">
       <table>
         <thead><tr><th>You want to know</th><th>Use</th><th>Cost</th><th>You send</th></tr></thead>
         <tbody>
           <tr class="group"><td colspan="4">Basic reads are free; other calls have 3 free calls, then a USDC price per successful call</td></tr>
-          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
-          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag free">Free</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
-          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">3 free, then $0.01</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">3 free, then $0.005</span></td><td><code>mint</code></td></tr>
-          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">3 free, then $0.005</span></td><td><code>signature</code></td></tr>
+          <tr><td class="q">Is this transaction safe to sign? What will it do to my wallet?</td><td class="call"><b>Check before signing</b><code>POST /api/tools/preflight_transaction</code></td><td><span class="tag paid">3 free, then $0.01</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">Does this transaction do exactly what I asked (amount, token, recipient)?</td><td class="call"><b>Does it do what I meant?</b><code>POST /api/tools/check_transaction_intent</code></td><td><span class="tag paid">3 free, then $0.01</span></td><td><code>transaction</code>, <code>intent</code></td></tr>
+          <tr><td class="q">Is this token safe to buy or accept?</td><td class="call"><b>Token safety verdict</b><code>POST /api/tools/token_verdict</code></td><td><span class="tag paid">3 free, then $0.01</span></td><td><code>mint</code></td></tr>
+          <tr><td class="q">What actually happened in this transaction, and why did it fail?</td><td class="call"><b>What happened?</b><code>POST /api/tools/explain_transaction</code></td><td><span class="tag paid">3 free, then $0.005</span></td><td><code>signature</code></td></tr>
+          <tr><td class="q">Which mint is the real token for this ticker?</td><td class="call"><b>Ticker to mint</b><code>POST /api/tools/resolve_token</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td><code>query</code></td></tr>
+          <tr><td class="q">What priority fee should I set, and what will it cost?</td><td class="call"><b>Priority fee advice</b><code>POST /api/tools/fee_advice</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td>optional <code>transaction</code></td></tr>
+          <tr><td class="q">What does this wallet hold and what is it worth?</td><td class="call"><b>Wallet snapshot</b><code>POST /api/tools/wallet_snapshot</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">How much is 5 USDC in base units?</td><td class="call"><b>Convert token amounts</b><code>POST /api/tools/convert_amount</code></td><td><span class="tag free">Free</span></td><td><code>mint</code>, <code>amount</code></td></tr>
+          <tr><td class="q">What does this error mean and how do I fix it?</td><td class="call"><b>Explain an error</b><code>POST /api/tools/explain_error</code></td><td><span class="tag free">Free</span></td><td><code>error</code></td></tr>
+          <tr><td class="q">What is this address: wallet, token account, mint or program?</td><td class="call"><b>What is this address?</b><code>POST /api/tools/inspect_address</code></td><td><span class="tag free">Free</span></td><td><code>address</code></td></tr>
+          <tr><td class="q">What is this wallet's token account for a token, and does it exist?</td><td class="call"><b>Token account address</b><code>POST /api/tools/find_ata</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
+          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>POST /api/tools/get_solana_balance</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>POST /api/tools/get_token_accounts</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>POST /api/tools/get_recent_transactions</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">Which blockhash should I use, and how long is it valid?</td><td class="call"><b>Latest blockhash</b><code>POST /api/tools/get_solana_blockhash</code></td><td><span class="tag free">Free</span></td><td>nothing required</td></tr>
         </tbody>
       </table>
     </div>
     <div class="note">
-      <p><strong>About the pre-flight check.</strong> It tells you what it checked, for example whether the fee payer can cover the base fee, and shows the result of a dry run. It is a check for common mistakes, not a guarantee that a transaction will succeed.</p>
-      <p><strong>About token authority risk.</strong> The token profile reports mint and freeze authorities. Its freeze-authority risk flag is a heuristic and does not detect honeypots or guarantee whether a token is safe to trade.</p>
+      <p><strong>About the pre-sign check.</strong> It simulates the transaction against live state and shows each wallet's exact gains and losses, and blocks common drainer patterns (approvals to outsiders, authority changes, closing accounts to someone else). It runs on current state, so a later send can still differ.</p>
+      <p><strong>About token verdicts.</strong> SAFE, CAUTION or AVOID come from on-chain powers (mint, freeze, Token-2022 extensions), verification, liquidity, holder concentration and age. They are screening signals, not a guarantee; regulated stablecoins' issuer powers are reported as expected.</p>
     </div>
     <h3>If something goes wrong</h3>
     <div class="tablebox">
@@ -172,7 +177,8 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <div><span class="n">Step 2</span><h3>Use an x402 client</h3><p>Wrap your HTTP client with <code>@x402/fetch</code>, or your MCP client with <code>@x402/mcp</code>. It answers the 402 by signing the exact USDC transfer.</p></div>
       <div><span class="n">Step 3</span><h3>Call as usual</h3><p>Paid calls settle only when they succeed. Each response carries a <code>PAYMENT-RESPONSE</code> receipt with the Solana transaction signature.</p></div>
     </div>
-    <pre id="curl-example">curl -i "https://YOUR-GATEWAY/api/solana/token-profile?mint=&lt;token_mint&gt;"
+    <pre id="curl-example">curl -i -X POST "https://YOUR-GATEWAY/api/tools/token_verdict" \
+  -H "content-type: application/json" -d '{"mint":"&lt;token_mint&gt;"}'
 # After 3 free calls: HTTP/1.1 402 Payment Required + PAYMENT-REQUIRED header</pre>
     <p class="muted">Full price list and copy-ready client code are on the Pricing tab.</p>
     <a class="cta" href="/">Open the playground</a>
@@ -185,6 +191,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <div><span class="n">MCP endpoint</span><p><code>/mcp</code> (send requests with POST)</p></div>
       <div><span class="n">Tool manifest</span><p><a href="/.well-known/mcp.json"><code>/.well-known/mcp.json</code></a></p></div>
       <div><span class="n">Plain-text guide</span><p><a href="/llms.txt"><code>/llms.txt</code></a></p></div>
+      <div><span class="n">Full tool reference (JSON)</span><p><a href="/api/tools"><code>/api/tools</code></a></p></div>
     </div>
   </section>
 

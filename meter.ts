@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { keyFromReq } from "./authKey";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
-import { pool, logCall } from "./db";
+import { pool } from "./db";
 import { FREE_CALLS_PER_TOOL, priceOf, toolForRoute } from "./pricing";
 
 // Free calls: each paid tool can be called a few times per caller IP (IPv6 grouped by /64), shared across HTTP and MCP.
@@ -17,7 +17,7 @@ function normalizeIp(raw: string): string {
   return full.slice(0, 4).map((x) => x.toLowerCase().replace(/^0+(?=.)/, "")).join(":");
 }
 // Keyed hash so stored caller IDs cannot be reversed into IP addresses by brute force.
-const callerHashKey = () => process.env.CALLER_HASH_SECRET || process.env.HELIUS_WEBHOOK_SECRET || process.env.DATABASE_URL || "local-development-caller-key";
+const callerHashKey = () => process.env.CALLER_HASH_SECRET || process.env.DATABASE_URL || "local-development-caller-key";
 export const hashIp = (ip: string) => createHmac("sha256", callerHashKey()).update("ip:" + normalizeIp(ip)).digest("hex");
 
 // The owner key (OWNER_API_KEY secret, sent as x-api-key) gets unlimited calls on every tool.
@@ -93,9 +93,7 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     if (admission.via === "free_call") res.setHeader("x-free-calls-remaining", String(admission.remaining));
 
     res.once("finish", () => {
-      const failed = res.statusCode >= 400;
-      if (failed && admission.via === "free_call") void refundFreeCall(ip, tool);
-      if (admission.via !== "free_tool") void logCall({ wallet: null, endpoint: req.path, method: req.method, priceCredits: 0, via: admission.via, status: res.statusCode });
+      if (res.statusCode >= 400 && admission.via === "free_call") void refundFreeCall(ip, tool);
     });
 
     if (admission.via === "x402") return x402Middleware(req, res, next);

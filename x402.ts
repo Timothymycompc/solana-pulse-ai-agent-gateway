@@ -5,6 +5,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { createPaymentWrapper } from "@x402/mcp";
 import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
+import { recordPayment } from "./db";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator.payai.network";
@@ -12,6 +13,16 @@ const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator
 export function createX402(payTo: string) {
   const resourceServer = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL }))
     .register(X402_NETWORK, new ExactSvmScheme());
+
+  // Revenue ledger: every successful settlement, HTTP or MCP. The tool is the last segment of the resource URL.
+  resourceServer.onAfterSettle(async ({ paymentPayload, requirements, result }) => {
+    if (!result.success || !result.transaction) return;
+    const resourceUrl = String(paymentPayload.resource?.url ?? "");
+    await recordPayment({
+      txSignature: result.transaction, tool: resourceUrl.split(/[/?#]/).filter(Boolean).pop() ?? "unknown", payer: result.payer ?? null,
+      amountBaseUnits: String(result.amount ?? requirements.amount), asset: requirements.asset, network: result.network,
+    });
+  });
 
   // Facilitator sync happens once; a failure is retried on the next paid request instead of crashing startup.
   let ready: Promise<void> | null = null;

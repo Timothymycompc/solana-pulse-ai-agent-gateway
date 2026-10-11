@@ -1,9 +1,0 @@
-nohup: ignoring input
-2026/09/22 09:22:16 Authorizing with Application Default Credentials
-2026/09/22 09:22:17 [x300-506418:us-central1:solana-pulse-db] Listening on 127.0.0.1:5433
-2026/09/22 09:22:17 The proxy has started successfully and is ready for new connections!
-2026/09/22 09:22:38 [x300-506418:us-central1:solana-pulse-db] Accepted connection from 127.0.0.1:50176
-2026/09/22 09:22:38 [x300-506418:us-central1:solana-pulse-db] client closed the connection
-2026/09/22 09:36:38 Sending SIGTERM signal for proxy to shutdown.
-2026/09/22 09:36:38 SIGTERM signal received. Shutting down...
-2026/09/22 09:36:38 proxy server error: accept tcp 127.0.0.1:5433: use of closed network connection

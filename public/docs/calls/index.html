@@ -103,14 +103,15 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
     <h2 id="example-h">What one looks like</h2>
     <p>Each kind of question has its own web address, called an endpoint or tool. You add your details to the address, and the answer comes back as structured data (JSON) that a program or AI agent can read.</p>
     <h3>The question</h3>
-    <pre id="call-example">GET https://YOUR-GATEWAY/api/solana/balance?wallet=&lt;wallet_address&gt;</pre>
+    <pre id="call-example">POST https://YOUR-GATEWAY/api/tools/get_solana_balance
+{ "wallet": "&lt;wallet_address&gt;" }</pre>
     <h3>The answer</h3>
     <pre>{
   "wallet": "&lt;wallet_address&gt;",
   "network": "mainnet-beta",
-  "balance_lamports": 1500000000,
-  "balance_sol": 1.5,
-  "live_status": "SUCCESS"
+  "lamports": "1500000000",
+  "sol": "1.5",
+  "slot": 455508107
 }</pre>
     <p class="muted">AI agents make the same calls through MCP. Instead of a web address, the agent picks a tool by name, such as <code>get_solana_balance</code>, and gets the same answer.</p>
   </section>
@@ -118,7 +119,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
   <section id="free" aria-labelledby="free-h">
     <h2 id="free-h">What calls cost</h2>
     <p>Every paid tool can be called <strong>3 times free</strong>, with no wallet and no sign-up. The count is kept per tool, so trying one tool does not use up the free calls of another. A website call and its matching MCP tool share the same 3.</p>
-    <p>Basic reads, like this balance call, are always free. For other tools, after the 3 free calls each successful call costs <strong>$0.001 to $0.01 in USDC</strong>, paid with the request itself through x402. Calls that end in an error are never charged and do not use up a free call.</p>
+    <p>Basic tools, like this balance call, are always free. For paid tools, after the 3 free calls each successful call costs <strong>$0.001 to $0.01 in USDC</strong>, paid with the request itself through x402. Calls that end in an error are never charged and do not use up a free call.</p>
     <a class="cta" href="/docs/#key">How paying works</a>
   </section>
 
@@ -139,7 +140,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <div class="arrow"><span>one dish</span><span>one address</span></div>
       <div class="step">
         <div class="cell rest"><span class="who">A dish</span><b>"Table 4 would like the soup"</b><small>Each dish has its own name.</small></div>
-        <div class="cell gate"><span class="who">Endpoint</span><b><code>/api/solana/balance</code></b><small>One web address that does one job.</small></div>
+        <div class="cell gate"><span class="who">Endpoint</span><b><code>/api/tools/get_solana_balance</code></b><small>One web address that does one job.</small></div>
       </div>
       <div class="arrow"><span>checks the order</span><span>checks the request</span></div>
       <div class="step">
@@ -177,7 +178,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
         <thead><tr><th>Term</th><th>Restaurant version</th><th>Here</th></tr></thead>
         <tbody>
           <tr><td><b>API</b></td><td>The menu</td><td>Everything the gateway can do</td></tr>
-          <tr><td><b>Endpoint</b></td><td>One dish</td><td>A single address, like <code>/api/solana/balance</code></td></tr>
+          <tr><td><b>Endpoint</b></td><td>One dish</td><td>A single address, like <code>/api/tools/get_solana_balance</code></td></tr>
           <tr><td><b>Request</b></td><td>The order</td><td>What you send, such as a wallet address</td></tr>
           <tr><td><b>Response</b></td><td>The plate</td><td>What comes back, such as that wallet's balance</td></tr>
           <tr><td><b>x402</b></td><td>Paying at the counter for each dish</td><td>A payment sent with each paid call, in USDC</td></tr>
