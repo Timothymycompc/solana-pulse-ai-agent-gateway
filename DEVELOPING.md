@@ -43,6 +43,7 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | `npm run deploy -- --check-only` | Check setup and code without uploading |
 | `npm run deploy` | Back up, deploy hidden, test, then go live |
 | `npm run set-rpc-key` | Store a new Helius (or other) RPC key |
+| `npm run secure-db` | New database passwords (old one not needed), backups on, unused secrets removed |
 
 ## Add a tool
 

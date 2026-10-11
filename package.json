@@ -11,7 +11,8 @@
     "check": "tsc --noEmit && tsx scripts/check-tools.ts",
     "preview": "vite preview",
     "deploy": "bash scripts/deploy.sh",
-    "set-rpc-key": "bash scripts/set-rpc-key.sh"
+    "set-rpc-key": "bash scripts/set-rpc-key.sh",
+    "secure-db": "bash scripts/secure-db.sh"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^7.1.0",
