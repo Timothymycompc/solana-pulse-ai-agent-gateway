@@ -13,7 +13,8 @@ export const McpDocsView: React.FC = () => {
   const claudeConfig = JSON.stringify({
     "mcpServers": {
       "solana-pulse": {
-        "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp/sse"
+        "command": "npx",
+        "args": ["-y", "mcp-remote", "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp"]
       }
     }
   }, null, 2);
@@ -64,7 +65,7 @@ export const McpDocsView: React.FC = () => {
     {
       name: "token_profile",
       price: "1 credit after 27-call trial",
-      description: "Returns token mint details, freeze and mint authority status, and up to 10 largest holders. The freeze-authority risk flag is a heuristic, not honeypot detection. Cached for 60 seconds.",
+      description: "Returns token mint details, freeze and mint authority status, and up to 10 largest holders. The freeze-authority risk flag is a heuristic, not honeypot detection.",
       params: { mint: "string (Base58 token mint)", network: "mainnet-beta | devnet (optional)" },
       exampleOutput: { mint: "EPjFW...", decimals: 6, security: { isHoneypotRisk: false, riskLevel: "LOW" }, topHolders: [] }
     },
@@ -179,9 +180,9 @@ export const McpDocsView: React.FC = () => {
             </p>
           </div>
           <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl min-w-[280px]">
-            <div className="text-xs text-slate-400 font-medium mb-1">Live MCP SSE Endpoint:</div>
+            <div className="text-xs text-slate-400 font-medium mb-1">Live MCP Endpoint (Streamable HTTP):</div>
             <div className="text-xs text-indigo-400 font-mono break-all select-all">
-              https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp/sse
+              https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp
             </div>
           </div>
         </div>
@@ -196,7 +197,7 @@ export const McpDocsView: React.FC = () => {
             </div>
             <div>
       <h3 className="text-base font-bold text-white">Claude Desktop & Cursor Configuration</h3>
-              <p className="text-xs text-slate-400">Add this snippet to your <code className="text-indigo-300">claude_desktop_config.json</code> to enable all 20 tools and start the 27-call visitor trial. Configure an API key after the trial.</p>
+              <p className="text-xs text-slate-400">Add this snippet to <code className="text-indigo-300">claude_desktop_config.json</code> or Cursor's <code className="text-indigo-300">mcp.json</code> (requires Node.js) to enable all 20 tools and start the 27-call visitor trial. Configure an API key after the trial.</p>
             </div>
           </div>
           <button

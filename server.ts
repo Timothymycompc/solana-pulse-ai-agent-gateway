@@ -1543,18 +1543,22 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
         { "name": "optimal_fee", "description": "Live low, medium and high priority-fee tiers for current congestion. Trial call, then 1 credit." },
         { "name": "decode_tx", "description": "Explain a confirmed transaction: category, status, fee, balance changes, logs. Trial call, then 1 credit." },
         { "name": "validate_transaction", "description": "Pre-send check: SAFE or UNSAFE verdict with fix hints. Trial call, then 1 credit." },
-        { "name": "get_wallet_snapshot", "description": "1 credit. Combine SOL and token holdings with recent activity in one wallet snapshot." },
+        { "name": "get_wallet_snapshot", "description": "Combine SOL and token holdings with recent activity in one wallet snapshot. Trial call, then 1 credit." },
         { "name": "summarize_wallet_activity", "description": "Summarize recent success and failure counts for a wallet. Trial call, then 1 credit." },
         { "name": "resolve_token_symbol", "description": "Find Solana token candidates for a ticker, ranked by reported liquidity. Trial call, then 1 credit." },
-        { "name": "get_token_market_snapshot", "description": "1 credit. Return DEX price, liquidity, 24-hour volume, and pair link for a mint." },
-        { "name": "analyze_token_concentration", "description": "1 credit. Calculate top-ten token-account share of supply and report mint authorities." },
-        { "name": "compare_tokens", "description": "1 credit. Compare two mints across supply, authorities, and top-account concentration." },
+        { "name": "get_token_market_snapshot", "description": "Return DEX price, liquidity, 24-hour volume, and pair link for a mint. Trial call, then 1 credit." },
+        { "name": "analyze_token_concentration", "description": "Calculate top-ten token-account share of supply and report mint authorities. Trial call, then 1 credit." },
+        { "name": "compare_tokens", "description": "Compare two mints across supply, authorities, and top-account concentration. Trial call, then 1 credit." },
         { "name": "inspect_address", "description": "Classify an account using its owner program, executable flag, and parsed token data. Trial call, then 1 credit." },
-        { "name": "explain_transaction_effects", "description": "1 credit. Join pre/post RPC data into SOL and token balance changes, fee, status, and program labels." },
-        { "name": "analyze_wallet_portfolio", "description": "1 credit. Estimate priced SOL and token holdings in USD and report missing market prices." },
-        { "name": "estimate_transaction_cost", "description": "1 credit. Estimate base and configured priority fees, then simulate without broadcasting." }
+        { "name": "explain_transaction_effects", "description": "Join pre/post RPC data into SOL and token balance changes, fee, status, and program labels. Trial call, then 1 credit." },
+        { "name": "analyze_wallet_portfolio", "description": "Estimate priced SOL and token holdings in USD and report missing market prices. Trial call, then 1 credit." },
+        { "name": "estimate_transaction_cost", "description": "Estimate base and configured priority fees, then simulate without broadcasting. Trial call, then 1 credit." }
       ]
     });
+  });
+  // Glama connector ownership verification
+  app.get("/.well-known/glama.json", (req, res) => {
+    res.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", maintainers: [{ email: "timothymycompc@gmail.com" }] });
   });
 
   // LLM Crawler Discovery
