@@ -4,7 +4,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { createPaymentWrapper } from "@x402/mcp";
-import { HTTP_ROUTE_TOOLS, TOOL_PRICES, type ToolPrice } from "./pricing";
+import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator.payai.network";
@@ -30,13 +30,11 @@ export function createX402(payTo: string) {
     return accepts.get(price)!;
   };
 
-  // One Express middleware covering every paid HTTP route; it buffers the response and only settles on status < 400.
+  // One Express middleware covering every paid tool route; it buffers the response and only settles on status < 400.
   const routes: Record<string, any> = {};
-  for (const [path, tool] of Object.entries(HTTP_ROUTE_TOOLS)) {
-    const price = TOOL_PRICES[tool];
+  for (const [tool, price] of Object.entries(TOOL_PRICES)) {
     if (!price) continue;
-    const method = path === "/api/solana/simulate" || path === "/api/solana/validate-and-simulate" ? "POST" : "GET";
-    routes[`${method} ${path}`] = {
+    routes[`POST ${TOOL_ROUTE_PREFIX}${tool}`] = {
       accepts: [{ scheme: "exact", price, network: X402_NETWORK, payTo, maxTimeoutSeconds: 60 }],
       description: `Solana Pulse ${tool}`,
       mimeType: "application/json",
