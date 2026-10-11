@@ -14,12 +14,16 @@ export function createX402(payTo: string) {
   const resourceServer = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL }))
     .register(X402_NETWORK, new ExactSvmScheme());
 
-  // Revenue ledger: every successful settlement, HTTP or MCP. The tool is the last segment of the resource URL.
+  // Revenue ledger: every successful settlement, HTTP or MCP. The tool is the last segment of the resource URL,
+  // decoded so a percent-encoded request ("token%5Fverdict") is credited to the real tool name.
   resourceServer.onAfterSettle(async ({ paymentPayload, requirements, result }) => {
     if (!result.success || !result.transaction) return;
     const resourceUrl = String(paymentPayload.resource?.url ?? "");
+    const segment = resourceUrl.split(/[/?#]/).filter(Boolean).pop() ?? "unknown";
+    let tool = segment;
+    try { tool = decodeURIComponent(segment); } catch { /* keep the raw segment */ }
     await recordPayment({
-      txSignature: result.transaction, tool: resourceUrl.split(/[/?#]/).filter(Boolean).pop() ?? "unknown", payer: result.payer ?? null,
+      txSignature: result.transaction, tool, payer: result.payer ?? null,
       amountBaseUnits: String(result.amount ?? requirements.amount), asset: requirements.asset, network: result.network,
     });
   });

@@ -78,7 +78,9 @@ export async function admitCall(o: { tool: string; ip: string; apiKey?: string; 
 // HTTP gate for data routes: free tools, the owner key and free calls pass straight through; everything else goes to x402.
 export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const tool = toolForRoute(req.path);
+    // Express decodes the :name param, so "/api/tools/token%5Fverdict" shares token_verdict's free calls
+    // instead of getting its own allowance (req.path keeps the percent-encoding).
+    const tool = typeof req.params.name === "string" ? req.params.name : toolForRoute(req.path);
     const ip = req.ip || "unknown";
     const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]);
     let admission: Admission;
