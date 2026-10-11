@@ -11,13 +11,14 @@ LLM agents that call raw Solana RPC directly must interpret transaction logs, to
 * **Backend:** Node.js + Express + TypeScript
 * **Blockchain integration:** `@solana/web3.js`, live RPC connections to Solana mainnet-beta and devnet
 * **Frontend:** React + Vite + Tailwind CSS (includes a live in-browser sandbox to test every endpoint)
-* **Payments:** Postgres-backed API key credit balances, funded via SOL deposits verified through a Helius webhook, claimed via a wallet-signed challenge — no centralized custody of funds beyond the deposit itself
+* **Payments:** x402 v2 pay-per-call in USDC on Solana mainnet, verified and settled by a facilitator (PayAI by default) that also pays network fees. No accounts or API keys.
 * **Protocol:** MCP tool manifest auto-published at `/.well-known/mcp.json`, plus SSE and streamable-HTTP MCP endpoints for direct agent/tool-use integration
 
 ## Pricing
 
-* Free calls: 3 per tool for each caller (counted by IP address), shared across HTTP and MCP; no wallet sign-in is needed.
-* After a tool's 3 free calls, each successful call to it costs 0.0022 SOL (one credit).
+* Basic reads (balance, blockhash, token accounts, recent transactions, find-ata, inspect-address) are free and rate-limited.
+* Every other tool has 3 free calls per caller (counted by IP address, shared across HTTP and MCP), then costs $0.001, $0.005 or $0.01 USDC per call. Prices live in `pricing.ts`.
+* Paid calls follow x402: HTTP returns 402 with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`.
 * Data routes are rate-limited to 120 requests per minute per IP. Failed calls are refunded and do not use up free calls.
 
 ## Live Endpoints

@@ -3,6 +3,7 @@ import { Buffer } from 'buffer';
 import { Keypair, SystemProgram, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import type { TestExecutionResult, ApiEndpoint } from '../../types';
 import { API_ENDPOINTS } from '../../data/endpointsData';
+import { FREE_CALLS_PER_TOOL, HTTP_ROUTE_TOOLS, priceOf } from '../../../pricing';
 
 interface ServerAccessLog {
   id: string;
@@ -17,49 +18,22 @@ type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | '
 
 const initialEndpoint = API_ENDPOINTS.find((endpoint) => endpoint.id === 'solana-balance') ?? API_ENDPOINTS[0];
 const methods: RequestMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
-const meteredRoutes = new Set([
-  '/api/solana/balance',
-  '/api/solana/blockhash',
-  '/api/solana/token-accounts',
-  '/api/solana/transactions',
-  '/api/solana/find-ata',
-  '/api/solana/simulate',
-  '/api/solana/validate-and-simulate',
-  '/api/solana/token-profile',
-  '/api/solana/optimal-fee',
-  '/api/solana/decode-tx',
-]);
-
-function isMeteredToolCall(path: string, body: string): boolean {
+// The tool a request maps to; HTTP routes share pricing and free calls with the matching MCP tool.
+function toolFor(path: string, body: string): string {
   try {
     const url = new URL(path, window.location.origin);
-    if (meteredRoutes.has(url.pathname)) return true;
-    return url.pathname === '/mcp' && JSON.parse(body || '{}')?.method === 'tools/call';
-  } catch { return false; }
-}
-
-const TRIAL_CALLS_PER_TOOL = 3;
-// HTTP routes share a trial allowance with the matching MCP tool (mirrors meter.ts).
-const routeTools: Record<string, string> = {
-  '/api/solana/balance': 'get_solana_balance',
-  '/api/solana/blockhash': 'get_solana_blockhash',
-  '/api/solana/token-accounts': 'get_token_accounts',
-  '/api/solana/transactions': 'get_recent_transactions',
-  '/api/solana/simulate': 'simulate_solana_transaction',
-  '/api/solana/validate-and-simulate': 'validate_transaction',
-  '/api/solana/find-ata': 'find_ata',
-  '/api/solana/token-profile': 'token_profile',
-  '/api/solana/optimal-fee': 'optimal_fee',
-  '/api/solana/decode-tx': 'decode_tx',
-};
-
-function trialToolFor(path: string, body: string): string {
-  try {
-    const url = new URL(path, window.location.origin);
-    if (url.pathname === '/mcp') return String(JSON.parse(body || '{}')?.params?.name || '');
-    return routeTools[url.pathname] || url.pathname;
+    if (url.pathname === '/mcp') {
+      const rpc = JSON.parse(body || '{}');
+      return rpc?.method === 'tools/call' ? String(rpc?.params?.name || '') : '';
+    }
+    return HTTP_ROUTE_TOOLS[url.pathname] || '';
   } catch { return ''; }
 }
+
+const isMeteredToolCall = (path: string, body: string) => {
+  const tool = toolFor(path, body);
+  return Boolean(tool && priceOf(tool));
+};
 
 function endpointPath(endpoint: ApiEndpoint): string {
   const params = new URLSearchParams();
@@ -74,7 +48,7 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-export const useApiGateway = (authHeaders: Record<string, string>) => {
+export const useApiGateway = () => {
   const [selectedSuite, setSelectedSuite] = useState<'all' | 'safety' | 'intel' | 'free' | 'keys'>('free');
   const [methodFilter, setMethodFilter] = useState<'all' | 'GET' | 'POST'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,12 +59,14 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
   const [requestBodyText, setRequestBodyText] = useState('');
   const [exampleNotice, setExampleNotice] = useState('');
   const isMeteredRequest = isMeteredToolCall(requestPath, requestBodyText);
-  const [trialUsedByTool, setTrialUsedByTool] = useState<Record<string, number>>({});
+  const [freeUsedByTool, setFreeUsedByTool] = useState<Record<string, number>>({});
   const refreshTrialStatus = () => fetch('/api/trial/status').then((response) => response.ok ? response.json() : null)
-    .then((body) => { if (body?.callsUsedByTool) setTrialUsedByTool(body.callsUsedByTool); })
+    .then((body) => { if (body?.freeCallsUsedByTool) setFreeUsedByTool(body.freeCallsUsedByTool); })
     .catch(() => undefined);
   useEffect(() => { void refreshTrialStatus(); }, []);
-  const trialCallsRemaining = Math.max(TRIAL_CALLS_PER_TOOL - (trialUsedByTool[trialToolFor(requestPath, requestBodyText)] || 0), 0);
+  const requestTool = toolFor(requestPath, requestBodyText);
+  const toolPrice = requestTool ? priceOf(requestTool) : null;
+  const trialCallsRemaining = Math.max(FREE_CALLS_PER_TOOL - (freeUsedByTool[requestTool] || 0), 0);
   const sampleGeneration = useRef(0);
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -195,7 +171,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     try {
       url = new URL(triggerTypo && selectedEndpoint.typoPath ? selectedEndpoint.typoPath : requestPath, window.location.origin);
       if (url.origin !== window.location.origin) throw new Error('Requests are limited to this gateway origin.');
-      headers = { ...authHeaders, ...parseHeaders() };
+      headers = parseHeaders();
     } catch (error) {
       setTestResult({
         endpointId: selectedEndpoint.id,
@@ -215,9 +191,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod) && !selectedEndpoint.readOnly;
     if ((isMetered && trialCallsRemaining === 0) || isMutating) {
       const warnings = [
-        ...(isMetered && trialCallsRemaining === 0 ? [Object.keys(authHeaders).length > 0
-          ? 'This tool\'s 3 free calls are used. This request will cost one credit (0.0022 SOL) if it succeeds.'
-          : 'This tool\'s 3 free calls are used. Add an API key to keep using it.'] : []),
+        ...(isMetered && trialCallsRemaining === 0 ? [`This tool's ${FREE_CALLS_PER_TOOL} free calls are used. The gateway will answer 402 Payment Required with x402 payment details (${toolPrice} USDC per call); pay with an x402 client.`] : []),
         ...(isMutating ? ['This request may change account or server state.'] : []),
       ];
       if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;
@@ -310,7 +284,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
 
   const generatedCurl = useMemo(() => {
     let headers: Record<string, string> = {};
-    try { headers = { ...authHeaders, ...parseHeaders() }; } catch { /* Invalid JSON is shown by the header editor. */ }
+    try { headers = parseHeaders(); } catch { /* Invalid JSON is shown by the header editor. */ }
     let url: string;
     try { url = new URL(requestPath || '/', window.location.origin).toString(); }
     catch { return '# Fix the request path before copying this cURL command.'; }
@@ -326,7 +300,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     Object.entries(headers).forEach(([key, value]) => parts.push(`-H ${shellQuote(`${key}: ${value}`)}`));
     if (!['GET', 'HEAD'].includes(requestMethod) && requestBodyText) parts.push(`--data-raw ${shellQuote(requestBodyText)}`);
     return parts.join(' \\\n  ');
-  }, [requestMethod, requestPath, requestHeadersText, requestBodyText, authHeaders]);
+  }, [requestMethod, requestPath, requestHeadersText, requestBodyText]);
 
   const copyCurl = async () => {
     await navigator.clipboard.writeText(generatedCurl);
@@ -344,7 +318,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
   return {
     state: {
       selectedSuite,
-      authHeaders,
+      toolPrice,
       methodFilter,
       searchQuery,
       selectedEndpoint,

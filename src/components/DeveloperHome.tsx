@@ -30,7 +30,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
             Build with Solana data, without stitching every answer together.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
-            Get current account data and ready-to-use analysis over HTTP or MCP. Try every tool 3 times free before wallet sign-in is needed.
+            Get current account data and ready-to-use analysis over HTTP or MCP. Basic reads are free; other tools have 3 free calls, then pay per call in USDC with x402. No account or API key.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={onTryApi} className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
@@ -42,7 +42,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
           </div>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-800 pt-4 text-xs text-slate-400">
             <span><strong className="text-white">3</strong> free calls per tool</span>
-            <span><strong className="text-white">0.0022 SOL</strong> per call after that</span>
+            <span><strong className="text-white">$0.001–$0.01</strong> USDC per paid call</span>
             <a href="/llms.txt" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">LLM guide <ExternalLink className="h-3 w-3" /></a>
           </div>
         </div>

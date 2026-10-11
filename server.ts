@@ -6,12 +6,9 @@ import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import fs from "fs";
-import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
-import nacl from "tweetnacl";
-import bs58 from "bs58";
-import { pool, ensureSchema, recordProcessedPayment, recordServiceUsage } from "./db";
+import { randomUUID } from "crypto";
+import { pool, ensureSchema, recordServiceUsage } from "./db";
 import { makeAutofill } from "./resolver";
-import { lookupUser, saveDefaults, cleanDefaults } from "./userDefaults";
 import { keyFromReq } from "./authKey";
 import { loadSecrets } from "./src/secrets";
 import { registerIntelligenceTools } from "./src/mcp/intelligenceTools";
@@ -19,12 +16,14 @@ import { registerIntelligenceTools } from "./src/mcp/intelligenceTools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { getTrialStatus, hashIp, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_TOOL, trialMeterMiddleware } from "./meter";
+import { admitCall, getFreeCallStatus, hashIp, paidRouteMiddleware, refundFreeCall } from "./meter";
+import { FREE_CALLS_PER_TOOL, priceLabel, priceOf, TOOL_PRICES } from "./pricing";
+import { createX402, X402_NETWORK } from "./x402";
 import { z } from "zod";
 
 async function startServer() {
   // Load secrets from Google Secret Manager first
-  await loadSecrets(['DATABASE_URL', 'HELIUS_WEBHOOK_SECRET']);
+  await loadSecrets(['DATABASE_URL', 'HELIUS_WEBHOOK_SECRET', 'OWNER_API_KEY']);
 
   await ensureSchema();
   const app = express();
@@ -49,7 +48,6 @@ async function startServer() {
   const trackServiceUsage = (req: any, res: any, next: any) => {
     const pathOnly = String(req.originalUrl || req.url).split("?")[0];
     if (pathOnly === "/api/analytics/usage") return next();
-    const apiKey = keyFromReq(req);
     const callerHash = req.ip ? hashIp(req.ip) : null;
     const client = String(req.headers["user-agent"] || "").slice(0, 120) || null;
     res.once("finish", () => {
@@ -57,22 +55,7 @@ async function startServer() {
       const endpoint = pathOnly === "/mcp" && typeof toolName === "string"
         ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}`
         : pathOnly;
-      void (async () => {
-        try {
-          let wallet = req.user?.wallet || null;
-          if (!wallet && apiKey) {
-            const keyHash = createHash("sha256").update(apiKey).digest("hex");
-            const user = await pool.query(
-              "SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE",
-              [keyHash]
-            );
-            wallet = user.rows[0]?.address || null;
-          }
-          await recordServiceUsage({ wallet, endpoint, method: req.method, status: res.statusCode, callerHash, client });
-        } catch (error) {
-          console.error("service usage tracking failed:", error);
-        }
-      })();
+      void recordServiceUsage({ wallet: null, endpoint, method: req.method, status: res.statusCode, callerHash, client });
     });
     next();
   };
@@ -97,8 +80,6 @@ async function startServer() {
     "/api/solana/token-accounts",
     "/api/solana/transactions",
     "/api/solana/find-ata",
-    "/api/claim/deposit-info",
-    "/api/payments/status",
   ]);
 
   const FREE_REQUESTS_PER_MINUTE = 120;
@@ -108,14 +89,6 @@ async function startServer() {
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Request rate limit reached (" + FREE_REQUESTS_PER_MINUTE + " requests per minute). Slow down or retry shortly." }
-  });
-
-  const claimLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 30,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: "Too many requests to the claim endpoints (30 per minute). Please wait a moment." }
   });
 
   const freeTtlCache = new Map<string, { at: number; value: any }>();
@@ -163,170 +136,17 @@ async function startServer() {
 
   const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 
-  const requirePayment = (min: number) => trialMeterMiddleware(min, GATEWAY_WALLET);
-
-  const PRICE_PER_CALL_LAMPORTS = 2200000;
+  // Paid tools settle in USDC via x402 to GATEWAY_WALLET; free tools, free calls and the owner key skip payment.
+  const x402 = createX402(GATEWAY_WALLET);
+  const paidRoute = paidRouteMiddleware(x402.httpMiddleware);
 
   // ==========================================
   // 1. SOLANA CORE API ENDPOINTS
   // ==========================================
 
-  const autofill = makeAutofill(getConnection, lookupUser);
+  const autofill = makeAutofill(getConnection);
 
-  app.get("/api/auth/challenge", noCache, (req, res) => {
-    const nonce = randomBytes(16).toString('hex');
-    const timestamp = Date.now();
-    const message = `Sign in to Solana Pulse\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
-    res.json({ message });
-  });
-
-  
-// Resilient Base58 decoder for server.ts
-const B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-const B58_MAP: Record<string, number> = {};
-for (let i = 0; i < B58_ALPHABET.length; i++) {
-  B58_MAP[B58_ALPHABET.charAt(i)] = i;
-}
-
-function safeBs58Decode(str: string): Uint8Array {
-  const b = bs58 as any;
-  if (typeof b?.decode === 'function') return b.decode(str);
-  if (typeof b?.default?.decode === 'function') return b.default.decode(str);
-  
-  // Pure JS fallback
-  if (!str || str.length === 0) return new Uint8Array(0);
-  const bytes = [0];
-  for (let i = 0; i < str.length; i++) {
-    const c = str[i];
-    if (!(c in B58_MAP)) throw new Error("Invalid base58 character '" + c + "'");
-    let carry = B58_MAP[c];
-    for (let j = 0; j < bytes.length; j++) {
-      carry += bytes[j] * 58;
-      bytes[j] = carry & 0xff;
-      carry >>= 8;
-    }
-    while (carry > 0) {
-      bytes.push(carry & 0xff);
-      carry >>= 8;
-    }
-  }
-  for (let i = 0; i < str.length && str[i] === '1'; i++) {
-    bytes.push(0);
-  }
-  return new Uint8Array(bytes.reverse());
-}
-
-
-app.post("/api/auth/login", noCache, async (req, res) => {
-    try {
-      const { wallet, signature, message } = req.body;
-      if (!wallet || !signature || !message) return res.status(400).json({ error: "wallet, signature, and message are required" });
-
-      const tsMatch = /Timestamp: (\d+)/.exec(message);
-      if (!tsMatch) return res.status(400).json({ error: "Malformed message: missing timestamp" });
-      const timestamp = Number(tsMatch[1]);
-      if (!Number.isFinite(timestamp) || Date.now() - timestamp > 5 * 60 * 1000) {
-        return res.status(401).json({ error: "Challenge expired. Request a new one from /api/auth/challenge." });
-      }
-
-      const pubKey = new PublicKey(wallet).toBuffer();
-      const sig = safeBs58Decode(signature);
-      const msg = Buffer.from(message);
-      const isValid = nacl.sign.detached.verify(msg, sig, pubKey);
-      if (!isValid) return res.status(401).json({ error: "Invalid signature" });
-
-      const replayCheck = await pool.query(
-        `INSERT INTO used_wallet_signatures (wallet_address, timestamp_used) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING wallet_address`,
-        [wallet, timestamp]
-      );
-      if ((replayCheck.rowCount ?? 0) === 0) {
-        return res.status(401).json({ error: "This signed message has already been used. Request a new challenge." });
-      }
-
-      const apiKey = randomBytes(32).toString('hex');
-      const keyHash = createHash('sha256').update(apiKey).digest('hex');
-
-      const result = await pool.query(
-        `INSERT INTO wallets (address, key_hash, is_active, last_active_at)
-         VALUES ($1, $2, TRUE, NOW())
-         ON CONFLICT (address) DO UPDATE SET key_hash = $2, is_active = TRUE, last_active_at = NOW()
-         RETURNING paid_credits, display_name, email, profile_pic_url, total_calls_made`,
-        [wallet, keyHash]
-      );
-      const row = result.rows[0];
-
-      res.json({
-        apiKey,
-        wallet,
-        paidCredits: row.paid_credits,
-        displayName: row.display_name,
-        email: row.email,
-        profilePicUrl: row.profile_pic_url,
-        totalCallsMade: row.total_calls_made,
-        message: "Logged in. This key is now active — logging in again issues a new key and invalidates this one."
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/profile", noCache, async (req, res) => {
-    try {
-      const apiKey = keyFromReq(req);
-      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
-      const keyHash = createHash('sha256').update(apiKey).digest('hex');
-      const result = await pool.query(
-        `SELECT address, display_name, email, profile_pic_url, paid_credits, total_calls_made, total_paid_credits_ever, total_sol_received_lamports, created_at, last_active_at FROM wallets WHERE key_hash = $1 AND is_active = TRUE`,
-        [keyHash]
-      );
-      if (result.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.patch("/api/profile", noCache, async (req, res) => {
-    try {
-      const apiKey = keyFromReq(req);
-      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
-      const keyHash = createHash('sha256').update(apiKey).digest('hex');
-      const { displayName, email, profilePicUrl } = req.body;
-      const result = await pool.query(
-        `UPDATE wallets SET
-           display_name = COALESCE($1, display_name),
-           email = COALESCE($2, email),
-           profile_pic_url = COALESCE($3, profile_pic_url)
-         WHERE key_hash = $4 AND is_active = TRUE
-         RETURNING address, display_name, email, profile_pic_url`,
-        [displayName ?? null, email ?? null, profilePicUrl ?? null, keyHash]
-      );
-      if (result.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/calls/history", noCache, async (req, res) => {
-    try {
-      const apiKey = keyFromReq(req);
-      if (!apiKey) return res.status(401).json({ error: "x-api-key header required" });
-      const keyHash = createHash('sha256').update(apiKey).digest('hex');
-      const walletLookup = await pool.query(`SELECT address FROM wallets WHERE key_hash = $1 AND is_active = TRUE`, [keyHash]);
-      if (walletLookup.rowCount === 0) return res.status(401).json({ error: "Invalid or inactive API key" });
-      const wallet = walletLookup.rows[0].address;
-      const history = await pool.query(
-        `SELECT endpoint, method, price_credits, via, created_at FROM call_history WHERE wallet_address = $1 ORDER BY created_at DESC LIMIT 100`,
-        [wallet]
-      );
-      res.json({ wallet, calls: history.rows });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/solana/balance", readRateLimiter, noCache, autofill, requirePayment(PRICE_PER_CALL_LAMPORTS), async (req, res) => {
+  app.get("/api/solana/balance", readRateLimiter, noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -339,7 +159,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/blockhash", readRateLimiter, noCache, autofill, requirePayment(PRICE_PER_CALL_LAMPORTS), async (req, res) => {
+  app.get("/api/solana/blockhash", readRateLimiter, noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const network = (req.query.network as string) || 'mainnet-beta';
@@ -351,7 +171,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/token-accounts", readRateLimiter, noCache, autofill, requirePayment(PRICE_PER_CALL_LAMPORTS), async (req, res) => {
+  app.get("/api/solana/token-accounts", readRateLimiter, noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -381,7 +201,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/transactions", readRateLimiter, noCache, autofill, requirePayment(PRICE_PER_CALL_LAMPORTS), async (req, res) => {
+  app.get("/api/solana/transactions", readRateLimiter, noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const wallet = req.query.wallet as string;
@@ -398,7 +218,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.post("/api/solana/simulate", noCache, requirePayment(2200000), async (req, res) => {
+  app.post("/api/solana/simulate", noCache, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { transaction, network } = req.body;
@@ -426,7 +246,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.post("/api/solana/validate-and-simulate", noCache, requirePayment(2200000), async (req, res) => {
+  app.post("/api/solana/validate-and-simulate", noCache, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { transaction, network } = req.body;
@@ -534,7 +354,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/find-ata", readRateLimiter, noCache, autofill, requirePayment(PRICE_PER_CALL_LAMPORTS), async (req, res) => {
+  app.get("/api/solana/find-ata", readRateLimiter, noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { wallet, mint, network = 'mainnet-beta' } = req.query;
@@ -572,7 +392,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
   const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
     Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timed out")), ms))]);
 
-  app.get("/api/solana/token-profile", noCache, autofill, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/token-profile", noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { mint, network = 'mainnet-beta' } = req.query;
@@ -655,7 +475,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/optimal-fee", noCache, autofill, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/optimal-fee", noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { network = 'mainnet-beta' } = req.query;
@@ -716,7 +536,7 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  app.get("/api/solana/decode-tx", noCache, autofill, requirePayment(2200000), async (req, res) => {
+  app.get("/api/solana/decode-tx", noCache, autofill, paidRoute, async (req, res) => {
     stats.totalRequests++; stats.solanaRpcCalls++;
     try {
       const { signature, network = 'mainnet-beta' } = req.query;
@@ -781,257 +601,13 @@ app.post("/api/auth/login", noCache, async (req, res) => {
     }
   });
 
-  // ==========================================
-  // 2. HELIUS WEBHOOK (Auto Top-up & Payments)
-  // ==========================================
-
-  // ==========================================
-  // CLAIM PAGE SUPPORT (unmetered)
-  // ==========================================
-
-  // Placeholder deposit sizes, in calls. Each is an exact multiple of the price, so nothing is lost to rounding.
-  const DEPOSIT_OPTION_CALLS = [5, 25, 100, 500];
-
-  app.get("/api/claim/deposit-info", claimLimiter, noCache, (req, res) => {
-    res.json({
-      network: "mainnet-beta",
-      payout_address: GATEWAY_WALLET,
-      price_per_call_lamports: PRICE_PER_CALL_LAMPORTS,
-      price_per_call_sol: PRICE_PER_CALL_LAMPORTS / 1e9,
-      min_deposit_lamports: PRICE_PER_CALL_LAMPORTS,
-      deposit_options: DEPOSIT_OPTION_CALLS.map((calls) => ({
-        calls,
-        lamports: calls * PRICE_PER_CALL_LAMPORTS,
-        sol: (calls * PRICE_PER_CALL_LAMPORTS) / 1e9,
-      })),
-      trial_calls_per_tool: TRIAL_CALLS_PER_TOOL,
-      note: "Each tool can be tried 3 times without signing in. Credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples from the wallet you will sign in with."
-    });
-  });
-
-  const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-
-  app.get("/api/payments/status", claimLimiter, noCache, autofill, async (req, res) => {
-    try {
-      const wallet = String(req.query.wallet || "");
-      if (!SOLANA_ADDRESS_RE.test(wallet)) return res.status(400).json({ error: "Valid wallet address required" });
-      const result = await pool.query(
-        `SELECT total_paid_credits_ever, total_sol_received_lamports, first_paid_at, (key_hash IS NOT NULL) AS has_key FROM wallets WHERE address = $1`,
-        [wallet]
-      );
-      if (result.rowCount === 0) {
-        return res.json({ wallet, deposit_detected: false, total_credits_ever: 0, total_sol_received_lamports: 0, has_key: false, first_paid_at: null });
-      }
-      const row = result.rows[0];
-      res.json({
-        wallet,
-        deposit_detected: Number(row.total_paid_credits_ever) > 0,
-        total_credits_ever: Number(row.total_paid_credits_ever),
-        total_sol_received_lamports: Number(row.total_sol_received_lamports),
-        has_key: !!row.has_key,
-        first_paid_at: row.first_paid_at,
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  
-  // Verify a personal API key and the header it was sent in (free, read-only, never echoes the key)
-  app.get("/api/keys/verify", readRateLimiter, noCache, async (req, res) => {
-    try {
-      const xKey = req.headers["x-api-key"] as string | undefined;
-      const authHdr = req.headers["authorization"]?.toString();
-      const apiKey = xKey || authHdr?.replace(/^Bearer\s+/i, "");
-      if (!apiKey) {
-        return res.status(401).json({ valid: false, error: "No key received. Send x-api-key: <key> or Authorization: Bearer <key>." });
-      }
-      const keyHash = createHash("sha256").update(apiKey).digest("hex");
-      const r = await pool.query(
-        "SELECT address, paid_credits, total_calls_made, is_active FROM wallets WHERE key_hash = $1",
-        [keyHash]
-      );
-      const row = r.rows[0];
-      return res.json({
-        valid: Boolean(row && row.is_active),
-        headerUsed: xKey ? "x-api-key" : "authorization",
-        address: row ? row.address : null,
-        paidCredits: row ? Number(row.paid_credits || 0) : 0,
-        totalCallsMade: row ? Number(row.total_calls_made || 0) : 0
-      });
-    } catch (err: any) {
-      console.error("Error in /api/keys/verify:", err);
-      return res.status(500).json({ error: "Failed to verify key" });
-    }
-  });
-
-  // Per-key live defaults: what blank calls fill in with (signed-in wallets only)
-
-  app.get("/api/keys/defaults", readRateLimiter, noCache, async (req, res) => {
-    try {
-      const k = keyFromReq(req);
-      if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
-      const user = await lookupUser(k);
-      if (!user) return res.status(401).json({ error: "Invalid or inactive API key" });
-      return res.json({
-        address: user.address,
-        defaults: user.defaults,
-        builtIn: { wallet: user.address, token: "USDC", signature: "latest Jupiter transaction", network: "mainnet-beta" }
-      });
-    } catch (err: any) {
-      console.error("Error in GET /api/keys/defaults:", err);
-      return res.status(500).json({ error: "Failed to load defaults" });
-    }
-  });
-
-  app.put("/api/keys/defaults", readRateLimiter, noCache, express.json(), async (req, res) => {
-    try {
-      const k = keyFromReq(req);
-      if (!k) return res.status(401).json({ error: "Send your key as x-api-key or Authorization: Bearer." });
-      const user = await lookupUser(k);
-      if (!user) return res.status(401).json({ error: "Invalid or inactive API key" });
-      const { value, errors } = cleanDefaults(req.body);
-      if (errors.length) return res.status(400).json({ error: errors.join("; ") });
-      const saved = await saveDefaults(user.address, value);
-      if (!saved) return res.status(503).json({ error: "Saving defaults is not available right now." });
-      return res.json({ address: user.address, defaults: value });
-    } catch (err: any) {
-      console.error("Error in PUT /api/keys/defaults:", err);
-      return res.status(500).json({ error: "Failed to save defaults" });
-    }
-  });
-
-  // Free credits lookup (read-only, consumes nothing, never returns a key)
-  app.get("/api/credits", readRateLimiter, noCache, autofill, async (req, res) => {
-    try {
-      const address = String(req.query.address || "").trim();
-      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-        return res.status(400).json({ error: "Valid Solana wallet address required (?address=...)" });
-      }
-      const w = await pool.query(
-        "SELECT paid_credits, total_calls_made, total_paid_credits_ever FROM wallets WHERE address = $1",
-        [address]
-      );
-      const row = w.rows[0];
-      const trialUsed = await getTrialStatus(req.ip || "unknown");
-      return res.json({
-        address,
-        paidCredits: Number(row?.paid_credits || 0),
-        totalCallsMade: Number(row?.total_calls_made || 0),
-        totalPaidCreditsEver: Number(row?.total_paid_credits_ever || 0),
-        trialCallsUsedByTool: trialUsed,
-        trialCallsPerTool: TRIAL_CALLS_PER_TOOL,
-        lamportsPerCall: 2200000,
-        hasWallet: Boolean(row)
-      });
-    } catch (err: any) {
-      console.error("Error in /api/credits:", err);
-      return res.status(500).json({ error: "Failed to look up credits" });
-    }
-  });
-
   app.get("/api/trial/status", noCache, async (req: any, res) => {
     try {
-      const used = await getTrialStatus(req.ip || "unknown");
-      res.json({ scope: "caller_ip", trialCallsPerTool: TRIAL_CALLS_PER_TOOL, callsUsedByTool: used, priceAfterTrialLamports: PRICE_PER_CALL_LAMPORTS });
+      const used = await getFreeCallStatus(req.ip || "unknown");
+      res.json({ scope: "caller_ip", freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsUsedByTool: used, prices: TOOL_PRICES, network: X402_NETWORK, asset: "USDC" });
     } catch (error) {
-      console.error("trial status lookup failed:", error);
-      res.status(503).json({ error: "Trial status is temporarily unavailable." });
-    }
-  });
-
-  // Wallet Claim Status Lookup Route
-  app.get("/api/wallets/claim-status", async (req, res) => {
-    try {
-      const address = req.query.address as string;
-      if (!address) {
-        return res.status(400).json({ error: "Wallet address parameter is required" });
-      }
-
-      const wallet = await pool.query(
-        "SELECT address, paid_credits, total_paid_credits_ever, total_sol_received_lamports, key_hash FROM wallets WHERE address = $1",
-        [address]
-      );
-
-      if (!wallet.rows.length) {
-        return res.status(404).json({ error: "No deposit record found for this wallet address." });
-      }
-
-      const record = wallet.rows[0];
-      return res.json({
-        address: record.address,
-        paidCredits: Number(record.paid_credits || 0),
-        totalPaidCreditsEver: Number(record.total_paid_credits_ever || 0),
-        totalSolReceivedLamports: Number(record.total_sol_received_lamports || 0),
-        hasKey: Boolean(record.key_hash)
-      });
-    } catch (err: any) {
-      console.error("Error fetching claim status:", err);
-      return res.status(500).json({ error: "Failed to query wallet claim status" });
-    }
-  });
-
-
-app.post("/api/payments/helius-webhook", async (req, res) => {
-    try {
-      const authHeader = req.headers["authorization"] as string | undefined;
-      const expectedSecret = process.env.HELIUS_WEBHOOK_SECRET;
-      if (!expectedSecret) return res.status(500).json({ error: "Webhook secret not configured" });
-      if (!authHeader) return res.status(401).json({ error: "Missing Authorization header" });
-
-      const authBuffer = Buffer.from(authHeader);
-      const expectedBuffer = Buffer.from(expectedSecret);
-      const isValid = authBuffer.length === expectedBuffer.length &&
-        timingSafeEqual(authBuffer, expectedBuffer);
-
-      if (!isValid) return res.status(401).json({ error: "Invalid authorization" });
-
-      const events = Array.isArray(req.body) ? req.body : [req.body];
-      const results = [];
-
-      for (const event of events) {
-        const txSignature = event.signature;
-        const nativeTransfers = event.nativeTransfers || [];
-        const paymentTransfer = nativeTransfers.find(
-          (t: any) => t.toUserAccount === GATEWAY_WALLET
-        );
-
-        if (!txSignature || !paymentTransfer) {
-          results.push({ txSignature, status: "skipped", reason: "No matching transfer to gateway wallet" });
-          continue;
-        }
-
-        const payerWallet = paymentTransfer.fromUserAccount;
-        const amountLamports = paymentTransfer.amount;
-
-        const creditsToAdd = Math.floor(amountLamports / PRICE_PER_CALL_LAMPORTS);
-        const inserted = await recordProcessedPayment({
-          txSignature,
-          payerWallet,
-          amountLamports,
-          creditsAdded: creditsToAdd
-        });
-
-        if (inserted && creditsToAdd > 0) {
-          await pool.query(
-            `INSERT INTO wallets (address, paid_credits, total_paid_credits_ever, total_sol_received_lamports, first_paid_at, last_active_at)
-             VALUES ($1, $2, $2, $3, NOW(), NOW())
-             ON CONFLICT (address) DO UPDATE SET
-               paid_credits = wallets.paid_credits + $2,
-               total_paid_credits_ever = wallets.total_paid_credits_ever + $2,
-               total_sol_received_lamports = wallets.total_sol_received_lamports + $3,
-               first_paid_at = COALESCE(wallets.first_paid_at, NOW()),
-               last_active_at = NOW()`,
-            [payerWallet, creditsToAdd, amountLamports]
-          );
-        }
-
-        results.push({ txSignature, status: inserted ? "recorded" : "duplicate_ignored", creditsAdded: inserted ? creditsToAdd : 0 });
-      }
-
-      res.json({ processed: results.length, results });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("free call status lookup failed:", error);
+      res.status(503).json({ error: "Free call status is temporarily unavailable." });
     }
   });
 
@@ -1096,26 +672,42 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
   const rawTool = (mcpServer as any).tool.bind(mcpServer);
+  // Every tool goes through the same admission as HTTP: free tools run, the owner key and free calls run unpaid,
+  // and everything else follows the x402 MCP transport (PaymentRequired result, then _meta["x402/payment"]).
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
-    return rawTool(name, ...rest, async (...args: any[]) => {
-      const m: any = await meterTrialOrCredit({ apiKey: ctx.apiKey, ip: ctx.ip, tool: name, priceLamports: PRICE_PER_CALL_LAMPORTS });
-      if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || PRICE_PER_CALL_LAMPORTS, trialCallsPerTool: TRIAL_CALLS_PER_TOOL, payTo: GATEWAY_WALLET, note: `Your ${TRIAL_CALLS_PER_TOOL} trial calls for ${name} are used. Sign in with a wallet, add credits, and reconnect with x-api-key.` }) }], isError: true };
+    const price = priceOf(name);
+    if (typeof rest[0] === "string") rest[0] = `${rest[0]} Cost: ${priceLabel(name)}.${price ? " Calls that return an error are not charged." : ""}`;
+    return rawTool(name, ...rest, async (args: any, extra: any) => {
+      if (!price) return handler(args, extra);
+      let admission;
+      try {
+        admission = await admitCall({ tool: name, ip: ctx.ip, apiKey: ctx.apiKey, hasPayment: Boolean(extra?._meta?.["x402/payment"]) });
+      } catch (error) {
+        console.error("free call metering error:", error);
+        return { content: [{ type: "text", text: "Usage metering is temporarily unavailable. Retry shortly." }], isError: true };
+      }
+      if (admission.via === "x402") {
+        try {
+          return await (await x402.wrapMcpTool(name, price, handler))(args, extra);
+        } catch (error) {
+          console.error("x402 payment setup failed:", error);
+          return { content: [{ type: "text", text: "Payments are temporarily unavailable. Retry shortly." }], isError: true };
+        }
       }
       let result: any;
-      try { result = await handler(...args); }
-      catch (e) { await refundTrialOrCredit(m); throw e; }
-      if (result && result.isError) await refundTrialOrCredit(m);
-      const trialCallsRemaining = m.via === "trial" ? m.trialCallsRemaining : 0;
-      return { ...result, _meta: { ...(result?._meta || {}), trialCallsRemaining } };
+      try { result = await handler(args, extra); }
+      catch (e) { if (admission.via === "free_call") await refundFreeCall(ctx.ip, name); throw e; }
+      if (admission.via !== "free_call") return result;
+      if (result?.isError) await refundFreeCall(ctx.ip, name);
+      return { ...result, _meta: { ...(result?._meta || {}), freeCallsRemaining: admission.remaining } };
     });
   };
 
   const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe('Cluster to query: "mainnet-beta" (real funds; the default) or "devnet" (test network). Optional.');
   const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
-  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose SOL balance to read: base58 public key, 32-44 characters (required)."), network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
     stats.solanaRpcCalls++;
@@ -1125,7 +717,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {\"network\":\"mainnet-beta\"}", {
+  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Example: {\"network\":\"mainnet-beta\"}", {
     network: NETWORK
   }, READ_ONLY, async ({ network }) => {
     stats.solanaRpcCalls++;
@@ -1135,7 +727,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose token accounts to list: base58 public key, 32-44 characters (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
@@ -1159,7 +751,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
+  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
     wallet: z.string().describe("Wallet whose transaction history to list: base58 public key, 32-44 characters (required)."),
     limit: z.number().int().min(1).max(1000).optional().default(10).describe("How many signatures to return, newest first: integer 1-1000 (optional, default 10)."),
     network: NETWORK
@@ -1172,7 +764,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("simulate_solana_transaction", "Dry-run a transaction against live chain state without sending it. Returns success, error, program logs and compute units used. Use it to test a transaction; for a SAFE or UNSAFE verdict with fix hints use validate_transaction. Nothing is broadcast. Cost: 1 credit (0.0022 SOL) after 3 free calls; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+  mcpServer.tool("simulate_solana_transaction", "Dry-run a transaction against live chain state without sending it. Returns success, error, program logs and compute units used. Use it to test a transaction; for a SAFE or UNSAFE verdict with fix hints use validate_transaction. Nothing is broadcast. Example: {\"transaction\":\"<base64 transaction>\"}", {
     transaction: z.string().describe("The transaction to test: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ transaction, network }) => {
@@ -1203,7 +795,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   // ---- Added: remaining gateway endpoints exposed as MCP tools ----
 
-  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
     wallet: z.string().describe("Owner of the token account: a regular wallet address (base58 public key, 32-44 characters), not a program-derived address (required)."),
     mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v is USDC."),
     network: NETWORK
@@ -1218,7 +810,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("token_profile", "Live safety profile of an SPL token: decimals, supply, freeze and mint authority status, a risk level (HIGH when a freeze authority exists, so holders can be frozen), and the top 10 holders. Use it before buying or recommending an unfamiliar token. Cached 60 seconds. Cost: 1 credit (0.0022 SOL) after 3 free calls; calls that return an error are refunded. Example: {\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+  mcpServer.tool("token_profile", "Live safety profile of an SPL token: decimals, supply, freeze and mint authority status, a risk level (HIGH when a freeze authority exists, so holders can be frozen), and the top 10 holders. Use it before buying or recommending an unfamiliar token. Cached 60 seconds. Example: {\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
     mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Pass the mint, not a ticker symbol."),
     network: NETWORK
   }, READ_ONLY, async ({ mint, network }: any) => {
@@ -1291,7 +883,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     }
   });
 
-  mcpServer.tool("optimal_fee", "Live priority-fee recommendation for current congestion: low, medium and high tiers in micro-lamports per compute unit with estimated confirmation times, plus min, max and average. Use it just before sending a transaction so it lands without overpaying. Cost: 1 credit (0.0022 SOL) after 3 free calls; calls that return an error are refunded. Example: {\"network\":\"mainnet-beta\"}", {
+  mcpServer.tool("optimal_fee", "Live priority-fee recommendation for current congestion: low, medium and high tiers in micro-lamports per compute unit with estimated confirmation times, plus min, max and average. Use it just before sending a transaction so it lands without overpaying. Example: {\"network\":\"mainnet-beta\"}", {
     network: NETWORK
   }, READ_ONLY, async ({ network }: any) => {
     stats.solanaRpcCalls++;
@@ -1325,7 +917,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("decode_tx", "Explain a confirmed transaction in plain language: category (swap, SOL transfer, meme-coin trade), success or failure, fee, slot, time, each account's SOL balance change, and raw logs. Use it to check what a transaction actually did. Cost: 1 credit (0.0022 SOL) after 3 free calls; calls that return an error are refunded. Example: {\"signature\":\"<transaction signature>\"}", {
+  mcpServer.tool("decode_tx", "Explain a confirmed transaction in plain language: category (swap, SOL transfer, meme-coin trade), success or failure, fee, slot, time, each account's SOL balance change, and raw logs. Use it to check what a transaction actually did. Example: {\"signature\":\"<transaction signature>\"}", {
     signature: z.string().describe("Signature of a confirmed transaction: base58 string, about 88 characters; get one from get_recent_transactions (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ signature, network }: any) => {
@@ -1363,7 +955,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("validate_transaction", "Pre-send safety check: decodes the transaction, checks the fee payer can pay fees, tests it against live chain state without sending, and returns a SAFE or UNSAFE verdict with issues (each with a code and fix hint), logs and compute units. Use it as the last step before signing an agent-built transaction. Cost: 1 credit (0.0022 SOL) after 3 free calls; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+  mcpServer.tool("validate_transaction", "Pre-send safety check: decodes the transaction, checks the fee payer can pay fees, tests it against live chain state without sending, and returns a SAFE or UNSAFE verdict with issues (each with a code and fix hint), logs and compute units. Use it as the last step before signing an agent-built transaction. Example: {\"transaction\":\"<base64 transaction>\"}", {
     transaction: z.string().describe("The transaction to check: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ transaction, network }: any) => {
@@ -1498,43 +1090,45 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   app.delete("/mcp", (req, res) => res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null }));
 
   app.get("/api/debug/ip", noCache, (req, res) => res.json({ ip: req.ip, xff: req.headers["x-forwarded-for"] || null, trustProxy: app.get("trust proxy") }));
+  // Tool summaries for the manifest; prices come from pricing.ts.
+  const MANIFEST_TOOLS: [string, string][] = [
+    ["get_solana_balance", "Read a wallet's SOL balance."],
+    ["get_solana_blockhash", "Get the latest finalized blockhash for building a transaction."],
+    ["get_token_accounts", "List every SPL token account a wallet owns, with mint and balance."],
+    ["get_recent_transactions", "List a wallet's recent transaction signatures, newest first."],
+    ["simulate_solana_transaction", "Dry-run a base64 transaction against live chain state without sending it."],
+    ["find_ata", "Derive a wallet's Associated Token Account for a mint and check if it exists."],
+    ["token_profile", "Token profile with decimals, supply, freeze and mint authorities, and top holders. Freeze-authority risk is a heuristic, not honeypot detection."],
+    ["optimal_fee", "Live low, medium and high priority-fee tiers for current congestion."],
+    ["decode_tx", "Explain a confirmed transaction: category, status, fee, balance changes, logs."],
+    ["validate_transaction", "Pre-send check: SAFE or UNSAFE verdict with fix hints."],
+    ["get_wallet_snapshot", "Combine SOL and token holdings with recent activity in one wallet snapshot."],
+    ["summarize_wallet_activity", "Summarize recent success and failure counts for a wallet."],
+    ["resolve_token_symbol", "Find Solana token candidates for a ticker, ranked by reported liquidity."],
+    ["get_token_market_snapshot", "Return DEX price, liquidity, 24-hour volume, and pair link for a mint."],
+    ["analyze_token_concentration", "Calculate top-ten token-account share of supply and report mint authorities."],
+    ["compare_tokens", "Compare two mints across supply, authorities, and top-account concentration."],
+    ["inspect_address", "Classify an account using its owner program, executable flag, and parsed token data."],
+    ["explain_transaction_effects", "Join pre/post RPC data into SOL and token balance changes, fee, status, and program labels."],
+    ["analyze_wallet_portfolio", "Estimate priced SOL and token holdings in USD and report missing market prices."],
+    ["estimate_transaction_cost", "Estimate base and configured priority fees, then simulate without broadcasting."]
+  ];
+  const pricingSummary = `Basic reads are free (rate-limited). Every other tool has ${FREE_CALLS_PER_TOOL} free calls per caller, then costs $0.001-$0.01 USDC per call, paid per request with x402 on Solana mainnet. Calls that return an error are not charged.`;
+
   app.get("/.well-known/mcp.json", noCache, (req, res) => {
     stats.totalRequests++;
     res.json({
-      "name": "Solana Pulse AI Agent Gateway",
-      "version": "1.0.0",
-      "description": "Live Solana data and agent-ready analysis through 20 Model Context Protocol tools for mainnet-beta and devnet.",
-      "capabilities": {
-        "tools": {
-          "description": "Twenty read-only tools combine live Solana account data, transaction effects, token market context, portfolio estimates, and transaction cost analysis. Metered calls cost 0.0022 SOL per credit."
-        }
-      },
-      "instructions": "Connect using POST /mcp (Streamable HTTP) or /mcp/sse (SSE). Each tool can be tried 3 times free per caller, shared between HTTP and MCP. No wallet sign-in is needed for free calls. Afterward, each successful data call costs one 0.0022 SOL credit and requires an x-api-key. Token authority and concentration fields are screening signals, not complete safety checks. Market values are estimates; transaction simulation is not a guarantee of later execution.",
-      "mcp_sse_endpoint": "/mcp/sse",
-      "tools": [
-        { "name": "get_solana_balance", "description": "Read a wallet's SOL balance. 3 free calls, then 1 credit." },
-        { "name": "get_solana_blockhash", "description": "Get the latest finalized blockhash for building a transaction. 3 free calls, then 1 credit." },
-        { "name": "get_token_accounts", "description": "List every SPL token account a wallet owns, with mint and balance. 3 free calls, then 1 credit." },
-        { "name": "get_recent_transactions", "description": "List a wallet's recent transaction signatures, newest first. 3 free calls, then 1 credit." },
-        { "name": "simulate_solana_transaction", "description": "Dry-run a base64 transaction against live chain state without sending it. 3 free calls, then 1 credit." },
-        { "name": "find_ata", "description": "Derive a wallet's Associated Token Account for a mint and check if it exists. 3 free calls, then 1 credit." },
-        { "name": "token_profile", "description": "Token profile with decimals, supply, freeze and mint authorities, and top holders. Freeze-authority risk is a heuristic, not honeypot detection. 3 free calls, then 1 credit." },
-        { "name": "optimal_fee", "description": "Live low, medium and high priority-fee tiers for current congestion. 3 free calls, then 1 credit." },
-        { "name": "decode_tx", "description": "Explain a confirmed transaction: category, status, fee, balance changes, logs. 3 free calls, then 1 credit." },
-        { "name": "validate_transaction", "description": "Pre-send check: SAFE or UNSAFE verdict with fix hints. 3 free calls, then 1 credit." },
-        { "name": "get_wallet_snapshot", "description": "Combine SOL and token holdings with recent activity in one wallet snapshot. 3 free calls, then 1 credit." },
-        { "name": "summarize_wallet_activity", "description": "Summarize recent success and failure counts for a wallet. 3 free calls, then 1 credit." },
-        { "name": "resolve_token_symbol", "description": "Find Solana token candidates for a ticker, ranked by reported liquidity. 3 free calls, then 1 credit." },
-        { "name": "get_token_market_snapshot", "description": "Return DEX price, liquidity, 24-hour volume, and pair link for a mint. 3 free calls, then 1 credit." },
-        { "name": "analyze_token_concentration", "description": "Calculate top-ten token-account share of supply and report mint authorities. 3 free calls, then 1 credit." },
-        { "name": "compare_tokens", "description": "Compare two mints across supply, authorities, and top-account concentration. 3 free calls, then 1 credit." },
-        { "name": "inspect_address", "description": "Classify an account using its owner program, executable flag, and parsed token data. 3 free calls, then 1 credit." },
-        { "name": "explain_transaction_effects", "description": "Join pre/post RPC data into SOL and token balance changes, fee, status, and program labels. 3 free calls, then 1 credit." },
-        { "name": "analyze_wallet_portfolio", "description": "Estimate priced SOL and token holdings in USD and report missing market prices. 3 free calls, then 1 credit." },
-        { "name": "estimate_transaction_cost", "description": "Estimate base and configured priority fees, then simulate without broadcasting. 3 free calls, then 1 credit." }
-      ]
+      name: "Solana Pulse AI Agent Gateway",
+      version: "1.0.0",
+      description: "Live Solana data and agent-ready analysis through 20 Model Context Protocol tools for mainnet-beta and devnet.",
+      capabilities: { tools: { description: `Twenty read-only tools combine live Solana account data, transaction effects, token market context, portfolio estimates, and transaction cost analysis. ${pricingSummary}` } },
+      instructions: `Connect using POST /mcp (Streamable HTTP) or /mcp/sse (SSE). ${pricingSummary} Paid calls follow the x402 v2 MCP transport: an unpaid call returns a PaymentRequired result, and the client retries with _meta["x402/payment"]. No account or API key is needed. Token authority and concentration fields are screening signals, not complete safety checks. Market values are estimates; transaction simulation is not a guarantee of later execution.`,
+      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, freeCallsPerTool: FREE_CALLS_PER_TOOL },
+      mcp_sse_endpoint: "/mcp/sse",
+      tools: MANIFEST_TOOLS.map(([name, description]) => ({ name, description: `${description} ${priceLabel(name)}.`, price: priceOf(name) })),
     });
   });
+
   // Glama connector ownership verification
   app.get("/.well-known/glama.json", (req, res) => {
     res.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", maintainers: [{ email: "timothymycompc@gmail.com" }] });
@@ -1551,10 +1145,11 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     res.send(`# Solana Pulse AI Agent Gateway\n
 Solana blockchain API and Model Context Protocol (MCP) server. Provides read-only lookups, transaction simulation, token metadata, priority-fee estimates, and transaction decoding on mainnet-beta and devnet.
 
-## Pricing
-- Each tool can be tried 3 times free per caller (counted by IP address), shared between HTTP and MCP; no wallet sign-in is needed for free calls.
-- After a tool's 3 free calls, each successful call to it costs 0.0022 SOL (one credit).
-- Requests are rate-limited to 120 per minute per IP.
+## Pricing (x402, USDC on Solana)
+- Free, rate-limited (120 requests per minute per IP): ${Object.keys(TOOL_PRICES).filter((t) => !TOOL_PRICES[t]).join(", ")}.
+- Every other tool: ${FREE_CALLS_PER_TOOL} free calls per caller (counted by IP address, shared between HTTP and MCP), then a per-call price in USDC:
+${Object.entries(TOOL_PRICES).filter(([, p]) => p).map(([t, p]) => `  - ${t}: ${p}`).join("\n")}
+- No account or API key. Pay per request with x402 v2 (scheme "exact", network ${X402_NETWORK}). Calls that return an error are not charged.
 
 ## HTTP API
 - GET /api/solana/balance?wallet=<address> — native SOL balance.
@@ -1567,17 +1162,17 @@ Solana blockchain API and Model Context Protocol (MCP) server. Provides read-onl
 - GET /api/solana/token-profile?mint=<mint> — token details, mint authorities, risk signal, and top holders.
 - GET /api/solana/optimal-fee — recent priority-fee estimates.
 - GET /api/solana/decode-tx?signature=<signature> — transaction summary and balance changes.
-- GET /api/trial/status — trial calls used per tool for this caller.
+- GET /api/trial/status — free calls used per tool for this caller, and each tool's price.
 
 ## MCP Tools (20)
 - Core tools: get_solana_balance, get_solana_blockhash, get_token_accounts, get_recent_transactions, simulate_solana_transaction, find_ata, token_profile, optimal_fee, decode_tx, and validate_transaction.
 - Intelligence tools: get_wallet_snapshot, summarize_wallet_activity, resolve_token_symbol, get_token_market_snapshot, analyze_token_concentration, compare_tokens, inspect_address, explain_transaction_effects, analyze_wallet_portfolio, and estimate_transaction_cost.
-- Each tool has 3 free calls, then costs one credit per successful call.
+- Prices are listed under Pricing and in each tool description.
 
-## Authentication
-- Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message
-- Send the returned key in the x-api-key header
-- Add credits by sending SOL to the address from GET /api/claim/deposit-info
+## Paying with x402
+- HTTP: an unpaid call to a paid route returns 402 with a PAYMENT-REQUIRED header (base64 PaymentRequired). Retry with a PAYMENT-SIGNATURE header; the receipt comes back in PAYMENT-RESPONSE.
+- MCP: an unpaid call returns a tool result with isError and the PaymentRequired object. Retry the call with the payment in _meta["x402/payment"]; the receipt comes back in _meta["x402/payment-response"].
+- Client libraries such as @x402/fetch and @x402/mcp handle this automatically.
 
 ## Entry Points
 - Streamable HTTP endpoint: POST /mcp

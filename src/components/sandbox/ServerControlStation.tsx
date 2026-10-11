@@ -72,7 +72,7 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
         </div>
       </div>
 
-      {batchStats && <p className="text-xs text-slate-400">{passRate}% passed · {batchStats.failed} failed. These live checks use free calls; they do not send an API key or spend wallet credits.</p>}
+      {batchStats && <p className="text-xs text-slate-400">{passRate}% passed · {batchStats.failed} failed. These live checks use free calls; they never send a payment.</p>}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

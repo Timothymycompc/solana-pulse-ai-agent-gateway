@@ -1,5 +1,4 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import type { UserCtx } from "./userDefaults";
 
 const DEFAULT_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -99,10 +98,7 @@ async function findSignature(conn: Connection, address: string, atSec?: number) 
   return null;
 }
 
-export function makeAutofill(
-  getConnection: (network: string) => Connection,
-  getUser?: (apiKey: string) => Promise<UserCtx | null>
-) {
+export function makeAutofill(getConnection: (network: string) => Connection) {
   return async (req: any, res: any, next: any) => {
     try {
       const name = String(req.path || "").split("/").filter(Boolean).pop() || "";
@@ -116,22 +112,11 @@ export function makeAutofill(
       };
       const fail = (code: number, error: string, extra: any = {}) => res.status(code).json({ error, accepted: ACCEPTED, ...extra });
 
-      const apiKey = (req.headers["x-api-key"] as string | undefined) || req.headers["authorization"]?.toString().replace(/^Bearer\s+/i, "");
-      let user: UserCtx | null = null;
-      if (apiKey && getUser) {
-        try { user = await getUser(apiKey); } catch (e: any) { console.error("defaults lookup failed:", e?.message); }
-      }
-      const ud: Record<string, string> = user?.defaults || {};
-
       const resolved: Record<string, any> = {};
       const filled: Record<string, string> = {};
       const ip = String(req.ip || "unknown");
 
-      if (!q.network && ud.network) {
-        filled.network = ud.network;
-        resolved.network = { value: ud.network, source: "your saved default" };
-      }
-      const network = String(q.network || ud.network || "mainnet-beta");
+      const network = String(q.network || "mainnet-beta");
       const conn = getConnection(network);
 
       const walletHint = pick("wallet", "address", "owner");
@@ -139,26 +124,22 @@ export function makeAutofill(
         return fail(400, `"${walletHint}" is not a valid Solana address. Name lookups (.sol) are not supported yet.`);
       }
       if (needs.includes("wallet")) {
-        const dw = ud.wallet || user?.address || DEFAULT_WALLET;
-        const dwSrc = ud.wallet ? "your saved default" : user ? "your connected wallet" : "default example wallet";
-        filled.wallet = walletHint || dw;
+        filled.wallet = walletHint || DEFAULT_WALLET;
         filled.address = filled.wallet;
-        if (!walletHint) resolved.wallet = { value: dw, source: dwSrc };
+        if (!walletHint) resolved.wallet = { value: DEFAULT_WALLET, source: "default example wallet" };
       }
 
       if (needs.includes("mint")) {
         const explicit = pick("mint", "token", "symbol", "ticker", "name");
-        const mh = explicit || ud.token || null;
-        const saved = !explicit && !!ud.token;
+        const mh = explicit;
         if (mh && isAddress(mh)) {
           filled.mint = mh;
-          if (saved) resolved.mint = { value: mh, source: "your saved default" };
         } else if (mh) {
           if (!allow(ip)) return fail(429, "Too many lookups. Slow down or pass the exact mint.");
           const t = await lookupTicker(mh);
           if (!t) return fail(404, `No Solana token found for "${mh}". Pass the exact mint address.`);
           filled.mint = t.mint;
-          resolved.mint = { input: mh, value: t.mint, source: (saved ? "your saved default, " : "") + t.source, alternatives: t.alternatives, warning: t.warning };
+          resolved.mint = { input: mh, value: t.mint, source: t.source, alternatives: t.alternatives, warning: t.warning };
         } else {
           filled.mint = USDC;
           resolved.mint = { value: USDC, source: "default example token (USDC)" };
@@ -173,18 +154,11 @@ export function makeAutofill(
         if (sh) {
           if (!isSignature(sh)) return fail(400, `"${sh}" is not a valid transaction signature.`);
           filled.signature = sh;
-        } else if (!walletHint && !atRaw && ud.signature) {
-          filled.signature = ud.signature;
-          resolved.signature = { value: ud.signature, source: "your saved default" };
         } else {
           if (!allow(ip)) return fail(429, "Too many lookups. Slow down or pass a signature.");
           const sources: { addr: string; label: string }[] = [];
           if (walletHint) sources.push({ addr: walletHint, label: "this wallet" });
-          else {
-            if (ud.wallet) sources.push({ addr: ud.wallet, label: "your saved default wallet" });
-            if (user) sources.push({ addr: user.address, label: "your connected wallet" });
-            sources.push({ addr: JUPITER_PROGRAM, label: "Jupiter (live example)" });
-          }
+          else sources.push({ addr: JUPITER_PROGRAM, label: "Jupiter (live example)" });
           let found: { signature: string; blockTime?: number | null } | null = null;
           let from = sources[0];
           for (const s of sources) {

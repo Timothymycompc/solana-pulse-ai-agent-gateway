@@ -1,6 +1,15 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { ApiEndpoint } from '../../types';
+import { HTTP_ROUTE_TOOLS, priceOf } from '../../../pricing';
+
+// Price badge for a playground entry; account and status routes are free.
+const priceTag = (ep: ApiEndpoint) => {
+  const tool = ep.id.startsWith('mcp-') ? ep.id.slice(4) : HTTP_ROUTE_TOOLS[ep.path];
+  if (!tool) return 'Free';
+  const price = priceOf(tool);
+  return `${ep.id.startsWith('mcp-') ? 'MCP · ' : ''}${price ? `3 free, then ${price}` : 'Free'}`;
+};
 
 interface EndpointBrowserProps {
   filteredEndpoints: ApiEndpoint[];
@@ -54,7 +63,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                     : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
                 }`}
               >
-                {{ all: 'All', safety: 'Transactions', intel: 'Tokens', free: 'Core data', keys: 'Wallet' }[suite]}
+                {{ all: 'All', safety: 'Transactions', intel: 'Tokens', free: 'Core data', keys: 'Pricing' }[suite]}
               </button>
             ))}
           </div>
@@ -106,8 +115,8 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                     {ep.name}
                   </span>
                 </div>
-                <span className={`text-[10px] font-medium ${ep.priceLamports ? 'text-amber-300' : 'text-emerald-300'}`}>
-                  {ep.id.startsWith('mcp-') ? 'MCP · 3 free, then 1 credit' : ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · 3 free calls' : '3 free, then 1 credit') : 'No call credit'}
+                <span className={`text-[10px] font-medium ${priceTag(ep) === 'Free' ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  {priceTag(ep)}
                 </span>
               </div>
 

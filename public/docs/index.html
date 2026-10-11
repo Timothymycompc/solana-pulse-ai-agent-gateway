@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="How the Solana Pulse gateway works, which call to use, and how to get an API key.">
+<meta name="description" content="How the Solana Pulse gateway works, which call to use, and how to pay per call with x402.">
 <title>Solana Pulse Docs</title>
 <style>
 /* Layout: one reading column on the site's dark navy. Order: free vs paid paths, which call to use, keys, agents. The restaurant walkthrough and glossary live at /docs/calls/. */
@@ -88,7 +88,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <a href="/docs/calls/">What is a call?</a>
       <a href="#paths">Free and paid</a>
       <a href="#calls">Which call to use</a>
-      <a href="#key">Get a key</a>
+      <a href="#key">Pay with x402</a>
       <a href="#agents">For AI agents</a>
     </nav>
     <span class="eyebrow">Docs</span>
@@ -98,27 +98,27 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
   </header>
 
   <section id="paths" aria-labelledby="paths-h">
-    <h2 id="paths-h">Try calls, then pay per call</h2>
-    <p>Each visitor gets <strong>3 free calls to every tool</strong>, shared between HTTP and MCP. No wallet sign-in is needed to try the service. After a tool's 3 free calls, each successful call to it costs <strong>0.0022 SOL</strong> (one credit); sign in with a wallet to add credits.</p>
+    <h2 id="paths-h">Free reads, then pay per call</h2>
+    <p>Basic reads are <strong>free</strong> (rate-limited). Every other tool has <strong>3 free calls</strong>, shared between HTTP and MCP, then costs <strong>$0.001 to $0.01 in USDC</strong> per successful call. You pay with each request through the open x402 protocol: no account, no API key, no prepaid balance.</p>
     <div class="lanes">
       <div class="lane free">
-        <h3>3 free calls per tool <span class="tag free">TRY</span></h3>
-        <p class="muted">Use the live data calls to test the API and MCP tools before paying.</p>
+        <h3>Free and free calls <span class="tag free">TRY</span></h3>
+        <p class="muted">Basic reads are always free. Each paid tool can be tried 3 times.</p>
         <ol>
-          <li><b>You send a request</b><small>3 free calls per tool, no sign-in needed.</small></li>
+          <li><b>You send a request</b><small>No sign-in and no key.</small></li>
           <li><b>The gateway checks and prepares it</b><small>Fills in supported defaults and validates inputs.</small></li>
           <li><b>Live data is fetched from Solana</b><small>Read live from the chain, not from a stale copy.</small></li>
           <li><b>You get a clean answer</b><small>Structured JSON.</small></li>
         </ol>
       </div>
       <div class="lane paid">
-        <h3>After 3 free calls <span class="tag paid">0.0022 SOL / call</span></h3>
-        <p class="muted">Every tool, once its 3 free calls are used.</p>
+        <h3>Paid calls <span class="tag paid">$0.001&ndash;$0.01 USDC</span></h3>
+        <p class="muted">Once a paid tool's 3 free calls are used.</p>
         <ol>
-          <li><b>You send a request with your key</b><small>Header <code>x-api-key</code>.</small></li>
-          <li><b>The gateway checks and prepares it</b><small>Confirms your key has a credit and fills in anything you left blank.</small></li>
-          <li><b>Live data is fetched and analyzed</b><small>The gateway does the interpretation for you.</small></li>
-          <li><b>You get an answer and one credit is used</b><small>Headers show what you have left.</small></li>
+          <li><b>The gateway asks for payment</b><small>HTTP 402 with a <code>PAYMENT-REQUIRED</code> header naming the exact USDC amount.</small></li>
+          <li><b>Your client pays and retries</b><small>An x402 client signs the USDC transfer and resends the call with a <code>PAYMENT-SIGNATURE</code> header.</small></li>
+          <li><b>The tool runs</b><small>The transfer settles on Solana only if the call succeeds; network fees are covered.</small></li>
+          <li><b>You get the answer and a receipt</b><small>The <code>PAYMENT-RESPONSE</code> header holds the transaction signature.</small></li>
         </ol>
       </div>
     </div>
@@ -131,17 +131,17 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <table>
         <thead><tr><th>You want to know</th><th>Use</th><th>Cost</th><th>You send</th></tr></thead>
         <tbody>
-          <tr class="group"><td colspan="4">All data calls: 3 free calls per tool, then one credit (0.0022 SOL) per successful call</td></tr>
-          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>wallet</code></td></tr>
-          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
-          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
-          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>transaction</code> (base64)</td></tr>
-          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>mint</code></td></tr>
-          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td>nothing required</td></tr>
-          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">3 free, then 1 credit</span></td><td><code>signature</code></td></tr>
+          <tr class="group"><td colspan="4">Basic reads are free; other calls have 3 free calls, then a USDC price per successful call</td></tr>
+          <tr><td class="q">How much SOL does this wallet hold?</td><td class="call"><b>SOL balance</b><code>GET /api/solana/balance</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">Which tokens does this wallet hold?</td><td class="call"><b>Token holdings</b><code>GET /api/solana/token-accounts</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code></td></tr>
+          <tr><td class="q">What has this wallet done lately?</td><td class="call"><b>Recent transactions</b><code>GET /api/solana/transactions</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, optional <code>limit</code> (up to 50)</td></tr>
+          <tr><td class="q">What blockhash do I need to build a transaction?</td><td class="call"><b>Latest blockhash</b><code>GET /api/solana/blockhash</code></td><td><span class="tag free">Free</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What is this wallet's token account for a token, and does it exist yet?</td><td class="call"><b>Token account address</b><code>GET /api/solana/find-ata</code></td><td><span class="tag free">Free</span></td><td><code>wallet</code>, <code>mint</code></td></tr>
+          <tr><td class="q">What will this transaction do if I send it?</td><td class="call"><b>Transaction preview</b><code>POST /api/solana/simulate</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">Is this transaction likely to fail, and how do I fix it?</td><td class="call"><b>Pre-flight safety check</b><code>POST /api/solana/validate-and-simulate</code></td><td><span class="tag paid">3 free, then $0.01</span></td><td><code>transaction</code> (base64)</td></tr>
+          <tr><td class="q">What are this token's mint and freeze authorities?</td><td class="call"><b>Token profile</b><code>GET /api/solana/token-profile</code></td><td><span class="tag paid">3 free, then $0.005</span></td><td><code>mint</code></td></tr>
+          <tr><td class="q">What priority fee should I pay right now?</td><td class="call"><b>Priority fee advice</b><code>GET /api/solana/optimal-fee</code></td><td><span class="tag paid">3 free, then $0.001</span></td><td>nothing required</td></tr>
+          <tr><td class="q">What actually happened in this transaction?</td><td class="call"><b>Explain transaction</b><code>GET /api/solana/decode-tx</code></td><td><span class="tag paid">3 free, then $0.005</span></td><td><code>signature</code></td></tr>
         </tbody>
       </table>
     </div>
@@ -155,26 +155,26 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
         <thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
         <tbody>
           <tr><td><code>400</code></td><td>A required input is missing or invalid.</td><td>Check the inputs in the table above.</td></tr>
-          <tr><td><code>402</code></td><td>Payment required: no credit available.</td><td>Add credits to your wallet.</td></tr>
+          <tr><td><code>402</code></td><td>Payment required: this tool's free calls are used.</td><td>Pay with an x402 client; the <code>PAYMENT-REQUIRED</code> header has the details.</td></tr>
           <tr><td><code>404</code></td><td>The token or transaction was not found.</td><td>Check the address or signature, and that the transaction is confirmed.</td></tr>
           <tr><td><code>422</code></td><td>The address exists but is not a token.</td><td>Use a token mint address.</td></tr>
-          <tr><td><code>503</code></td><td>Billing is briefly unavailable.</td><td>Try again in a moment.</td></tr>
+          <tr><td><code>503</code></td><td>Usage metering or payments are briefly unavailable.</td><td>Try again in a moment.</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
   <section id="key" aria-labelledby="key-h">
-    <h2 id="key-h">Get a key and add credits</h2>
-    <p>You can try each data call 3 times without signing in. After that, sign in with a Solana wallet to add credits. There is no signup form and no email.</p>
+    <h2 id="key-h">Pay per call with x402</h2>
+    <p>There is no signup, no email and no API key. Paid calls are paid one at a time in USDC on Solana with the x402 protocol, so any agent or app with a Solana wallet can pay automatically.</p>
     <div class="steps">
-      <div><span class="n">Step 1</span><h3>Sign in with your wallet</h3><p>Request a short message, sign it with your wallet, and send the signature back. Signing in is free and sends nothing to the network. You get an API key.</p></div>
-      <div><span class="n">Step 2</span><h3>Add credits</h3><p>Send SOL from the same wallet to the gateway address. Credits are added automatically when the deposit is detected, at 0.0022 SOL per paid call.</p></div>
-      <div><span class="n">Step 3</span><h3>Make a call</h3><p>Send your key in the <code>x-api-key</code> header. Responses show your remaining credits in the <code>x-credits-remaining</code> header.</p></div>
+      <div><span class="n">Step 1</span><h3>Get a Solana wallet with USDC</h3><p>A few cents of USDC covers many calls. You do not need SOL for fees; the payment facilitator covers network fees.</p></div>
+      <div><span class="n">Step 2</span><h3>Use an x402 client</h3><p>Wrap your HTTP client with <code>@x402/fetch</code>, or your MCP client with <code>@x402/mcp</code>. It answers the 402 by signing the exact USDC transfer.</p></div>
+      <div><span class="n">Step 3</span><h3>Call as usual</h3><p>Paid calls settle only when they succeed. Each response carries a <code>PAYMENT-RESPONSE</code> receipt with the Solana transaction signature.</p></div>
     </div>
-    <pre id="curl-example">curl "https://YOUR-GATEWAY/api/solana/token-profile?mint=&lt;token_mint&gt;" \
-  -H "x-api-key: &lt;your_key&gt;"</pre>
-    <p class="muted">Keys cannot be recovered, because only a hash is stored. Signing in again issues a new key and retires the old one. The exact commands and the deposit address are on the Pricing and Top-Up tab.</p>
+    <pre id="curl-example">curl -i "https://YOUR-GATEWAY/api/solana/token-profile?mint=&lt;token_mint&gt;"
+# After 3 free calls: HTTP/1.1 402 Payment Required + PAYMENT-REQUIRED header</pre>
+    <p class="muted">Full price list and copy-ready client code are on the Pricing tab.</p>
     <a class="cta" href="/">Open the playground</a>
   </section>
 

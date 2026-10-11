@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="What an API call is, what one looks like, and how the 3 free calls per tool work on the Solana Pulse gateway.">
+<meta name="description" content="What an API call is, what one looks like, and what calls cost on the Solana Pulse gateway.">
 <title>What Is a Call</title>
 <style>
 /* Layout: one reading column on the site's dark navy. Order: plain answer, real example, free calls, restaurant walkthrough, glossary. */
@@ -90,7 +90,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <a href="/" class="brand">← Solana Pulse Gateway</a>
       <a href="/docs/">Docs</a>
       <a href="#example">An example</a>
-      <a href="#free">Free calls</a>
+      <a href="#free">What calls cost</a>
       <a href="#how">How a call travels</a>
       <a href="#glossary">Glossary</a>
     </nav>
@@ -116,10 +116,10 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
   </section>
 
   <section id="free" aria-labelledby="free-h">
-    <h2 id="free-h">3 free calls for each tool</h2>
-    <p>Every tool can be called <strong>3 times free</strong>, with no wallet and no sign-up. The count is kept per tool, so trying the balance tool does not use up your free calls for the token profile. A website call and its matching MCP tool share the same 3.</p>
-    <p>After a tool's 3 free calls, each successful call to it costs <strong>0.0022 SOL</strong> (one credit). Calls that end in an error are refunded, so they never use up a free call or a credit.</p>
-    <a class="cta" href="/docs/#key">How to add credits</a>
+    <h2 id="free-h">What calls cost</h2>
+    <p>Every paid tool can be called <strong>3 times free</strong>, with no wallet and no sign-up. The count is kept per tool, so trying one tool does not use up the free calls of another. A website call and its matching MCP tool share the same 3.</p>
+    <p>Basic reads, like this balance call, are always free. For other tools, after the 3 free calls each successful call costs <strong>$0.001 to $0.01 in USDC</strong>, paid with the request itself through x402. Calls that end in an error are never charged and do not use up a free call.</p>
+    <a class="cta" href="/docs/#key">How paying works</a>
   </section>
 
   <section id="how" aria-labelledby="how-h">
@@ -143,8 +143,8 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       </div>
       <div class="arrow"><span>checks the order</span><span>checks the request</span></div>
       <div class="step">
-        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Visitors can try each dish 3 times before opening a prepaid tab.</small></div>
-        <div class="cell gate"><span class="who">Free calls and credits</span><b>Counts free calls per tool, then checks your key and credits.</b><small>Decides whether the call goes ahead.</small></div>
+        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Some dishes are free; others can be tasted 3 times, then are paid for at the counter.</small></div>
+        <div class="cell gate"><span class="who">Free calls and payment</span><b>Counts free calls per tool, then checks the x402 payment.</b><small>Decides whether the call goes ahead.</small></div>
       </div>
       <div class="arrow"><span>hands the ticket to</span><span>runs the code</span></div>
       <div class="step">
@@ -155,7 +155,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
       <div class="fork">
         <div class="col">
           <div class="cell rest"><span class="who">Pantry</span><b>Ingredients kept on hand</b><small>Things the kitchen stores for itself.</small></div>
-          <div class="cell gate"><span class="who">Database</span><b>Keys and credits</b><small>Your credit balance and call history.</small></div>
+          <div class="cell gate"><span class="who">Database</span><b>Free-call counts</b><small>How many free calls each tool has used.</small></div>
         </div>
         <div class="col">
           <div class="cell rest"><span class="who">Outside supplier</span><b>Fresh produce, delivered daily</b><small>What the kitchen cannot grow itself.</small></div>
@@ -180,8 +180,7 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--mute
           <tr><td><b>Endpoint</b></td><td>One dish</td><td>A single address, like <code>/api/solana/balance</code></td></tr>
           <tr><td><b>Request</b></td><td>The order</td><td>What you send, such as a wallet address</td></tr>
           <tr><td><b>Response</b></td><td>The plate</td><td>What comes back, such as that wallet's balance</td></tr>
-          <tr><td><b>API key</b></td><td>A numbered tab</td><td>A secret that says who is ordering</td></tr>
-          <tr><td><b>Credits</b></td><td>Money on the tab</td><td>Prepaid balance that pays for paid calls</td></tr>
+          <tr><td><b>x402</b></td><td>Paying at the counter for each dish</td><td>A payment sent with each paid call, in USDC</td></tr>
           <tr><td><b>MCP server</b></td><td>A menu written for robots</td><td>Lets AI tools find and use the calls directly</td></tr>
         </tbody>
       </table>

@@ -14,7 +14,6 @@ const mcpToolEndpoint = (
   path: '/mcp',
   summary,
   description: `${description} This is an MCP tools/call request sent to /mcp. Edit the JSON arguments before running.`,
-  priceLamports: 2200000,
   category: 'MCP Tool',
   isLive: true,
   readOnly: true,
@@ -33,7 +32,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/validate-and-simulate',
     summary: 'Checks a transaction for common mistakes before you send it and returns a clear Safe or Unsafe verdict with a fix hint.',
     description: 'Runs your transaction against the live Solana network without sending it or spending anything, flags common mistakes, and returns a Safe or Unsafe verdict with a hint on how to fix it. Built for agents that should never send a transaction blind.',
-    priceLamports: 2200000,
     category: 'Pre-Flight',
     isLive: true,
     requestBodySchema: {
@@ -74,7 +72,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/simulate',
     summary: 'Shows what a transaction would do on the live network, without sending it.',
     description: 'A read-only test run of your transaction against the current state of the live chain. Nothing is sent and nothing is spent. Returns the network own result, including logs, compute used, and the error if it would fail.',
-    priceLamports: 2200000,
     category: 'Simulation',
     isLive: true,
     requestBodySchema: {
@@ -103,7 +100,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/decode-tx',
     summary: 'Turns a transaction signature into plain English: what happened and who paid what.',
     description: 'Fetches a real transaction from the chain and translates its logs and instructions into a readable summary. Give a signature, or just a wallet to explain its latest transaction, or add a time to explain the one closest to then.',
-    priceLamports: 2200000,
     category: 'Translator',
     isLive: true,
     queryParams: [
@@ -137,7 +133,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/optimal-fee',
     summary: 'Recommends a priority fee tier based on current network conditions.',
     description: 'Reads recent fees paid on the live network and recommends low, medium and high priority fee levels so your transaction lands without overpaying.',
-    priceLamports: 2200000,
     category: 'Pre-Flight',
     isLive: true,
     queryParams: [
@@ -165,7 +160,6 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/solana/token-profile',
     summary: 'On-chain mint details, supply, authorities, and top holders for a token.',
     description: 'Reports mint decimals, supply, mint and freeze authorities, and top holders. The freeze-authority risk field is a heuristic; this endpoint does not detect honeypots or guarantee trading safety.',
-    priceLamports: 2200000,
     category: 'Simplifier',
     isLive: true,
     queryParams: [
@@ -210,8 +204,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/balance',
     summary: 'Live SOL balance of any wallet.',
-    description: 'Returns the current SOL balance of a wallet in lamports and SOL, straight from the network. Each tool has 3 free calls, then successful calls cost one credit.',
-    priceLamports: 2200000,
+    description: 'Returns the current SOL balance of a wallet in lamports and SOL, straight from the network.',
     category: 'Core Solana',
     isLive: true,
     queryParams: [
@@ -234,8 +227,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/blockhash',
     summary: 'The newest finalized blockhash and how long it stays valid.',
-    description: 'Returns the latest finalized blockhash and its last valid block height, needed to build any transaction. Each tool has 3 free calls; after that, successful calls cost one credit.',
-    priceLamports: 2200000,
+    description: 'Returns the latest finalized blockhash and its last valid block height, needed to build any transaction.',
     category: 'Core Solana',
     isLive: true,
     queryParams: [
@@ -257,8 +249,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/token-accounts',
     summary: 'Every token a wallet holds, with amounts.',
-    description: 'Lists token accounts owned by a wallet with mint, balance, and decimals, read live from the chain. Each tool has 3 free calls; after that, successful calls cost one credit.',
-    priceLamports: 2200000,
+    description: 'Lists token accounts owned by a wallet with mint, balance, and decimals, read live from the chain.',
     category: 'SPL Tokens',
     isLive: true,
     queryParams: [
@@ -288,8 +279,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/transactions',
     summary: 'A wallet most recent transactions, newest first.',
-    description: 'Returns recent transaction signatures for a wallet, newest first. Each tool has 3 free calls; after that, successful calls cost one credit.',
-    priceLamports: 2200000,
+    description: 'Returns recent transaction signatures for a wallet, newest first.',
     category: 'History',
     isLive: true,
     queryParams: [
@@ -313,8 +303,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     method: 'GET',
     path: '/api/solana/find-ata',
     summary: 'Works out the token account address for a wallet and a token, and whether it exists yet.',
-    description: 'Derives the associated token account for a wallet and mint and checks whether it exists on chain. Each tool has 3 free calls; after that, successful calls cost one credit.',
-    priceLamports: 2200000,
+    description: 'Derives the associated token account for a wallet and mint and checks whether it exists on chain.',
     category: 'Simplifier',
     isLive: true,
     queryParams: [
@@ -339,171 +328,28 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       }
     ]
   },
-  {
-    id: 'credits-lookup',
-    name: 'Check Wallet Credits',
-    suite: 'free',
-    method: 'GET',
-    path: '/api/credits',
-    summary: 'Shows the paid credit balance and usage for a wallet address.',
-    description: 'Read-only account lookup. Returns paid credits and lifetime usage. Does not consume a data call or return an API key.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [
-      { name: 'address', type: 'string', required: true, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'A valid Solana wallet address (Base58)' }
-    ],
-    sampleResponse: {
-      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      paidCredits: 4545,
-      totalCallsMade: 12,
-      trialCallsUsedByTool: { get_solana_balance: 1 },
-      trialCallsPerTool: 3,
-      lamportsPerCall: 2200000,
-      hasWallet: true
-    },
-    tags: ['credits', 'balance']
-  },
+
   {
     id: 'trial-status',
-    name: 'Check Free Calls',
+    name: 'Check Free Calls and Prices',
     suite: 'keys',
     method: 'GET',
     path: '/api/trial/status',
-    summary: 'Shows how many of its 3 free calls each tool has used for this caller.',
-    description: 'Shows how many free calls each tool has used for this caller (counted by IP address). Each tool has 3 free calls, shared across HTTP and MCP. Does not consume a call.',
-    priceLamports: 0,
+    summary: 'Shows how many free calls each paid tool has used for this caller, and every tool price.',
+    description: 'Shows free calls used per paid tool for this caller (counted by IP address) and the USDC price of every tool. Basic reads are free; other tools have 3 free calls, then a per-call price paid with x402. Does not consume a call.',
     category: 'Account',
     isLive: true,
     queryParams: [],
-    sampleResponse: { scope: 'caller_ip', trialCallsPerTool: 3, callsUsedByTool: { get_solana_balance: 1 }, priceAfterTrialLamports: 2200000 },
-    tags: ['trial', 'usage']
+    sampleResponse: { scope: 'caller_ip', freeCallsPerTool: 3, freeCallsUsedByTool: { token_profile: 1 }, prices: { get_solana_balance: null, token_profile: '$0.005' }, network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', asset: 'USDC' },
+    tags: ['trial', 'pricing']
   },
-  {
-    id: 'claim-deposit-info',
-    name: 'Deposit Info',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/claim/deposit-info',
-    summary: 'Where to send SOL, the price per call, and deposit options.',
-    description: 'Returns the payout address, price per call in lamports and SOL, and preset deposit amounts. Credits are floor(deposit / price per call). Send from the wallet you will sign in with.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [],
-    sampleResponse: {
-      network: 'mainnet-beta',
-      payout_address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      price_per_call_lamports: 2200000,
-      price_per_call_sol: 0.0022,
-      trial_calls_per_tool: 3
-    },
-    tags: ['claim', 'deposit']
-  },
-  {
-    id: 'claim-payment-status',
-    name: 'Payment Status',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/payments/status',
-    summary: 'Checks whether a deposit from a wallet has been detected.',
-    description: 'Shows whether the webhook has seen a deposit from this wallet, how many credits it earned, and whether a key has been issued yet.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [
-      { name: 'wallet', type: 'string', required: true, default: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', description: 'The Solana wallet address (Base58)' }
-    ],
-    sampleResponse: {
-      wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      deposit_detected: false,
-      total_credits_ever: 0,
-      total_sol_received_lamports: 0,
-      has_key: false,
-      first_paid_at: null
-    },
-    tags: ['claim', 'payment']
-  },
-  {
-    id: 'auth-challenge',
-    name: 'Sign-in Challenge',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/auth/challenge',
-    summary: 'Gets a one-time message for your wallet to sign.',
-    description: 'Returns a message containing a nonce and timestamp. Sign it with your wallet, then submit the signature to /api/auth/login to receive a new personal API key. Challenges expire quickly and can only be used once.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [],
-    sampleResponse: {
-      message: 'Sign in to Solana Pulse\nNonce: 9f2c0e1b7a4d4c3e8b1a6d5f2e7c9a10\nTimestamp: 1790000000000'
-    },
-    tags: ['auth', 'claim']
-  },
-  {
-    id: 'keys-verify',
-    name: 'Verify My Key',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/keys/verify',
-    summary: 'Tests your API key and headers without spending a call.',
-    description: 'Send your key as x-api-key or Authorization: Bearer. Reports whether it is valid, which header the server read, and your credits. Never returns the key itself. Claim a key above and it is attached automatically.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [],
-    sampleResponse: {
-      valid: true,
-      headerUsed: 'x-api-key',
-      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      paidCredits: 4545,
-      totalCallsMade: 12
-    },
-    tags: ['keys', 'auth']
-  },
-  {
-    id: 'keys-profile',
-    name: 'My Profile',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/profile',
-    summary: 'Your wallet, credits and usage totals. Requires your key.',
-    description: 'Returns the account tied to your API key: credits left, total calls made, total credits ever bought. Needs x-api-key or Authorization: Bearer.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [],
-    sampleResponse: {
-      address: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      display_name: null,
-      email: null,
-      paid_credits: 4545,
-      total_calls_made: 12,
-      total_paid_credits_ever: 4557
-    },
-    tags: ['keys', 'profile']
-  },
-  {
-    id: 'keys-call-history',
-    name: 'My Call History',
-    suite: 'keys',
-    method: 'GET',
-    path: '/api/calls/history',
-    summary: 'Your most recent calls and what each one cost. Requires your key.',
-    description: 'Lists your latest calls with endpoint, method, credits charged, and whether the call used a free or paid credit. Needs x-api-key or Authorization: Bearer.',
-    priceLamports: 0,
-    category: 'Core Solana',
-    isLive: true,
-    queryParams: [],
-    sampleResponse: {
-      wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU',
-      calls: [
-        { endpoint: '/api/solana/validate-and-simulate', method: 'POST', price_credits: 1, via: 'paid', created_at: '2026-10-05T17:00:00.000Z' }
-      ]
-    },
-    tags: ['keys', 'history']
-  },
+
+
+
+
+
+
+
   mcpToolEndpoint('get_wallet_snapshot', 'Wallet snapshot', 'Combines SOL balance, token accounts, and recent activity in one response.', { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', network: 'mainnet-beta' }, ['wallet', 'portfolio']),
   mcpToolEndpoint('summarize_wallet_activity', 'Wallet activity summary', 'Counts recent successful and failed transactions and returns recent signatures.', { wallet: 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU', limit: 20, network: 'mainnet-beta' }, ['wallet', 'activity']),
   mcpToolEndpoint('resolve_token_symbol', 'Resolve token symbol', 'Searches token pairs by ticker or name and ranks matching Solana mints by reported liquidity.', { query: 'BONK' }, ['token', 'search']),

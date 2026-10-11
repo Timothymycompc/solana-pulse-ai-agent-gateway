@@ -1,6 +1,5 @@
 export interface ApiEndpoint {
   isLive?: boolean;
-  priceLamports?: number;
   defaultParams?: Record<string, any>;
   id: string;
   suite: 'safety' | 'intel' | 'free' | 'keys';
