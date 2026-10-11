@@ -2,6 +2,40 @@
 
 /* Motion system: one easing family and three durations, used by every animation on the site. */
 @theme {
+  /* Palette: neutral graphite greys (no blue tint) and one steel-blue accent.
+     Components use the slate and indigo scales by name; remapping them here restyles the whole site. */
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #71717a;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-900: #161618;
+  --color-slate-950: #0b0b0d;
+
+  --color-indigo-50: #eff4fc;
+  --color-indigo-100: #dde8f8;
+  --color-indigo-200: #bdd0ef;
+  --color-indigo-300: #94b2e3;
+  --color-indigo-400: #6c91d2;
+  --color-indigo-500: #4f76bd;
+  --color-indigo-600: #3f61a3;
+  --color-indigo-700: #354f83;
+  --color-indigo-800: #2d426b;
+  --color-indigo-900: #263755;
+  --color-indigo-950: #172135;
+
+  /* Secondary accents follow the same steel blue so nothing reads as neon. */
+  --color-violet-300: #94b2e3;
+  --color-cyan-300: #a5c4d4;
+  --color-sky-100: #e4edf6;
+  --color-sky-300: #9fbbd8;
+  --color-sky-400: #7fa3c9;
+  --color-sky-500: #5f88b5;
+
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 160ms;
@@ -40,8 +74,8 @@
     100% { transform: translate3d(40px, 30px, 0) scale(1.08); }
   }
   @keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgb(129 140 248 / 0.45); }
-    100% { box-shadow: 0 0 0 10px rgb(129 140 248 / 0); }
+    0% { box-shadow: 0 0 0 0 rgb(108 145 210 / 0.4); }
+    100% { box-shadow: 0 0 0 10px rgb(108 145 210 / 0); }
   }
 }
 
@@ -75,7 +109,7 @@
   }
   .lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px -14px rgb(79 70 229 / 0.45);
+    box-shadow: 0 12px 28px -14px rgb(0 0 0 / 0.7);
   }
   .lift:active {
     transform: translateY(0);
@@ -85,13 +119,13 @@
   .aurora-blob {
     position: absolute;
     border-radius: 9999px;
-    filter: blur(90px);
+    filter: blur(110px);
     animation: drift 22s var(--ease-in-out-soft) infinite alternate;
   }
 
   /* Loading placeholder sweep. */
   .skeleton {
-    background: linear-gradient(90deg, rgb(30 41 59 / 0.5) 25%, rgb(51 65 85 / 0.6) 50%, rgb(30 41 59 / 0.5) 75%);
+    background: linear-gradient(90deg, rgb(39 39 42 / 0.5) 25%, rgb(63 63 70 / 0.55) 50%, rgb(39 39 42 / 0.5) 75%);
     background-size: 200% 100%;
     animation: var(--animate-shimmer);
   }
@@ -105,7 +139,7 @@
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 40px -20px rgb(0 0 0 / 0.7);
   }
   .glass-strong {
-    background: linear-gradient(180deg, rgb(15 23 42 / 0.82), rgb(2 6 23 / 0.78));
+    background: linear-gradient(180deg, rgb(22 22 24 / 0.86), rgb(11 11 13 / 0.82));
     border-color: rgb(255 255 255 / 0.1);
     backdrop-filter: blur(20px) saturate(150%);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
@@ -113,19 +147,19 @@
   }
   /* Inset surfaces (editors, code) stay darker than the panel around them for legibility. */
   .glass-inset {
-    background: rgb(2 6 23 / 0.72);
+    background: rgb(11 11 13 / 0.72);
     border-color: rgb(255 255 255 / 0.08);
   }
 
-  /* Indigo → violet → cyan, the site's single accent gradient. */
+  /* Subtle light-to-steel highlight for headline words; the only gradient text on the site. */
   .text-gradient {
-    background: linear-gradient(100deg, #a5b4fc 0%, #c4b5fd 45%, #67e8f9 100%);
+    background: linear-gradient(100deg, #f4f4f5 0%, #c9d6ea 55%, #94b2e3 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .bg-accent-gradient {
-    background: linear-gradient(100deg, #6366f1 0%, #8b5cf6 55%, #06b6d4 100%);
+    background: linear-gradient(180deg, #4f76bd 0%, #3f61a3 100%);
   }
   /* Gradient hairline border drawn with a mask, so the panel keeps its glass fill. */
   .gradient-border {
@@ -137,7 +171,7 @@
     inset: 0;
     padding: 1px;
     border-radius: inherit;
-    background: linear-gradient(120deg, rgb(129 140 248 / 0.6), rgb(167 139 250 / 0.25) 40%, rgb(34 211 238 / 0.5));
+    background: linear-gradient(120deg, rgb(148 178 227 / 0.55), rgb(255 255 255 / 0.08) 45%, rgb(148 178 227 / 0.35));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;

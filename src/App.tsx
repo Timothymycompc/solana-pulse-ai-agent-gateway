@@ -34,10 +34,9 @@ export function App() {
     <div className="relative isolate flex min-h-screen flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
       {/* Aurora background behind the glass panels; purely decorative. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="aurora-blob left-[-10%] top-[-15%] h-[520px] w-[620px] bg-indigo-600/25" />
-        <div className="aurora-blob right-[-12%] top-[10%] h-[460px] w-[560px] bg-violet-600/20 [animation-delay:-6s]" />
-        <div className="aurora-blob bottom-[-20%] left-[25%] h-[480px] w-[640px] bg-cyan-500/[0.12] [animation-delay:-12s]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
+        <div className="aurora-blob left-[-15%] top-[-25%] h-[520px] w-[720px] bg-indigo-500/[0.10]" />
+        <div className="aurora-blob right-[-15%] top-[5%] h-[420px] w-[520px] bg-slate-400/[0.04] [animation-delay:-9s]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black_25%,transparent_70%)]" />
       </div>
       <Toolbar
         items={[
