@@ -166,7 +166,7 @@ export const McpDocsView: React.FC = () => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 lg:p-8">
+      <div className="glass gradient-border animate-fade-up border rounded-2xl p-6 lg:p-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
@@ -174,13 +174,13 @@ export const McpDocsView: React.FC = () => {
               <span>Model Context Protocol (MCP)</span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">
-              Connect Autonomous LLMs to Solana
+              Connect autonomous LLMs to <span className="text-gradient">Solana</span>
             </h2>
             <p className="text-sm text-slate-400 mt-2 max-w-2xl">
               Give Claude, Cursor, and agents typed Solana data tools. Basic reads are free; other tools have 3 free calls, then a small USDC price paid per call with x402. No account or API key.
             </p>
           </div>
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl min-w-[280px]">
+          <div className="glass-inset border border-white/10 p-4 rounded-xl min-w-[280px]">
             <div className="text-xs text-slate-400 font-medium mb-1">Live MCP Endpoint (Streamable HTTP):</div>
             <div className="text-xs text-indigo-400 font-mono break-all select-all">
               https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp
@@ -190,7 +190,7 @@ export const McpDocsView: React.FC = () => {
       </div>
 
       {/* Claude Desktop & Cursor Integration */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+      <div className="glass border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
@@ -203,13 +203,13 @@ export const McpDocsView: React.FC = () => {
           </div>
           <button
             onClick={() => copyToClipboard(claudeConfig, 'claude')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] hover:bg-white/10 text-slate-200 rounded-lg text-xs font-medium transition-colors"
           >
             {copied === 'claude' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied === 'claude' ? 'Copied!' : 'Copy Config'}</span>
           </button>
         </div>
-        <pre className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto">
+        <pre className="glass-inset border border-white/10 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto">
           {claudeConfig}
         </pre>
       </div>
@@ -223,12 +223,12 @@ export const McpDocsView: React.FC = () => {
 
         <div className="space-y-4">
           {tools.map((t, idx) => (
-            <details key={idx} className="group rounded-xl border border-slate-800 bg-slate-900/60 transition-colors hover:border-slate-700">
+            <details key={idx} data-reveal data-reveal-index={idx % 6} className="lift group rounded-xl border border-white/10 glass transition-colors hover:border-white/15">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-sm font-bold text-indigo-300">{t.name}</span>
-                    <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-slate-300">{priceOf(t.name) ? `3 free, then ${priceOf(t.name)} USDC` : "Free"}</span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold text-slate-300">{priceOf(t.name) ? `3 free, then ${priceOf(t.name)} USDC` : "Free"}</span>
                   </div>
                   <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">{t.description}</p>
                   <p className={`mt-2 flex max-w-4xl gap-2 rounded-lg border px-3 py-2 text-xs leading-5 ${t.helps.kind === 'money' ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-100' : 'border-sky-500/20 bg-sky-500/5 text-sky-100'}`}>
@@ -236,16 +236,16 @@ export const McpDocsView: React.FC = () => {
                     <span><strong className="font-semibold">{t.helps.kind === 'money' ? 'Saves money: ' : 'Prevents hallucination: '}</strong>{t.helps.text}</span>
                   </p>
                 </div>
-                <span className="shrink-0 rounded-lg border border-slate-700 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:hidden">Details</span>
-                <span className="hidden shrink-0 rounded-lg border border-slate-700 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:inline">Close</span>
+                <span className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:hidden">Details</span>
+                <span className="hidden shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:inline">Close</span>
               </summary>
-              <div className="grid grid-cols-1 gap-4 border-t border-slate-800 p-4 text-xs font-mono lg:grid-cols-2 sm:p-5">
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Parameters (Zod / JSON Schema)</div>
+              <div className="grid grid-cols-1 gap-4 border-t border-white/10 p-4 text-xs font-mono lg:grid-cols-2 sm:p-5">
+                <div className="glass-inset p-3 rounded-lg border border-white/10">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Parameters (Zod / JSON Schema)</div>
                   <pre className="text-indigo-300 whitespace-pre-wrap">{JSON.stringify(t.params, null, 2)}</pre>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/80">
-                  <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Example Output Shape · Live values vary</div>
+                <div className="glass-inset p-3 rounded-lg border border-white/10">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Example Output Shape · Live values vary</div>
                   <pre className="text-emerald-400 whitespace-pre-wrap">{JSON.stringify(t.exampleOutput, null, 2)}</pre>
                 </div>
               </div>

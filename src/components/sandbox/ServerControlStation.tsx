@@ -34,8 +34,8 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
   const passRate = batchStats?.total ? Math.round((batchStats.passed / batchStats.total) * 100) : null;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+    <div className="glass border rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-indigo-500/15 text-indigo-300"><Activity className="w-6 h-6" /></div>
           <div>
@@ -54,19 +54,19 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+        <div className="glass-inset p-3.5 rounded-xl border border-white/10">
           <span className="text-[11px] font-semibold text-slate-400">Gateway URL</span>
           <p className="text-sm font-mono font-bold text-white mt-1 truncate" title={window.location.origin}>{window.location.host}</p>
         </div>
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+        <div className="glass-inset p-3.5 rounded-xl border border-white/10">
           <span className="text-[11px] font-semibold text-slate-400">Calls in this session</span>
           <p className="text-lg font-mono font-bold text-indigo-400 mt-0.5">{serverLogs.length}</p>
         </div>
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+        <div className="glass-inset p-3.5 rounded-xl border border-white/10">
           <span className="text-[11px] font-semibold text-slate-400">Last route check</span>
           <p className="text-lg font-mono font-bold text-white mt-0.5">{batchStats ? `${batchStats.passed}/${batchStats.total} passed` : 'Not run'}</p>
         </div>
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+        <div className="glass-inset p-3.5 rounded-xl border border-white/10">
           <span className="text-[11px] font-semibold text-slate-400">Average response</span>
           <p className="text-lg font-mono font-bold text-white mt-0.5">{batchStats ? `${batchStats.avgLatency} ms` : '—'}</p>
         </div>
@@ -91,19 +91,19 @@ export const ServerControlStation: React.FC<ServerControlStationProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs max-h-52 overflow-y-auto space-y-1.5">
+        <div className="glass-inset border border-white/10 rounded-xl p-3 font-mono text-xs max-h-52 overflow-y-auto space-y-1.5">
           {serverLogs.length === 0 ? (
-            <p className="text-slate-600 text-center py-4">No calls in this browser session yet. Run an endpoint above to see its result here.</p>
+            <p className="text-slate-500 text-center py-4">No calls in this browser session yet. Run an endpoint above to see its result here.</p>
           ) : serverLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between text-slate-300 hover:bg-slate-900/60 px-2 py-1 rounded">
+            <div key={log.id} className="flex items-center justify-between text-slate-300 hover:glass px-2 py-1 rounded">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] text-slate-500">{log.timestamp}</span>
+                <span className="text-[10px] text-slate-400">{log.timestamp}</span>
                 <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${log.method === 'GET' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-indigo-500/20 text-indigo-300'}`}>{log.method}</span>
                 <span className="text-slate-200 truncate">{log.path}</span>
               </div>
               <div className="flex items-center gap-3 text-[11px] shrink-0">
                 <span className={log.status >= 200 && log.status < 300 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{log.status}</span>
-                <span className="text-slate-500">{log.latencyMs}ms</span>
+                <span className="text-slate-400">{log.latencyMs}ms</span>
               </div>
             </div>
           ))}

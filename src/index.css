@@ -1,8 +1,177 @@
 @import "tailwindcss";
 
+/* Motion system: one easing family and three durations, used by every animation on the site. */
+@theme {
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 160ms;
+  --duration-base: 280ms;
+  --duration-slow: 520ms;
+
+  --animate-fade-up: fade-up var(--duration-slow) var(--ease-out-soft) both;
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out-soft) both;
+  --animate-scale-in: scale-in var(--duration-base) var(--ease-out-soft) both;
+  --animate-slide-down: slide-down var(--duration-base) var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.8s var(--ease-out-soft) infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(40px, 30px, 0) scale(1.08); }
+  }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgb(129 140 248 / 0.45); }
+    100% { box-shadow: 0 0 0 10px rgb(129 140 248 / 0); }
+  }
+}
+
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white;
+    @apply bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  :focus-visible {
+    outline: 2px solid var(--color-indigo-400);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Elements marked data-reveal fade up once when they scroll into view (see useReveal). */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity var(--duration-slow) var(--ease-out-soft), transform var(--duration-slow) var(--ease-out-soft);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal="shown"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Hover lift for interactive cards. */
+  .lift {
+    transition: transform var(--duration-base) var(--ease-out-soft), border-color var(--duration-base) var(--ease-out-soft), background-color var(--duration-base) var(--ease-out-soft), box-shadow var(--duration-base) var(--ease-out-soft);
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -14px rgb(79 70 229 / 0.45);
+  }
+  .lift:active {
+    transform: translateY(0);
+  }
+
+  /* Large blurred color fields that drift slowly behind the content. */
+  .aurora-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    animation: drift 22s var(--ease-in-out-soft) infinite alternate;
+  }
+
+  /* Loading placeholder sweep. */
+  .skeleton {
+    background: linear-gradient(90deg, rgb(30 41 59 / 0.5) 25%, rgb(51 65 85 / 0.6) 50%, rgb(30 41 59 / 0.5) 75%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* Glass panels: translucent dark surface over the aurora background, with a faint top highlight. */
+  .glass {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
+    border-color: rgb(255 255 255 / 0.09);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 40px -20px rgb(0 0 0 / 0.7);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgb(15 23 42 / 0.82), rgb(2 6 23 / 0.78));
+    border-color: rgb(255 255 255 / 0.1);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 18px 50px -24px rgb(0 0 0 / 0.8);
+  }
+  /* Inset surfaces (editors, code) stay darker than the panel around them for legibility. */
+  .glass-inset {
+    background: rgb(2 6 23 / 0.72);
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Indigo → violet → cyan, the site's single accent gradient. */
+  .text-gradient {
+    background: linear-gradient(100deg, #a5b4fc 0%, #c4b5fd 45%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-accent-gradient {
+    background: linear-gradient(100deg, #6366f1 0%, #8b5cf6 55%, #06b6d4 100%);
+  }
+  /* Gradient hairline border drawn with a mask, so the panel keeps its glass fill. */
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgb(129 140 248 / 0.6), rgb(167 139 250 / 0.25) 40%, rgb(34 211 238 / 0.5));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* JSON syntax colors for the response viewer. */
+  .json-key { color: var(--color-indigo-300); }
+  .json-string { color: var(--color-emerald-300); }
+  .json-number { color: var(--color-amber-300); }
+  .json-boolean { color: var(--color-sky-300); }
+  .json-null { color: var(--color-slate-500); }
+}
+
+/* Page changes use the View Transitions API where the browser supports it. */
+::view-transition-old(page) {
+  animation: var(--duration-base) var(--ease-in-out-soft) both page-out;
+}
+::view-transition-new(page) {
+  animation: var(--duration-slow) var(--ease-out-soft) both page-in;
+}
+@keyframes page-out {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
 }

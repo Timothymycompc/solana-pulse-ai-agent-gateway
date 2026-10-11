@@ -35,9 +35,9 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
   handleSelectEndpoint,
 }) => {
   return (
-    <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col h-[740px]">
+    <div className="lg:col-span-5 glass border rounded-2xl p-4 flex flex-col h-[740px]">
       {/* Filters */}
-      <div className="space-y-3 pb-3 border-b border-slate-800">
+      <div className="space-y-3 pb-3 border-b border-white/10">
         <div className="relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
@@ -45,11 +45,11 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
             placeholder="Search a question, e.g. wallet, token risk, fees"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full glass-inset border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 transition focus:outline-none focus:border-indigo-400/70 focus:ring-4 focus:ring-indigo-500/15"
           />
         </div>
 
-        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use the tool's 3 free calls first.</p>
+        <p className="text-[10px] leading-4 text-slate-400">Pick a task. Examples have sample values and use the tool's 3 free calls first.</p>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1">
@@ -59,8 +59,8 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                 onClick={() => setSelectedSuite(suite)}
                 className={`px-2 py-1 rounded-lg text-[11px] font-semibold capitalize transition ${
                   selectedSuite === suite
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    ? 'bg-accent-gradient text-white shadow-md shadow-indigo-950/50'
+                    : 'glass-inset text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
                 {{ all: 'All', safety: 'Transactions', intel: 'Tokens', free: 'Core data', keys: 'Pricing' }[suite]}
@@ -75,8 +75,8 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                 onClick={() => setMethodFilter(m)}
                 className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition ${
                   methodFilter === m
-                    ? 'bg-slate-700 text-white'
-                    : 'bg-slate-950 text-slate-500 hover:text-slate-300'
+                    ? 'bg-white/15 text-white'
+                    : 'glass-inset text-slate-300 hover:text-white'
                 }`}
               >
                 {m}
@@ -87,17 +87,19 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
       </div>
 
       {/* Endpoint List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 pt-2 space-y-1 pr-1">
-        {filteredEndpoints.map((ep) => {
+      <div key={`${selectedSuite}-${methodFilter}-${searchQuery}`} className="flex-1 overflow-y-auto pt-2 space-y-1 pr-1">
+        {filteredEndpoints.map((ep, i) => {
           const isSelected = selectedEndpoint.id === ep.id;
           return (
             <button
               key={ep.id}
               onClick={() => handleSelectEndpoint(ep)}
-              className={`w-full text-left p-3 rounded-xl transition flex flex-col gap-1 group ${
+              aria-current={isSelected ? 'true' : undefined}
+              style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
+              className={`animate-fade-up w-full text-left p-3 rounded-xl transition-all duration-300 flex flex-col gap-1 group ${
                 isSelected
-                  ? 'bg-indigo-950/40 border border-indigo-500/50 shadow-md shadow-indigo-950'
-                  : 'hover:bg-slate-800/50 border border-transparent'
+                  ? 'gradient-border bg-indigo-500/10 shadow-lg shadow-indigo-950/60 translate-x-0.5'
+                  : 'hover:bg-white/5 hover:translate-x-0.5 border border-transparent'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -105,13 +107,13 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                   <span
                     className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                       ep.method === 'GET'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25'
+                        : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/25'
                     }`}
                   >
                     {ep.method}
                   </span>
-                  <span className="text-xs font-semibold text-slate-200 group-hover:text-white line-clamp-1">
+                  <span className="text-xs font-semibold text-slate-100 group-hover:text-white line-clamp-1">
                     {ep.name}
                   </span>
                 </div>
@@ -121,7 +123,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
               </div>
 
               <p className="text-[11px] font-mono text-slate-400 line-clamp-1">{ep.id.startsWith('mcp-') ? `POST /mcp · ${ep.id.slice(4)}` : ep.path}</p>
-              <p className="text-[11px] text-slate-500 line-clamp-1">{ep.summary}</p>
+              <p className="text-[11px] text-slate-400 line-clamp-1">{ep.summary}</p>
             </button>
           );
         })}

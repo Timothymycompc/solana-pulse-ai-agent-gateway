@@ -16,7 +16,7 @@ export const ContactCustomRequests: React.FC = () => {
   };
 
   return (
-    <div className="mt-12 border-t border-slate-800 pt-10 pb-16">
+    <div className="mt-12 border-t border-white/10 pt-10 pb-16">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
@@ -34,28 +34,28 @@ export const ContactCustomRequests: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Direct Channels */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+          <div className="glass border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
             <div>
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-indigo-400" />
                 Direct Channels
               </h3>
               <ul className="space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <li className="flex items-center gap-2 glass-inset p-2.5 rounded-lg border border-white/10">
                   <Mail className="w-4 h-4 text-cyan-400" />
                   <div>
                     <div className="font-medium text-white">Email Support</div>
                     <div className="text-slate-400">dev@solanapulse.io</div>
                   </div>
                 </li>
-                <li className="flex items-center gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <li className="flex items-center gap-2 glass-inset p-2.5 rounded-lg border border-white/10">
                   <Bot className="w-4 h-4 text-emerald-400" />
                   <div>
                     <div className="font-medium text-white">Telegram / X</div>
                     <div className="text-slate-400">@SolanaPulseGateway</div>
                   </div>
                 </li>
-                <li className="flex items-center gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                <li className="flex items-center gap-2 glass-inset p-2.5 rounded-lg border border-white/10">
                   <Code className="w-4 h-4 text-amber-400" />
                   <div>
                     <div className="font-medium text-white">Custom SLA</div>
@@ -64,13 +64,13 @@ export const ContactCustomRequests: React.FC = () => {
                 </li>
               </ul>
             </div>
-            <div className="mt-4 text-[11px] text-slate-500">
+            <div className="mt-4 text-[11px] text-slate-400">
               ⚡ Typical response time: Under 2 hours.
             </div>
           </div>
 
           {/* Request Form */}
-          <div className="md:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+          <div className="md:col-span-2 glass border border-white/10 rounded-2xl p-6">
             {submitted ? (
               <div className="text-center py-10">
                 <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -98,7 +98,7 @@ export const ContactCustomRequests: React.FC = () => {
                       placeholder="e.g. Trading Bot Lead"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full glass-inset border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -109,7 +109,7 @@ export const ContactCustomRequests: React.FC = () => {
                       placeholder="e.g. you@domain.com or @handle"
                       value={formData.contact}
                       onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full glass-inset border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export const ContactCustomRequests: React.FC = () => {
                   <select
                     value={formData.requestType}
                     onChange={(e) => setFormData({ ...formData, requestType: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full glass-inset border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                   >
                     <option value="custom_endpoint">Request New Solana / MCP Endpoint</option>
                     <option value="high_volume">High-Volume Microtransaction Discount</option>
@@ -136,7 +136,7 @@ export const ContactCustomRequests: React.FC = () => {
                     placeholder="Describe the data you need (e.g., 'Need an endpoint that returns Raydium pool depth and token tax authority')..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full glass-inset border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
