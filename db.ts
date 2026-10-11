@@ -77,6 +77,7 @@ export async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`ALTER TABLE service_usage ADD COLUMN IF NOT EXISTS caller_hash TEXT, ADD COLUMN IF NOT EXISTS client TEXT;`);
   await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_created_idx ON service_usage (created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_endpoint_idx ON service_usage (endpoint, created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_wallet_idx ON service_usage (wallet_address) WHERE wallet_address IS NOT NULL;`);
@@ -103,11 +104,11 @@ export async function logCall(params: { wallet: string | null; endpoint: string;
   }
 }
 
-export async function recordServiceUsage(params: { wallet: string | null; endpoint: string; method: string; status: number }) {
+export async function recordServiceUsage(params: { wallet: string | null; endpoint: string; method: string; status: number; callerHash: string | null; client: string | null }) {
   try {
     await pool.query(
-      `INSERT INTO service_usage (wallet_address, endpoint, method, status) VALUES ($1, $2, $3, $4)`,
-      [params.wallet, params.endpoint, params.method, params.status]
+      `INSERT INTO service_usage (wallet_address, endpoint, method, status, caller_hash, client) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [params.wallet, params.endpoint, params.method, params.status, params.callerHash, params.client]
     );
   } catch (e) {
     console.error('service_usage insert failed:', e);

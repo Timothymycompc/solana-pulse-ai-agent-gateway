@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, createHmac } from "crypto";
 import { keyFromReq } from "./authKey";
 import type { Request, Response, NextFunction } from "express";
 import { pool, logCall } from "./db";
@@ -31,7 +31,9 @@ function normalizeIp(raw: string): string {
   const full = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
   return full.slice(0, 4).map((x) => x.toLowerCase().replace(/^0+(?=.)/, "")).join(":");
 }
-const hashIp = (ip: string) => createHash("sha256").update("ip:" + normalizeIp(ip)).digest("hex");
+// Keyed hash so stored caller IDs cannot be reversed into IP addresses by brute force.
+const callerHashKey = () => process.env.CALLER_HASH_SECRET || process.env.HELIUS_WEBHOOK_SECRET || process.env.DATABASE_URL || "local-development-caller-key";
+export const hashIp = (ip: string) => createHmac("sha256", callerHashKey()).update("ip:" + normalizeIp(ip)).digest("hex");
 
 async function reserveTrialCall(ip: string, tool: string): Promise<number | null> {
   const result = await pool.query(

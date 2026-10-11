@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, Bot, Clock3, RefreshCw, Users } from 'lucide-react';
+import { Activity, Bot, Clock3, RefreshCw, Users, UserCheck } from 'lucide-react';
 
 interface ServiceUsage {
-  window: string;
-  calls: number;
-  identifiedWallets: number;
-  httpCalls: number;
-  mcpCalls: number;
-  lastCallAt: string | null;
-  services: { endpoint: string; calls: number; identifiedWallets: number; lastCallAt: string }[];
+  toolRuns24h: number;
+  callers24h: number;
+  otherCallers24h: number;
+  otherToolRuns7d: number;
+  otherCallers7d: number;
+  pings24h: number;
+  lastToolRunAt: string | null;
+  tools: { endpoint: string; runs: number; otherCallers: number; lastRunAt: string }[];
   note: string;
 }
 
@@ -42,10 +43,10 @@ export const ServiceUsagePanel: React.FC = () => {
   }, [refresh]);
 
   const stats = [
-    { label: 'Service calls · 24h', value: usage ? number.format(usage.calls) : '—', icon: Activity, accent: 'text-indigo-300' },
-    { label: 'HTTP API calls', value: usage ? number.format(usage.httpCalls) : '—', icon: Activity, accent: 'text-cyan-300' },
-    { label: 'MCP calls', value: usage ? number.format(usage.mcpCalls) : '—', icon: Bot, accent: 'text-violet-300' },
-    { label: 'Identified wallets · 24h', value: usage ? number.format(usage.identifiedWallets) : '—', icon: Users, accent: 'text-emerald-300' },
+    { label: 'Tool runs · 24h', value: usage ? number.format(usage.toolRuns24h) : '—', icon: Activity, accent: 'text-indigo-300' },
+    { label: 'Callers besides you · 24h', value: usage ? number.format(usage.otherCallers24h) : '—', icon: Users, accent: 'text-emerald-300' },
+    { label: 'Runs by others · 7 days', value: usage ? `${number.format(usage.otherToolRuns7d)} · ${number.format(usage.otherCallers7d)} callers` : '—', icon: UserCheck, accent: 'text-cyan-300' },
+    { label: 'Uptime pings · 24h', value: usage ? number.format(usage.pings24h) : '—', icon: Bot, accent: 'text-violet-300' },
   ];
 
   return (
@@ -55,9 +56,9 @@ export const ServiceUsagePanel: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
             <h2 id="usage-heading" className="text-sm font-semibold text-white">Live service usage</h2>
-            <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400">rolling 24 hours</span>
+            
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Refreshes every 15 seconds · totals begin when live tracking is enabled</p>
+          <p className="mt-1 text-[11px] text-slate-500">Refreshes every 15 seconds · caller counts begin when caller tracking is enabled</p>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-500">
           {updatedAt && <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />Updated {updatedAt.toLocaleTimeString()}</span>}
@@ -72,14 +73,14 @@ export const ServiceUsagePanel: React.FC = () => {
           </div>)}
         </div>
         <div className="border-t border-slate-800 px-5 py-4">
-          <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500"><span>Most called routes</span><span>Calls · wallets</span></div>
-          {usage?.services.length ? <div className="grid gap-x-8 sm:grid-cols-2">
-            {usage.services.slice(0, 6).map((service) => <div key={service.endpoint} className="flex min-w-0 items-center justify-between gap-3 border-t border-slate-800/70 py-2">
-              <code className="truncate font-mono text-[11px] text-slate-300">{service.endpoint}</code>
-              <span className="shrink-0 font-mono text-[10px] text-slate-500">{number.format(service.calls)} · {number.format(service.identifiedWallets)}</span>
+          <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500"><span>Most used tools · 7 days</span><span>Runs · other callers</span></div>
+          {usage?.tools.length ? <div className="grid gap-x-8 sm:grid-cols-2">
+            {usage.tools.slice(0, 6).map((tool) => <div key={tool.endpoint} className="flex min-w-0 items-center justify-between gap-3 border-t border-slate-800/70 py-2">
+              <code className="truncate font-mono text-[11px] text-slate-300">{tool.endpoint}</code>
+              <span className="shrink-0 font-mono text-[10px] text-slate-500">{number.format(tool.runs)} · {number.format(tool.otherCallers)}</span>
             </div>)}
-          </div> : <p className="py-3 text-xs text-slate-500">{loading ? 'Loading route counts…' : 'No calls recorded in this window yet.'}</p>}
-          <p className="mt-3 max-w-4xl text-[10px] leading-4 text-slate-500">{usage?.note || 'Calls include anonymous requests. Wallet totals count authenticated wallet accounts only; anonymous callers are counted as calls but are not individually identified.'}</p>
+          </div> : <p className="py-3 text-xs text-slate-500">{loading ? 'Loading tool counts…' : 'No tool runs recorded in the last 7 days.'}</p>}
+          <p className="mt-3 max-w-4xl text-[10px] leading-4 text-slate-500">{usage?.note}</p>
         </div>
       </>}
     </section>

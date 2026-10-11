@@ -19,7 +19,7 @@ import { registerIntelligenceTools } from "./src/mcp/intelligenceTools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { getTrialStatus, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_TOOL, trialMeterMiddleware } from "./meter";
+import { getTrialStatus, hashIp, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_TOOL, trialMeterMiddleware } from "./meter";
 import { z } from "zod";
 
 async function startServer() {
@@ -44,11 +44,14 @@ async function startServer() {
   }));
 
 
-  // Record route-level usage without storing query values, request bodies, or IP addresses.
+  // Record route-level usage without storing query values, request bodies, or raw IP addresses.
+  // Each row keeps a keyed hash of the caller network and the client name, so real users can be told apart from uptime bots.
   const trackServiceUsage = (req: any, res: any, next: any) => {
     const pathOnly = String(req.originalUrl || req.url).split("?")[0];
     if (pathOnly === "/api/analytics/usage") return next();
     const apiKey = keyFromReq(req);
+    const callerHash = req.ip ? hashIp(req.ip) : null;
+    const client = String(req.headers["user-agent"] || "").slice(0, 120) || null;
     res.once("finish", () => {
       const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
       const endpoint = pathOnly === "/mcp" && typeof toolName === "string"
@@ -65,7 +68,7 @@ async function startServer() {
             );
             wallet = user.rows[0]?.address || null;
           }
-          await recordServiceUsage({ wallet, endpoint, method: req.method, status: res.statusCode });
+          await recordServiceUsage({ wallet, endpoint, method: req.method, status: res.statusCode, callerHash, client });
         } catch (error) {
           console.error("service usage tracking failed:", error);
         }
@@ -1034,47 +1037,51 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   app.get("/api/analytics/live", noCache, (req, res) => res.json(stats));
 
-  app.get("/api/analytics/usage", readRateLimiter, noCache, async (_req, res) => {
+  app.get("/api/analytics/usage", readRateLimiter, noCache, async (req, res) => {
+    // Tool runs are real data calls; other /mcp traffic is connections, tool listings and uptime pings.
+    const TOOL_RUN = `(endpoint LIKE '/api/solana/%' OR endpoint LIKE '/mcp/tools/%')`;
+    const you = req.ip ? hashIp(req.ip) : "";
     try {
-      const [totals, services] = await Promise.all([
+      const [totals, tools] = await Promise.all([
         pool.query(`
           SELECT
-            COUNT(*)::bigint AS calls,
-            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::bigint AS calls_24h,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS identified_wallets_24h,
-            COUNT(*) FILTER (WHERE endpoint LIKE '/api/%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS http_calls_24h,
-            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS mcp_calls_24h,
-            MAX(created_at) AS last_call_at
+            COUNT(*) FILTER (WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS tool_runs_24h,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS callers_24h,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1 AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS other_callers_24h,
+            COUNT(*) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1)::bigint AS other_tool_runs_7d,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1)::bigint AS other_callers_7d,
+            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND NOT ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS pings_24h,
+            MAX(created_at) FILTER (WHERE ${TOOL_RUN}) AS last_tool_run_at
           FROM service_usage
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
-        `),
+          WHERE created_at >= NOW() - INTERVAL '7 days'
+        `, [you]),
         pool.query(`
-          SELECT endpoint, COUNT(*)::bigint AS calls,
-            COUNT(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL)::bigint AS identified_wallets,
-            MAX(created_at) AS last_call_at
+          SELECT endpoint, COUNT(*)::bigint AS runs,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE caller_hash <> $1)::bigint AS other_callers,
+            MAX(created_at) AS last_run_at
           FROM service_usage
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '7 days'
           GROUP BY endpoint
           ORDER BY COUNT(*) DESC, endpoint ASC
           LIMIT 12
-        `),
+        `, [you]),
       ]);
       const row = totals.rows[0] || {};
       res.json({
-        window: "rolling_24h",
-        calls: Number(row.calls_24h || 0),
-        identifiedWallets: Number(row.identified_wallets_24h || 0),
-        httpCalls: Number(row.http_calls_24h || 0),
-        mcpCalls: Number(row.mcp_calls_24h || 0),
-        lastCallAt: row.last_call_at || null,
-        services: services.rows.map((service: any) => ({
-          endpoint: service.endpoint,
-          calls: Number(service.calls),
-          identifiedWallets: Number(service.identified_wallets),
-          lastCallAt: service.last_call_at,
+        toolRuns24h: Number(row.tool_runs_24h || 0),
+        callers24h: Number(row.callers_24h || 0),
+        otherCallers24h: Number(row.other_callers_24h || 0),
+        otherToolRuns7d: Number(row.other_tool_runs_7d || 0),
+        otherCallers7d: Number(row.other_callers_7d || 0),
+        pings24h: Number(row.pings_24h || 0),
+        lastToolRunAt: row.last_tool_run_at || null,
+        tools: tools.rows.map((t: any) => ({
+          endpoint: t.endpoint,
+          runs: Number(t.runs),
+          otherCallers: Number(t.other_callers),
+          lastRunAt: t.last_run_at,
         })),
-        note: "Calls include anonymous requests. Wallet counts include only authenticated wallet accounts; anonymous callers are not individually identified.",
+        note: "A tool run is a data call over HTTP or MCP. Callers are counted by network, so \"besides you\" means a different network from the one viewing this page. Pings are MCP connections and tool listings, mostly directory uptime checks.",
       });
     } catch (error: any) {
       console.error("usage analytics query failed:", error);
