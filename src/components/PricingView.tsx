@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Copy, Coins, Zap } from 'lucide-react';
+import { Check, Copy, Coins } from 'lucide-react';
 import { FREE_CALLS_PER_TOOL, TOOL_PRICES } from '../../pricing';
+import { PageHeader } from './docs/DocParts';
 
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
@@ -64,15 +65,8 @@ export const PricingView: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <section className="glass gradient-border animate-fade-up rounded-2xl border p-6 lg:p-8">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-300"><Zap className="h-3.5 w-3.5" />x402 · USDC on Solana</div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">Pay per call. <span className="text-gradient">No account, no API key.</span></h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-          Basic reads are free. Every other tool has {FREE_CALLS_PER_TOOL} free calls, then a small USDC price paid with each request through the open x402 protocol.
-          Agents with a Solana wallet pay automatically; calls that return an error are never charged, and network fees are covered for you.
-        </p>
-      </section>
+    <div className="space-y-10">
+      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Basic tools are free. Paid tools have {FREE_CALLS_PER_TOOL} free calls each, then a few cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-indigo-400" />Prices</h3>

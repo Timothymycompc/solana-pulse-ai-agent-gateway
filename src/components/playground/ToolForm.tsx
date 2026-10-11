@@ -8,8 +8,8 @@ const fieldClass = 'w-full rounded-lg border border-white/10 glass-inset px-3 py
 const LONG_TEXT = new Set(['transaction', 'error']);
 
 // One editable input, chosen from its JSON schema; documented with what it is and how to get it.
-type FieldProps = { path: string; schema: JsonSchema; doc?: InputDoc; required: boolean; value: unknown; onChange: (v: unknown) => void };
-const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onChange }) => {
+type FieldProps = { path: string; schema: JsonSchema; doc?: InputDoc; required: boolean; value: unknown; onChange: (v: unknown) => void; compact?: boolean };
+const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onChange, compact }) => {
   const name = path.split('.').pop()!;
   const id = `field-${path}`;
   const label = (
@@ -18,7 +18,7 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
       <span className="text-[10px] text-slate-400">{doc?.type ?? schema.type ?? 'value'}{!required && ' · optional'}</span>
     </label>
   );
-  const help = doc && (
+  const help = doc && !compact && (
     <div className="space-y-0.5 text-[11px] leading-5">
       <p className="text-slate-300">{doc.description}</p>
       <p className="flex gap-1 text-slate-400"><Info className="mt-0.5 h-3 w-3 shrink-0 text-indigo-300" /><span><span className="font-semibold text-indigo-200">How to get it:</span> {doc.howToGet}</span></p>
@@ -54,7 +54,7 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
   return <div className="space-y-1.5">{label}{control}{help}</div>;
 };
 
-export function ToolForm({ tool, values, onChange }: { tool: ToolDoc; values: Values; onChange: (values: Values) => void }) {
+export function ToolForm({ tool, values, onChange, compact }: { tool: ToolDoc; values: Values; onChange: (values: Values) => void; compact?: boolean }) {
   const props = tool.inputSchema.properties ?? {};
   const required = new Set(tool.inputSchema.required ?? []);
   const docFor = (path: string) => tool.inputs.find((d) => d.name === path);
@@ -71,12 +71,12 @@ export function ToolForm({ tool, values, onChange }: { tool: ToolDoc; values: Va
               <legend className="px-1 font-mono text-xs font-semibold text-indigo-200">{key}{required.has(key) && <span className="text-rose-300">*</span>}</legend>
               {Object.entries(schema.properties).map(([innerKey, innerSchema]) => (
                 <Field key={innerKey} path={`${key}.${innerKey}`} schema={innerSchema} doc={docFor(`${key}.${innerKey}`)} required={innerRequired.has(innerKey) && innerSchema.default === undefined}
-                  value={inner[innerKey]} onChange={(v) => set(key, { ...inner, [innerKey]: v })} />
+                  value={inner[innerKey]} onChange={(v) => set(key, { ...inner, [innerKey]: v })} compact={compact} />
               ))}
             </fieldset>
           );
         }
-        return <Field key={key} path={key} schema={schema} doc={docFor(key)} required={required.has(key) && schema.default === undefined} value={values[key]} onChange={(v) => set(key, v)} />;
+        return <Field key={key} path={key} schema={schema} doc={docFor(key)} required={required.has(key) && schema.default === undefined} value={values[key]} onChange={(v) => set(key, v)} compact={compact} />;
       })}
       {Object.keys(props).length === 0 && <p className="text-xs text-slate-400">This tool needs no inputs.</p>}
     </div>

@@ -22,7 +22,7 @@ function VerdictBanner({ body }: { body: any }) {
   );
 }
 
-export function ToolResult({ tool, result, running }: { tool: ToolDoc; result: RunResult | null; running: boolean }) {
+export function ToolResult({ tool, result, running, showFieldGuide = true }: { tool: ToolDoc; result: RunResult | null; running: boolean; showFieldGuide?: boolean }) {
   const [copied, setCopied] = useState(false);
   const latency = useCountUp(result?.latencyMs ?? 0, 500);
   const present = new Set(result && typeof result.body === 'object' && result.body ? Object.keys(result.body as object) : []);
@@ -34,7 +34,7 @@ export function ToolResult({ tool, result, running }: { tool: ToolDoc; result: R
   );
   if (!result) return (
     <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/15 px-4 text-center">
-      <p className="max-w-sm text-xs leading-5 text-slate-400">Press <span className="font-semibold text-slate-200">Run</span> to send this request to the live gateway. The inputs above are real mainnet data, so it works as-is.</p>
+      <p className="max-w-sm text-xs leading-5 text-slate-400">Run the request to see the live response. The inputs are real mainnet data, so it works as-is.</p>
     </div>
   );
 
@@ -79,7 +79,7 @@ export function ToolResult({ tool, result, running }: { tool: ToolDoc; result: R
 
       <JsonView value={body} className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 glass-inset p-3 font-mono text-[11px] leading-5 text-slate-200" />
 
-      {ok && (
+      {ok && showFieldGuide && (
         <details className="group rounded-xl border border-white/10 bg-white/[0.02]">
           <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-200 [&::-webkit-details-marker]:hidden">
             <BookOpen className="h-4 w-4 text-indigo-300" /> Field guide: what every returned field means and how it's computed

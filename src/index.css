@@ -69,6 +69,10 @@
     from { background-position: -200% 0; }
     to { background-position: 200% 0; }
   }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: none; }
+  }
   @keyframes drift {
     0% { transform: translate3d(0, 0, 0) scale(1); }
     100% { transform: translate3d(40px, 30px, 0) scale(1.08); }
@@ -151,12 +155,9 @@
     border-color: rgb(255 255 255 / 0.08);
   }
 
-  /* Subtle light-to-steel highlight for headline words; the only gradient text on the site. */
+  /* Highlighted headline words: solid steel blue, no gradient. */
   .text-gradient {
-    background: linear-gradient(100deg, #f4f4f5 0%, #c9d6ea 55%, #94b2e3 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--color-indigo-300);
   }
   .bg-accent-gradient {
     background: linear-gradient(180deg, #4f76bd 0%, #3f61a3 100%);

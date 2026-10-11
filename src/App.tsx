@@ -1,64 +1,37 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import Toolbar from './components/Toolbar';
-import { Terminal, Bot, Coins, BookOpen } from 'lucide-react';
-import { ApiGatewaySandbox } from './components/ApiGatewaySandbox';
-import { McpDocsView } from './components/McpDocsView';
-import { PricingView } from './components/PricingView';
-import { ContactCustomRequests } from './components/ContactCustomRequests';
-import { useReveal, withViewTransition } from './hooks/motion';
-
-type AppTab = 'api' | 'mcp_docs' | 'monetization';
-
-// Each page has its own hash so links, reloads and the back button land on the right page.
-const TAB_HASH: Record<AppTab, string> = { api: '#playground', mcp_docs: '#mcp', monetization: '#pricing' };
-const tabFromHash = (): AppTab => (Object.keys(TAB_HASH) as AppTab[]).find((tab) => TAB_HASH[tab] === window.location.hash) ?? 'api';
+import React, { useEffect, useMemo } from 'react';
+import { usePath } from './router';
+import { buildSections, useToolsIndex } from './nav';
+import { AppShell } from './components/shell/AppShell';
+import { OverviewPage } from './pages/OverviewPage';
+import { ToolPage } from './pages/ToolPage';
+import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, StatusPage } from './pages/GuidePages';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>(tabFromHash);
-  const pageRef = useReveal<HTMLDivElement>([activeTab]);
+  const path = usePath();
+  const { index, error } = useToolsIndex();
+  const sections = useMemo(() => buildSections(index?.tools ?? null), [index]);
 
-  const go = useCallback((tab: AppTab) => {
-    if (tab === activeTab) return;
-    withViewTransition(() => setActiveTab(tab));
-    window.history.pushState(null, '', TAB_HASH[tab]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activeTab]);
+  let page: React.ReactNode;
+  const toolMatch = path.match(/^\/docs\/tools\/([a-z_]+)$/);
+  if (path === '/') page = <OverviewPage index={index} />;
+  else if (path === '/docs/quickstart') page = <QuickstartPage />;
+  else if (path === '/docs/calls') page = <CallsPage />;
+  else if (path === '/docs/connect') page = <ConnectPage />;
+  else if (path === '/docs/pricing') page = <PricingPage />;
+  else if (path === '/status') page = <StatusPage />;
+  else if (toolMatch) {
+    page = index ? <ToolPage name={toolMatch[1]} index={index} />
+      : error ? <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">Could not load the tools: {error}</p>
+      : <div className="space-y-4"><div className="skeleton h-10 w-72 rounded-lg" /><div className="skeleton h-4 w-full max-w-2xl rounded" /><div className="skeleton h-64 rounded-xl" /></div>;
+  } else page = <NotFoundPage />;
 
+  // Per-page tab title, from the same navigation data the sidebar uses.
   useEffect(() => {
-    const onPop = () => withViewTransition(() => setActiveTab(tabFromHash()));
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
+    const item = sections.flatMap((s) => s.items).find((i) => i.path === path);
+    document.title = path === '/' ? 'Solana Pulse · Safety layer for AI agents on Solana' : `${item?.title ?? 'Not found'} · Solana Pulse`;
+  }, [path, sections]);
 
-  return (
-    <div className="relative isolate flex min-h-screen flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Aurora background behind the glass panels; purely decorative. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="aurora-blob left-[-15%] top-[-25%] h-[520px] w-[720px] bg-indigo-500/[0.10]" />
-        <div className="aurora-blob right-[-15%] top-[5%] h-[420px] w-[520px] bg-slate-400/[0.04] [animation-delay:-9s]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black_25%,transparent_70%)]" />
-      </div>
-      <Toolbar
-        items={[
-          { id: 'api', label: 'Playground', icon: Terminal },
-          { id: 'mcp_docs', label: 'MCP & Agents', icon: Bot },
-          { id: 'monetization', label: 'Pricing', icon: Coins },
-          { id: 'docs', label: 'API Reference', icon: BookOpen, external: true },
-        ]}
-        active={activeTab}
-        onSelect={(id) => (id === 'docs' ? window.open('/docs/', '_blank') : go(id as AppTab))}
-      />
-
-      <main className="relative mx-auto w-full max-w-7xl flex-1 px-4 py-8 lg:px-8">
-        <div key={activeTab} ref={pageRef} style={{ viewTransitionName: 'page' }} className="animate-fade-in">
-          {activeTab === 'api' && <ApiGatewaySandbox onOpenMcp={() => go('mcp_docs')} />}
-          {activeTab === 'mcp_docs' && <McpDocsView />}
-          {activeTab === 'monetization' && <PricingView />}
-          <div data-reveal><ContactCustomRequests /></div>
-        </div>
-      </main>
-    </div>
-  );
+  return <AppShell sections={sections} path={path}>{page}</AppShell>;
 }
 
 export default App;
