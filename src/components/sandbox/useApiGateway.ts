@@ -216,8 +216,8 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     if ((isMetered && trialCallsRemaining === 0) || isMutating) {
       const warnings = [
         ...(isMetered && trialCallsRemaining === 0 ? [Object.keys(authHeaders).length > 0
-          ? 'Your free trial calls for this tool are used. This request will cost one credit (0.0022 SOL) if it succeeds.'
-          : 'Your free trial calls for this tool are used. Add an API key to run paid calls after the trial.'] : []),
+          ? 'This tool\'s 3 free calls are used. This request will cost one credit (0.0022 SOL) if it succeeds.'
+          : 'This tool\'s 3 free calls are used. Add an API key to keep using it.'] : []),
         ...(isMutating ? ['This request may change account or server state.'] : []),
       ];
       if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;

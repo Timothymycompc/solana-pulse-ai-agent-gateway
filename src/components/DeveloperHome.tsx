@@ -42,7 +42,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
           </div>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-800 pt-4 text-xs text-slate-400">
             <span><strong className="text-white">3</strong> free calls per tool</span>
-            <span><strong className="text-white">0.0022 SOL</strong> after trial</span>
+            <span><strong className="text-white">0.0022 SOL</strong> per call after that</span>
             <a href="/llms.txt" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">LLM guide <ExternalLink className="h-3 w-3" /></a>
           </div>
         </div>

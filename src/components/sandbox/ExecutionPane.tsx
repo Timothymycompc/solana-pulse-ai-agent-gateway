@@ -153,7 +153,7 @@ export const ExecutionPane: React.FC<ExecutionPaneProps> = (props) => {
       <div className="grid flex-1 content-start gap-3 lg:grid-cols-2">
         <label className="flex min-h-36 flex-col gap-1.5">
           <span className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            <span>Headers · JSON</span><span className="normal-case tracking-normal text-slate-600">{props.hasAuth ? 'wallet key attached privately' : 'trial calls need no API key'}</span>
+            <span>Headers · JSON</span><span className="normal-case tracking-normal text-slate-600">{props.hasAuth ? 'wallet key attached privately' : 'free calls need no API key'}</span>
           </span>
           <textarea value={props.requestHeadersText} onChange={(e) => props.setRequestHeadersText(e.target.value)} spellCheck={false} className={`${editorClass} min-h-32 flex-1 resize-y`} placeholder={'{\n  "Content-Type": "application/json"\n}'} />
         </label>

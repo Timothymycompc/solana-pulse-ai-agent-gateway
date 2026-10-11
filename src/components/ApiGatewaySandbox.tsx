@@ -60,7 +60,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({ onOpenMcp,
           </div>
         </div>
         <p className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-xs leading-5 text-slate-400">
-          Edit the path, query values, headers, or JSON body before running. Free trial calls are shared across this playground and MCP.
+          Edit the path, query values, headers, or JSON body before running. Each tool's 3 free calls are shared across this playground and MCP.
         </p>
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(17rem,.78fr)_minmax(0,1.55fr)]">
         <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 sm:p-4">

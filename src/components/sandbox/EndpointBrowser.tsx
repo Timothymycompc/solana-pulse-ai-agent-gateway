@@ -40,7 +40,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
           />
         </div>
 
-        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use the tool's free trial calls first.</p>
+        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use the tool's 3 free calls first.</p>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1">
@@ -107,7 +107,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
                   </span>
                 </div>
                 <span className={`text-[10px] font-medium ${ep.priceLamports ? 'text-amber-300' : 'text-emerald-300'}`}>
-                  {ep.id.startsWith('mcp-') ? 'MCP · Trial then 1 credit' : ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · Trial' : 'Trial · then 1 credit') : 'No call credit'}
+                  {ep.id.startsWith('mcp-') ? 'MCP · 3 free, then 1 credit' : ep.path.startsWith('/api/solana/') ? (ep.id === 'solana-balance' ? 'Start here · 3 free calls' : '3 free, then 1 credit') : 'No call credit'}
                 </span>
               </div>
 

@@ -16,9 +16,9 @@ LLM agents that call raw Solana RPC directly must interpret transaction logs, to
 
 ## Pricing
 
-* Trial: 3 free calls per tool for each caller (counted by IP address), shared across HTTP and MCP; no wallet sign-in is needed.
-* After the trial, each successful data call costs 0.0022 SOL (one credit).
-* Data routes are rate-limited to 120 requests per minute per IP. Failed calls are refunded and do not consume trial calls.
+* Free calls: 3 per tool for each caller (counted by IP address), shared across HTTP and MCP; no wallet sign-in is needed.
+* After a tool's 3 free calls, each successful call to it costs 0.0022 SOL (one credit).
+* Data routes are rate-limited to 120 requests per minute per IP. Failed calls are refunded and do not use up free calls.
 
 ## Live Endpoints
 

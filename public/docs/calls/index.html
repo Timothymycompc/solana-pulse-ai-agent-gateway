@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="What an API call is, what one looks like, and how the 3 free calls per tool work on the Solana Pulse gateway.">
+<title>What Is a Call</title>
+<style>
+/* Layout: one reading column on the site's dark navy. Order: plain answer, real example, free calls, restaurant walkthrough, glossary. */
+:root {
+  --bg: #020617;
+  --card: #0f172a;
+  --line: #1e293b;
+  --fg: #e2e8f0;
+  --muted: #94a3b8;
+  --indigo: #818cf8;
+  --indigo-soft: rgba(99, 102, 241, 0.14);
+  --emerald: #34d399;
+  --emerald-soft: rgba(52, 211, 153, 0.12);
+  --amber: #fbbf24;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6; padding-inline: 16px; padding-block: 24px 64px; }
+a { color: var(--indigo); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; border-radius: 3px; }
+.wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 68ch; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: rgba(148, 163, 184, 0.12); padding: 1px 5px; border-radius: 4px; }
+section, header { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.muted { color: var(--muted); }
+.top { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: 0.92rem; }
+.top .brand { font-weight: 700; color: var(--fg); }
+.top a { text-decoration: none; color: var(--muted); }
+.top a:hover { color: var(--fg); }
+.lede { font-size: 1.1rem; color: var(--muted); }
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--indigo); }
+
+.flow { display: flex; flex-direction: column; }
+.step { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cell { min-width: 0; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); display: flex; flex-direction: column; gap: 2px; }
+.cell.rest { border-left: 4px solid var(--amber); }
+.cell.gate { border-left: 4px solid var(--indigo); }
+.who { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.rest .who { color: var(--amber); }
+.gate .who { color: var(--indigo); }
+.cell b { font-weight: 600; }
+.cell small { color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+.arrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 28px; color: var(--muted); font-size: 0.8rem; }
+.arrow span { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.arrow span::before { content: "↓"; font-size: 1rem; }
+.fork { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fork .col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; }
+.legend .a::before { background: var(--amber); }
+.legend .i::before { background: var(--indigo); }
+@media (max-width: 600px) {
+  .step, .arrow, .fork { grid-template-columns: 1fr; }
+  .arrow span:first-child { display: none; }
+  .arrow { height: 24px; }
+  .step .cell.rest { border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: -10px; }
+  .step .cell.gate { border-top-left-radius: 0; border-top-right-radius: 0; }
+}
+
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.93rem; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+th { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+
+pre { margin: 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.5; color: #a5b4fc; }
+.cta { display: inline-block; align-self: flex-start; background: #4f46e5; color: #fff; text-decoration: none; font-weight: 600; padding: 10px 18px; border-radius: 10px; }
+.cta:hover { background: #6366f1; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); font-size: 0.88rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <nav class="top" aria-label="Docs navigation">
+      <a href="/" class="brand">← Solana Pulse Gateway</a>
+      <a href="/docs/">Docs</a>
+      <a href="#example">An example</a>
+      <a href="#free">Free calls</a>
+      <a href="#how">How a call travels</a>
+      <a href="#glossary">Glossary</a>
+    </nav>
+    <span class="eyebrow">New to APIs?</span>
+    <h1>What is a call?</h1>
+    <p class="lede">A call is one question you send to the gateway and the one answer you get back. Ask "how much SOL is in this wallet?" and you get the number. That round trip is one call.</p>
+  </header>
+
+  <section id="example" aria-labelledby="example-h">
+    <h2 id="example-h">What one looks like</h2>
+    <p>Each kind of question has its own web address, called an endpoint or tool. You add your details to the address, and the answer comes back as structured data (JSON) that a program or AI agent can read.</p>
+    <h3>The question</h3>
+    <pre id="call-example">GET https://YOUR-GATEWAY/api/solana/balance?wallet=&lt;wallet_address&gt;</pre>
+    <h3>The answer</h3>
+    <pre>{
+  "wallet": "&lt;wallet_address&gt;",
+  "network": "mainnet-beta",
+  "balance_lamports": 1500000000,
+  "balance_sol": 1.5,
+  "live_status": "SUCCESS"
+}</pre>
+    <p class="muted">AI agents make the same calls through MCP. Instead of a web address, the agent picks a tool by name, such as <code>get_solana_balance</code>, and gets the same answer.</p>
+  </section>
+
+  <section id="free" aria-labelledby="free-h">
+    <h2 id="free-h">3 free calls for each tool</h2>
+    <p>Every tool can be called <strong>3 times free</strong>, with no wallet and no sign-up. The count is kept per tool, so trying the balance tool does not use up your free calls for the token profile. A website call and its matching MCP tool share the same 3.</p>
+    <p>After a tool's 3 free calls, each successful call to it costs <strong>0.0022 SOL</strong> (one credit). Calls that end in an error are refunded, so they never use up a free call or a credit.</p>
+    <a class="cta" href="/docs/#key">How to add credits</a>
+  </section>
+
+  <section id="how" aria-labelledby="how-h">
+    <h2 id="how-h">How a call travels: think of a restaurant</h2>
+    <p>Every part of a web service has a match in a restaurant. Follow one call from start to finish. Each step happens before the next.</p>
+    <div class="legend"><span class="a">In the restaurant</span><span class="i">In the gateway</span></div>
+    <div class="flow">
+      <div class="step">
+        <div class="cell rest"><span class="who">Customer</span><b>Sits down and wants something</b><small>A person, or a hungry program.</small></div>
+        <div class="cell gate"><span class="who">Client</span><b>Your app or AI agent</b><small>For example Claude Desktop, Cursor, or a bot you wrote.</small></div>
+      </div>
+      <div class="arrow"><span>orders from</span><span>sends a request to</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">The menu</span><b>Lists every dish and how to order it</b><small>You can only order what is printed.</small></div>
+        <div class="cell gate"><span class="who">The API</span><b>The agreed way to ask</b><small>The list of things the gateway offers, and the format for asking.</small></div>
+      </div>
+      <div class="arrow"><span>one dish</span><span>one address</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">A dish</span><b>"Table 4 would like the soup"</b><small>Each dish has its own name.</small></div>
+        <div class="cell gate"><span class="who">Endpoint</span><b><code>/api/solana/balance</code></b><small>One web address that does one job.</small></div>
+      </div>
+      <div class="arrow"><span>checks the order</span><span>checks the request</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">Cashier</span><b>Is this customer allowed to order?</b><small>Visitors can try each dish 3 times before opening a prepaid tab.</small></div>
+        <div class="cell gate"><span class="who">Free calls and credits</span><b>Counts free calls per tool, then checks your key and credits.</b><small>Decides whether the call goes ahead.</small></div>
+      </div>
+      <div class="arrow"><span>hands the ticket to</span><span>runs the code</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">Chef</span><b>Reads the ticket and cooks</b><small>Knows the recipe and does the work.</small></div>
+        <div class="cell gate"><span class="who">The logic</span><b>Checks your inputs and does the work</b><small>Runs on a server and decides what to do with your request.</small></div>
+      </div>
+      <div class="arrow"><span>gets ingredients</span><span>reads and fetches</span></div>
+      <div class="fork">
+        <div class="col">
+          <div class="cell rest"><span class="who">Pantry</span><b>Ingredients kept on hand</b><small>Things the kitchen stores for itself.</small></div>
+          <div class="cell gate"><span class="who">Database</span><b>Keys and credits</b><small>Your credit balance and call history.</small></div>
+        </div>
+        <div class="col">
+          <div class="cell rest"><span class="who">Outside supplier</span><b>Fresh produce, delivered daily</b><small>What the kitchen cannot grow itself.</small></div>
+          <div class="cell gate"><span class="who">The blockchain</span><b>Solana, read live</b><small>Balances, transactions, and token data.</small></div>
+        </div>
+      </div>
+      <div class="arrow"><span>plates the dish</span><span>returns the response</span></div>
+      <div class="step">
+        <div class="cell rest"><span class="who">The plate</span><b>The customer eats</b><small>Served in minutes.</small></div>
+        <div class="cell gate"><span class="who">The response</span><b>Structured data (JSON)</b><small>Usually well under a second.</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="glossary" aria-labelledby="gloss-h">
+    <h2 id="gloss-h">Glossary</h2>
+    <div class="tablebox">
+      <table style="min-width: 560px">
+        <thead><tr><th>Term</th><th>Restaurant version</th><th>Here</th></tr></thead>
+        <tbody>
+          <tr><td><b>API</b></td><td>The menu</td><td>Everything the gateway can do</td></tr>
+          <tr><td><b>Endpoint</b></td><td>One dish</td><td>A single address, like <code>/api/solana/balance</code></td></tr>
+          <tr><td><b>Request</b></td><td>The order</td><td>What you send, such as a wallet address</td></tr>
+          <tr><td><b>Response</b></td><td>The plate</td><td>What comes back, such as that wallet's balance</td></tr>
+          <tr><td><b>API key</b></td><td>A numbered tab</td><td>A secret that says who is ordering</td></tr>
+          <tr><td><b>Credits</b></td><td>Money on the tab</td><td>Prepaid balance that pays for paid calls</td></tr>
+          <tr><td><b>MCP server</b></td><td>A menu written for robots</td><td>Lets AI tools find and use the calls directly</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Solana Pulse Gateway. Ready to pick a call? See <a href="/docs/#calls">Which call should I use?</a></footer>
+</div>
+<script>
+(function () {
+  var el = document.getElementById("call-example");
+  if (el) el.textContent = el.textContent.replace("https://YOUR-GATEWAY", window.location.origin);
+})();
+</script>
+</body>
+</html>

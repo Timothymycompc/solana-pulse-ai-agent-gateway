@@ -444,10 +444,10 @@ export const GetStartedWalkthrough: React.FC = () => {
         </div>
         {firstDone && (
           <p className="text-xs text-emerald-300">
-            It worked. Credits left: {credits ?? 'unknown'}. If this tool still had free trial calls, this used one; otherwise it used a credit. Open the call log below to see the full response.
+            It worked. Credits left: {credits ?? 'unknown'}. If this tool still had free calls, this used one of its 3; otherwise it used a credit. Open the call log below to see the full response.
           </p>
         )}
-        <p className="text-[11px] text-slate-500">A call that ends in an error is refunded and does not consume a trial call or credit.</p>
+        <p className="text-[11px] text-slate-500">A call that ends in an error is refunded and does not use up a free call or credit.</p>
       </Step>
 
       <div className="flex justify-end">

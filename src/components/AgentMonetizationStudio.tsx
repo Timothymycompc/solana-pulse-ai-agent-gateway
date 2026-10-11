@@ -63,14 +63,14 @@ export const AgentMonetizationStudio: React.FC = () => {
         </h3>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase">After the trial</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">After 3 free calls</span>
             <p className="text-2xl font-extrabold text-white mt-1">{PRICE_PER_CALL_SOL} SOL <span className="text-sm font-normal text-slate-400">/ call</span></p>
             <p className="text-xs text-slate-400 mt-1">Each tool can be tried 3 times free first. After that, this rate applies to every successful data call and is deducted from your credit balance.</p>
           </div>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase">Free trial</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Free calls</span>
             <p className="text-2xl font-extrabold text-emerald-400 mt-1">3 calls per tool <span className="text-sm font-normal text-slate-400">/ no wallet needed</span></p>
-            <p className="text-xs text-slate-400 mt-1">Trial calls are counted per tool and caller, shared across HTTP and MCP data calls. After it is used, sign in and add credits to continue.</p>
+            <p className="text-xs text-slate-400 mt-1">Every tool gets 3 free calls, shared across HTTP and MCP. When a tool's free calls are used, sign in and add credits to keep using it.</p>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ curl -X POST ${typeof window !== 'undefined' ? window.location.origin : ''}/api/
 {`curl "${typeof window !== 'undefined' ? window.location.origin : ''}/api/solana/token-profile?mint=<token_mint>" \\
   -H "x-api-key: <your_key>"`}
           </pre>
-          <p className="text-[11px] text-slate-500 mt-1">Trial responses carry x-trial-calls-remaining. After the trial, paid responses carry x-credits-remaining. Calls that end in an error are refunded.</p>
+          <p className="text-[11px] text-slate-500 mt-1">Free responses carry x-trial-calls-remaining (free calls left for that tool). Paid responses carry x-credits-remaining. Calls that end in an error are refunded.</p>
         </div>
       </div>
 

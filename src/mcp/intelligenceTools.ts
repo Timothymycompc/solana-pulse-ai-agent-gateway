@@ -78,7 +78,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
   const countRpc = () => deps.onRpcCall?.();
 
   server.tool('get_wallet_snapshot',
-    'Build a compact wallet snapshot from SOL balance, SPL and Token-2022 holdings, and recent activity. Returns one current snapshot, not an investment recommendation. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","network":"mainnet-beta"}',
+    'Build a compact wallet snapshot from SOL balance, SPL and Token-2022 holdings, and recent activity. Returns one current snapshot, not an investment recommendation. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","network":"mainnet-beta"}',
     { wallet: WALLET, network: NETWORK }, READ_ONLY,
     async ({ wallet, network }: { wallet: string; network: string }) => {
       countRpc();
@@ -120,7 +120,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('summarize_wallet_activity',
-    'Summarize a wallet’s recent confirmed signature activity with success and failure counts and the newest signature. This does not decode transaction instructions. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","limit":20}',
+    'Summarize a wallet’s recent confirmed signature activity with success and failure counts and the newest signature. This does not decode transaction instructions. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","limit":20}',
     { wallet: WALLET, limit: z.number().int().min(1).max(100).optional().default(20).describe('Number of newest signatures to examine, from 1 to 100 (default 20).'), network: NETWORK }, READ_ONLY,
     async ({ wallet, limit, network }: { wallet: string; limit: number; network: string }) => {
       countRpc();
@@ -140,7 +140,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('resolve_token_symbol',
-    'Find Solana token pairs matching a ticker or name and return candidates ranked by reported liquidity. Use the mint address from a result to disambiguate duplicate tickers. Results come from DexScreener and can be incomplete. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"query":"BONK"}',
+    'Find Solana token pairs matching a ticker or name and return candidates ranked by reported liquidity. Use the mint address from a result to disambiguate duplicate tickers. Results come from DexScreener and can be incomplete. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"query":"BONK"}',
     { query: z.string().min(1).max(80).describe('Token ticker, project name, or mint text to search for (for example, BONK).') }, READ_ONLY,
     async ({ query }: { query: string }) => {
       try {
@@ -167,7 +167,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('get_token_market_snapshot',
-    'Return a live DEX market snapshot for a Solana mint: the most liquid pair, price, liquidity, 24-hour volume, and pair link. Market data is third-party and can be delayed; it is not a price guarantee. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"}',
+    'Return a live DEX market snapshot for a Solana mint: the most liquid pair, price, liquidity, 24-hour volume, and pair link. Market data is third-party and can be delayed; it is not a price guarantee. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"}',
     { mint: MINT }, READ_ONLY,
     async ({ mint }: { mint: string }) => {
       try {
@@ -193,7 +193,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('analyze_token_concentration',
-    'Measure the combined supply share held by the ten largest SPL token accounts and report mint authorities. Accounts are not necessarily unique people or wallets. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"}',
+    'Measure the combined supply share held by the ten largest SPL token accounts and report mint authorities. Accounts are not necessarily unique people or wallets. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"}',
     { mint: MINT, network: NETWORK }, READ_ONLY,
     async ({ mint, network }: { mint: string; network: string }) => {
       countRpc();
@@ -204,7 +204,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('compare_tokens',
-    'Compare two SPL mints using decimals, supply, mint and freeze authorities, and top-ten token-account concentration. It reports chain facts side by side and does not rank tokens as investments. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"mintA":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","mintB":"So11111111111111111111111111111111111111112"}',
+    'Compare two SPL mints using decimals, supply, mint and freeze authorities, and top-ten token-account concentration. It reports chain facts side by side and does not rank tokens as investments. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"mintA":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","mintB":"So11111111111111111111111111111111111111112"}',
     { mintA: MINT.describe('First SPL token mint address in Base58 format.'), mintB: MINT.describe('Second SPL token mint address in Base58 format.'), network: NETWORK }, READ_ONLY,
     async ({ mintA, mintB, network }: { mintA: string; mintB: string; network: string }) => {
       countRpc();
@@ -216,7 +216,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('inspect_address',
-    'Classify an on-chain address using account owner, executable flag, parsed token data, and lamport balance. It distinguishes common system wallets, programs, mints, and token accounts when RPC data allows. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"address":"11111111111111111111111111111111"}',
+    'Classify an on-chain address using account owner, executable flag, parsed token data, and lamport balance. It distinguishes common system wallets, programs, mints, and token accounts when RPC data allows. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"address":"11111111111111111111111111111111"}',
     { address: z.string().min(32).max(44).describe('Any Solana address in Base58 format: wallet, program, mint, or token account.'), network: NETWORK }, READ_ONLY,
     async ({ address, network }: { address: string; network: string }) => {
       countRpc();
@@ -251,7 +251,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('explain_transaction_effects',
-    'Explain the observed effects of a confirmed transaction: status, fee, SOL balance changes, token balance changes, and named programs touched. This saves callers from joining pre/post balance arrays themselves. It does not claim to decode every instruction. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"signature":"<confirmed transaction signature>"}',
+    'Explain the observed effects of a confirmed transaction: status, fee, SOL balance changes, token balance changes, and named programs touched. This saves callers from joining pre/post balance arrays themselves. It does not claim to decode every instruction. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"signature":"<confirmed transaction signature>"}',
     { signature: z.string().min(80).max(90).describe('Base58 signature of a confirmed Solana transaction, usually 88 characters.'), network: NETWORK }, READ_ONLY,
     async ({ signature, network }: { signature: string; network: string }) => {
       countRpc();
@@ -306,7 +306,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('analyze_wallet_portfolio',
-    'Estimate a wallet’s current SOL and token value in USD by joining on-chain balances with DEX prices for up to ten token mints. Returns priced and unpriced holdings separately and marks the total as partial when prices are missing. Prices are volatile estimates, not an execution quote. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","network":"mainnet-beta"}',
+    'Estimate a wallet’s current SOL and token value in USD by joining on-chain balances with DEX prices for up to ten token mints. Returns priced and unpriced holdings separately and marks the total as partial when prices are missing. Prices are volatile estimates, not an execution quote. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"wallet":"Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU","network":"mainnet-beta"}',
     { wallet: WALLET, network: NETWORK }, READ_ONLY,
     async ({ wallet, network }: { wallet: string; network: string }) => {
       countRpc();
@@ -364,7 +364,7 @@ export function registerIntelligenceTools(server: McpToolHost, deps: ToolDeps) {
     });
 
   server.tool('estimate_transaction_cost',
-    'Estimate a transaction’s base and priority fee from its signer count and Compute Budget instructions, then simulate it to report consumed compute units and execution errors. It never broadcasts or signs. Priority cost is only calculable when both a compute-unit limit and price are present. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {"transaction":"<base64 serialized VersionedTransaction>","network":"devnet"}',
+    'Estimate a transaction’s base and priority fee from its signer count and Compute Budget instructions, then simulate it to report consumed compute units and execution errors. It never broadcasts or signs. Priority cost is only calculable when both a compute-unit limit and price are present. Cost: 1 credit (0.0022 SOL) after 3 free calls. Example: {"transaction":"<base64 serialized VersionedTransaction>","network":"devnet"}',
     { transaction: z.string().min(1).describe('Base64-encoded serialized VersionedTransaction. Legacy transaction serialization is not accepted.'), network: NETWORK }, READ_ONLY,
     async ({ transaction, network }: { transaction: string; network: string }) => {
       countRpc();

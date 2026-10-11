@@ -176,7 +176,7 @@ export const McpDocsView: React.FC = () => {
               Connect Autonomous LLMs to Solana
             </h2>
             <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-              Give Claude, Cursor, and agents typed Solana data tools. Try each tool 3 times without a wallet; add an API key after the trial to keep calling.
+              Give Claude, Cursor, and agents typed Solana data tools. Try each tool 3 times without a wallet; add an API key to keep using a tool after its free calls.
             </p>
           </div>
           <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl min-w-[280px]">
@@ -197,7 +197,7 @@ export const McpDocsView: React.FC = () => {
             </div>
             <div>
       <h3 className="text-base font-bold text-white">Claude Desktop & Cursor Configuration</h3>
-              <p className="text-xs text-slate-400">Add this snippet to <code className="text-indigo-300">claude_desktop_config.json</code> or Cursor's <code className="text-indigo-300">mcp.json</code> (requires Node.js) to enable all 20 tools, each with 3 free trial calls. Configure an API key after the trial.</p>
+              <p className="text-xs text-slate-400">Add this snippet to <code className="text-indigo-300">claude_desktop_config.json</code> or Cursor's <code className="text-indigo-300">mcp.json</code> (requires Node.js) to enable all 20 tools, each with 3 free calls. Add an API key to keep using a tool after that.</p>
             </div>
           </div>
           <button
