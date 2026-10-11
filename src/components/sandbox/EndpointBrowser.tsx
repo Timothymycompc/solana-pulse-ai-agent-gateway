@@ -40,7 +40,7 @@ export const EndpointBrowser: React.FC<EndpointBrowserProps> = ({
           />
         </div>
 
-        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use your visitor trial first.</p>
+        <p className="text-[10px] leading-4 text-slate-500">Pick a task. Examples have sample values and use the tool's free trial calls first.</p>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1">

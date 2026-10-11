@@ -63,7 +63,7 @@ export default function Toolbar({ items, active, onSelect, walletAuthenticated, 
               <div className="mb-2 flex items-center justify-between px-1">
                 <div>
                   <h2 className="text-sm font-semibold text-white">Wallet access</h2>
-                  <p className="mt-0.5 max-w-xs text-[11px] leading-5 text-slate-500">The first 27 calls need no wallet. Connect after that to add credits and keep calling.</p>
+                  <p className="mt-0.5 max-w-xs text-[11px] leading-5 text-slate-500">The first 3 calls to each tool need no wallet. Connect after that to add credits and keep calling.</p>
                 </div>
                 <button type="button" onClick={() => setWalletOpen(false)} aria-label="Close wallet panel" className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"><X className="h-4 w-4" /></button>
               </div>

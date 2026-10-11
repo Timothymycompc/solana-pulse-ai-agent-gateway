@@ -38,6 +38,29 @@ function isMeteredToolCall(path: string, body: string): boolean {
   } catch { return false; }
 }
 
+const TRIAL_CALLS_PER_TOOL = 3;
+// HTTP routes share a trial allowance with the matching MCP tool (mirrors meter.ts).
+const routeTools: Record<string, string> = {
+  '/api/solana/balance': 'get_solana_balance',
+  '/api/solana/blockhash': 'get_solana_blockhash',
+  '/api/solana/token-accounts': 'get_token_accounts',
+  '/api/solana/transactions': 'get_recent_transactions',
+  '/api/solana/simulate': 'simulate_solana_transaction',
+  '/api/solana/validate-and-simulate': 'validate_transaction',
+  '/api/solana/find-ata': 'find_ata',
+  '/api/solana/token-profile': 'token_profile',
+  '/api/solana/optimal-fee': 'optimal_fee',
+  '/api/solana/decode-tx': 'decode_tx',
+};
+
+function trialToolFor(path: string, body: string): string {
+  try {
+    const url = new URL(path, window.location.origin);
+    if (url.pathname === '/mcp') return String(JSON.parse(body || '{}')?.params?.name || '');
+    return routeTools[url.pathname] || url.pathname;
+  } catch { return ''; }
+}
+
 function endpointPath(endpoint: ApiEndpoint): string {
   const params = new URLSearchParams();
   endpoint.queryParams?.forEach((param) => {
@@ -62,12 +85,12 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
   const [requestBodyText, setRequestBodyText] = useState('');
   const [exampleNotice, setExampleNotice] = useState('');
   const isMeteredRequest = isMeteredToolCall(requestPath, requestBodyText);
-  const [trialCallsRemaining, setTrialCallsRemaining] = useState(27);
-  useEffect(() => {
-    fetch('/api/trial/status').then((response) => response.ok ? response.json() : null)
-      .then((body) => { if (Number.isFinite(body?.callsRemaining)) setTrialCallsRemaining(body.callsRemaining); })
-      .catch(() => undefined);
-  }, []);
+  const [trialUsedByTool, setTrialUsedByTool] = useState<Record<string, number>>({});
+  const refreshTrialStatus = () => fetch('/api/trial/status').then((response) => response.ok ? response.json() : null)
+    .then((body) => { if (body?.callsUsedByTool) setTrialUsedByTool(body.callsUsedByTool); })
+    .catch(() => undefined);
+  useEffect(() => { void refreshTrialStatus(); }, []);
+  const trialCallsRemaining = Math.max(TRIAL_CALLS_PER_TOOL - (trialUsedByTool[trialToolFor(requestPath, requestBodyText)] || 0), 0);
   const sampleGeneration = useRef(0);
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -193,8 +216,8 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
     if ((isMetered && trialCallsRemaining === 0) || isMutating) {
       const warnings = [
         ...(isMetered && trialCallsRemaining === 0 ? [Object.keys(authHeaders).length > 0
-          ? 'Your visitor trial is used. This request will cost one credit (0.0022 SOL) if it succeeds.'
-          : 'Your visitor trial is used. Add an API key to run paid calls after the trial.'] : []),
+          ? 'Your free trial calls for this tool are used. This request will cost one credit (0.0022 SOL) if it succeeds.'
+          : 'Your free trial calls for this tool are used. Add an API key to run paid calls after the trial.'] : []),
         ...(isMutating ? ['This request may change account or server state.'] : []),
       ];
       if (!window.confirm(`${warnings.join('\n')}\n\nSend ${requestMethod} ${pathAndQuery}?`)) return;
@@ -219,16 +242,7 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
         ? await response.json().catch(() => ({ error: 'The gateway returned invalid JSON.' }))
         : await response.text();
       const responseHeaders = Object.fromEntries(response.headers.entries());
-      const trialRemainingHeader = response.headers.get('x-trial-calls-remaining');
-      if (trialRemainingHeader !== null) setTrialCallsRemaining(Number(trialRemainingHeader));
-      const mcpTrialRemaining = responseBody && typeof responseBody === 'object'
-        ? responseBody.result?._meta?.trialCallsRemaining
-        : undefined;
-      if (Number.isFinite(mcpTrialRemaining)) setTrialCallsRemaining(mcpTrialRemaining);
-      else if (isMetered && url.pathname === '/mcp') {
-        const status = await fetch('/api/trial/status').then((r) => r.ok ? r.json() : null).catch(() => null);
-        if (Number.isFinite(status?.callsRemaining)) setTrialCallsRemaining(status.callsRemaining);
-      }
+      if (isMetered) void refreshTrialStatus();
       addServerLog(requestMethod, pathAndQuery, response.status, latencyMs);
       window.dispatchEvent(new Event('pulse:call-done'));
       setTestResult({
@@ -305,10 +319,8 @@ export const useApiGateway = (authHeaders: Record<string, string>) => {
       headers['Content-Type'] = 'application/json';
     }
     const urlObj = new URL(url);
-    const isDataCall = urlObj.pathname.startsWith('/api/solana/') || isMeteredToolCall(requestPath, requestBodyText);
     const parts = [
       `curl -X ${requestMethod}`,
-      ...(isDataCall ? ['--cookie pulse-trial-cookies.txt', '--cookie-jar pulse-trial-cookies.txt'] : []),
       shellQuote(url),
     ];
     Object.entries(headers).forEach(([key, value]) => parts.push(`-H ${shellQuote(`${key}: ${value}`)}`));

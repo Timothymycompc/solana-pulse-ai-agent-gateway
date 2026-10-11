@@ -3,66 +3,89 @@ import { keyFromReq } from "./authKey";
 import type { Request, Response, NextFunction } from "express";
 import { pool, logCall } from "./db";
 
-export const TRIAL_CALLS_PER_VISITOR = 27;
-const hashVisitor = (visitorId: string) => createHash("sha256").update(visitorId).digest("hex");
+// Trial: each tool can be tried a few times per caller IP (IPv6 grouped by /64), shared across HTTP and MCP.
+// Keyed by IP rather than a cookie, because most agents and MCP clients do not keep cookies.
+export const TRIAL_CALLS_PER_TOOL = 3;
 
-async function reserveTrialCall(visitorId: string): Promise<number | null> {
-  const visitorHash = hashVisitor(visitorId);
+// HTTP routes share a trial allowance with the MCP tool that does the same job.
+const HTTP_ROUTE_TOOLS: Record<string, string> = {
+  "/api/solana/balance": "get_solana_balance",
+  "/api/solana/blockhash": "get_solana_blockhash",
+  "/api/solana/token-accounts": "get_token_accounts",
+  "/api/solana/transactions": "get_recent_transactions",
+  "/api/solana/simulate": "simulate_solana_transaction",
+  "/api/solana/validate-and-simulate": "validate_transaction",
+  "/api/solana/find-ata": "find_ata",
+  "/api/solana/token-profile": "token_profile",
+  "/api/solana/optimal-fee": "optimal_fee",
+  "/api/solana/decode-tx": "decode_tx",
+};
+export const toolForRoute = (path: string) => HTTP_ROUTE_TOOLS[path] || path;
+
+function normalizeIp(raw: string): string {
+  const ip = (raw || "unknown").replace(/^::ffff:/i, "");
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const full = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return full.slice(0, 4).map((x) => x.toLowerCase().replace(/^0+(?=.)/, "")).join(":");
+}
+const hashIp = (ip: string) => createHash("sha256").update("ip:" + normalizeIp(ip)).digest("hex");
+
+async function reserveTrialCall(ip: string, tool: string): Promise<number | null> {
   const result = await pool.query(
-    `INSERT INTO anonymous_trial_usage (visitor_hash, calls_used)
-     VALUES ($1, 1)
-     ON CONFLICT (visitor_hash) DO UPDATE SET
-       calls_used = anonymous_trial_usage.calls_used + 1,
+    `INSERT INTO trial_tool_usage (ip_hash, tool, calls_used)
+     VALUES ($1, $2, 1)
+     ON CONFLICT (ip_hash, tool) DO UPDATE SET
+       calls_used = trial_tool_usage.calls_used + 1,
        last_call_at = NOW()
-     WHERE anonymous_trial_usage.calls_used < $2
+     WHERE trial_tool_usage.calls_used < $3
      RETURNING calls_used`,
-    [visitorHash, TRIAL_CALLS_PER_VISITOR]
+    [hashIp(ip), tool, TRIAL_CALLS_PER_TOOL]
   );
   return result.rowCount ? Number(result.rows[0].calls_used) : null;
 }
 
-async function refundTrialCall(visitorId: string): Promise<void> {
+async function refundTrialCall(ip: string, tool: string): Promise<void> {
   try {
     await pool.query(
-      `UPDATE anonymous_trial_usage
-       SET calls_used = GREATEST(calls_used - 1, 0)
-       WHERE visitor_hash = $1`,
-      [hashVisitor(visitorId)]
+      `UPDATE trial_tool_usage SET calls_used = GREATEST(calls_used - 1, 0) WHERE ip_hash = $1 AND tool = $2`,
+      [hashIp(ip), tool]
     );
   } catch (error) { console.error("trial refund failed:", error); }
 }
 
-export async function getTrialStatus(visitorId: string): Promise<{ used: number; remaining: number }> {
-  const result = await pool.query(
-    `SELECT calls_used FROM anonymous_trial_usage WHERE visitor_hash = $1`,
-    [hashVisitor(visitorId)]
-  );
-  const used = Number(result.rows[0]?.calls_used || 0);
-  return { used, remaining: Math.max(TRIAL_CALLS_PER_VISITOR - used, 0) };
+// Trial calls used per tool for this caller; tools never called are omitted.
+export async function getTrialStatus(ip: string): Promise<Record<string, number>> {
+  const result = await pool.query(`SELECT tool, calls_used FROM trial_tool_usage WHERE ip_hash = $1`, [hashIp(ip)]);
+  return Object.fromEntries(result.rows.map((r: any) => [r.tool, Number(r.calls_used)]));
 }
 
 export type TrialMeterOutcome =
-  | { ok: true; via: "trial"; trialCallsRemaining: number }
+  | { ok: true; via: "trial"; trialCallsRemaining: number; ip: string; tool: string }
   | { ok: true; via: "credits"; creditsRemaining: number; wallet: string }
-  | { ok: false; status: 402 | 503; error: string; priceLamports: number; trialCallsUsed?: number };
+  | { ok: false; status: 402 | 503; error: string; priceLamports: number };
 
-export async function meterTrialOrCredit(o: { apiKey?: string; ip: string; visitorId: string; priceLamports: number }): Promise<TrialMeterOutcome> {
-  try {
-    const used = await reserveTrialCall(o.visitorId);
-    if (used !== null) return { ok: true, via: "trial", trialCallsRemaining: Math.max(TRIAL_CALLS_PER_VISITOR - used, 0) };
-  } catch (error) {
-    console.error("trial metering error:", error);
-    return { ok: false, status: 503, error: "Trial usage temporarily unavailable", priceLamports: o.priceLamports };
+export async function meterTrialOrCredit(o: { apiKey?: string; ip: string; tool: string; priceLamports: number }): Promise<TrialMeterOutcome> {
+  if (o.ip && o.ip !== "unknown") {
+    try {
+      const used = await reserveTrialCall(o.ip, o.tool);
+      if (used !== null) return { ok: true, via: "trial", trialCallsRemaining: Math.max(TRIAL_CALLS_PER_TOOL - used, 0), ip: o.ip, tool: o.tool };
+    } catch (error) {
+      console.error("trial metering error:", error);
+      return { ok: false, status: 503, error: "Trial usage temporarily unavailable", priceLamports: o.priceLamports };
+    }
   }
 
   const paid = await meterCall(o);
   if (paid.ok) return { ok: true, via: "credits", creditsRemaining: paid.creditsRemaining, wallet: paid.wallet };
   const failure = paid as Extract<MeterOutcome, { ok: false }>;
-  return { ok: false, status: failure.status, error: failure.error, priceLamports: failure.priceLamports, trialCallsUsed: TRIAL_CALLS_PER_VISITOR };
+  return { ok: false, status: failure.status, error: failure.error, priceLamports: failure.priceLamports };
 }
 
-export async function refundTrialOrCredit(metering: Extract<TrialMeterOutcome, { ok: true }>, visitorId: string): Promise<void> {
-  if (metering.via === "trial") return refundTrialCall(visitorId);
+export async function refundTrialOrCredit(metering: Extract<TrialMeterOutcome, { ok: true }>): Promise<void> {
+  if (metering.via === "trial") return refundTrialCall(metering.ip, metering.tool);
   return refundCredit(metering.wallet);
 }
 
@@ -107,18 +130,16 @@ export async function meterCall(o: { apiKey?: string; ip: string; priceLamports:
 
 export function trialMeterMiddleware(price: number, payTo: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const visitorId = (req as any).trialVisitorId as string | undefined;
-    if (!visitorId) return res.status(503).json({ error: "Visitor trial could not be initialized. Reload and retry." });
-    const meter = await meterTrialOrCredit({ apiKey: keyFromReq(req), ip: req.ip || "unknown", visitorId, priceLamports: price });
+    const tool = toolForRoute(req.path);
+    const meter = await meterTrialOrCredit({ apiKey: keyFromReq(req), ip: req.ip || "unknown", tool, priceLamports: price });
     if (!meter.ok) {
       const failure = meter as Exclude<TrialMeterOutcome, { ok: true }>;
       return res.status(failure.status).json({
         error: failure.error,
         priceLamports: failure.priceLamports,
-        trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR,
-        trialCallsUsed: failure.trialCallsUsed ?? undefined,
+        trialCallsPerTool: TRIAL_CALLS_PER_TOOL,
         instructions: failure.status === 402
-          ? `Your 27 anonymous trial calls are used. Sign in with a wallet, add credits, and send x-api-key to continue. Top up at ${payTo}.`
+          ? `Your ${TRIAL_CALLS_PER_TOOL} trial calls for this tool are used. Sign in with a wallet, add credits, and send x-api-key to continue. Top up at ${payTo}.`
           : "Retry shortly.",
         payTo: failure.status === 402 ? payTo : undefined,
       });
@@ -137,7 +158,7 @@ export function trialMeterMiddleware(price: number, payTo: string) {
     const endpoint = req.path;
     res.once("finish", () => {
       const failed = res.statusCode >= 400;
-      if (failed) void refundTrialOrCredit(meter, visitorId);
+      if (failed) void refundTrialOrCredit(meter);
       void logCall({ wallet: meter.via === "credits" ? meter.wallet : null, endpoint, method: req.method, priceCredits: meter.via === "credits" && !failed ? 1 : 0, via: meter.via, status: res.statusCode });
     });
     return next();

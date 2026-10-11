@@ -105,7 +105,7 @@ export const ExecutionPane: React.FC<ExecutionPaneProps> = (props) => {
     if (status === 0) return 'The browser could not reach the gateway. Check your connection and try again.';
     if (status >= 200 && status < 300) return 'The request worked. The response below is from the live gateway.';
     if (status === 400) return 'The gateway received the request, but one or more values are missing or invalid. Review the path, query, and JSON body.';
-    if (status === 401 || status === 402) return 'Your 27 visitor trial calls are used. Connect a wallet in the header, add credits, and try again.';
+    if (status === 401 || status === 402) return 'Your 3 free calls for this tool are used. Connect a wallet in the header, add credits, and try again.';
     if (status === 404) return 'That route or chain record was not found. Check the path and the wallet, mint, or transaction signature.';
     if (status === 429) return 'Too many requests were sent in a short time. Wait a moment and try again.';
     if (status >= 500) return 'The gateway or its Solana data provider had a problem. Try again shortly; check the request values if it continues.';
@@ -166,7 +166,7 @@ export const ExecutionPane: React.FC<ExecutionPaneProps> = (props) => {
       </div>
 
       {props.exampleNotice && <div role="status" className="flex gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 text-[11px] leading-5 text-indigo-200"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />{props.exampleNotice}</div>}
-      {metered && <div className="flex gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>Each visitor gets 27 calls shared across HTTP and MCP. After those are used, each successful call costs one credit (0.0022 SOL); wallet sign-in is only needed to keep calling.</span></div>}
+      {metered && <div className="flex gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>Each tool gets 3 free calls, shared across HTTP and MCP. After those are used, each successful call costs one credit (0.0022 SOL); wallet sign-in is only needed to keep calling.</span></div>}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
         <button onClick={() => void props.handleExecuteRequest()} disabled={props.isExecuting} className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-60">

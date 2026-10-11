@@ -294,9 +294,9 @@ export const GetStartedWalkthrough: React.FC = () => {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold text-white">Try 27 calls, then add credits if you need more</h2>
+        <h2 className="text-xl font-bold text-white">Try each tool 3 times, then add credits if you need more</h2>
         <p className="mt-1 text-xs text-slate-400">
-          You can try the HTTP API or MCP without a wallet first. The 27-call visitor trial is tracked by a browser cookie. Use the steps below when you are ready to sign in and continue with credits; every step is a real call shown in the log below.
+          You can try the HTTP API or MCP without a wallet first. Each tool can be called 3 times free. Use the steps below when you are ready to sign in and continue with credits; every step is a real call shown in the log below.
         </p>
       </div>
 
@@ -444,7 +444,7 @@ export const GetStartedWalkthrough: React.FC = () => {
         </div>
         {firstDone && (
           <p className="text-xs text-emerald-300">
-            It worked. Credits left: {credits ?? 'unknown'}. If visitor trial calls remain, this used one; otherwise it used a credit. Open the call log below to see the full response.
+            It worked. Credits left: {credits ?? 'unknown'}. If this tool still had free trial calls, this used one; otherwise it used a credit. Open the call log below to see the full response.
           </p>
         )}
         <p className="text-[11px] text-slate-500">A call that ends in an error is refunded and does not consume a trial call or credit.</p>

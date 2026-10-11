@@ -6,7 +6,7 @@ import path from "path";
 import { Connection, PublicKey, clusterApiUrl, VersionedTransaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import fs from "fs";
-import { randomUUID, timingSafeEqual, randomBytes, createHash, createHmac } from "crypto";
+import { randomUUID, timingSafeEqual, randomBytes, createHash } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { pool, ensureSchema, recordProcessedPayment, recordServiceUsage } from "./db";
@@ -19,7 +19,7 @@ import { registerIntelligenceTools } from "./src/mcp/intelligenceTools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { getTrialStatus, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_VISITOR, trialMeterMiddleware } from "./meter";
+import { getTrialStatus, meterTrialOrCredit, refundTrialOrCredit, TRIAL_CALLS_PER_TOOL, trialMeterMiddleware } from "./meter";
 import { z } from "zod";
 
 async function startServer() {
@@ -43,34 +43,6 @@ async function startServer() {
     verify: (req: any, res, buf) => { req.rawBody = buf; }
   }));
 
-  const trialCookieName = "pulse_trial";
-  const trialCookieSecret = process.env.TRIAL_COOKIE_SECRET || process.env.HELIUS_WEBHOOK_SECRET || process.env.DATABASE_URL || "local-development-trial-secret";
-  const signTrialVisitor = (visitorId: string) => createHmac("sha256", trialCookieSecret).update(visitorId).digest("hex");
-  const getTrialVisitorId = (req: any): string | null => {
-    const cookies = String(req.headers.cookie || "").split(";");
-    const entry = cookies.map((part: string) => part.trim()).find((part: string) => part.startsWith(`${trialCookieName}=`));
-    if (!entry) return null;
-    let value = "";
-    try { value = decodeURIComponent(entry.slice(trialCookieName.length + 1)); } catch { return null; }
-    const [visitorId, signature] = value.split(".");
-    if (!/^[0-9a-f-]{36}$/i.test(visitorId || "") || !/^[0-9a-f]{64}$/i.test(signature || "")) return null;
-    const expected = Buffer.from(signTrialVisitor(visitorId), "hex");
-    const supplied = Buffer.from(signature, "hex");
-    return expected.length === supplied.length && timingSafeEqual(expected, supplied) ? visitorId : null;
-  };
-  const ensureTrialVisitor = (req: any, res: any, next: any) => {
-    let visitorId = getTrialVisitorId(req);
-    if (!visitorId) {
-      visitorId = randomUUID();
-      const secure = process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https";
-      const cookie = `${trialCookieName}=${visitorId}.${signTrialVisitor(visitorId)}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
-      res.append("Set-Cookie", cookie);
-    }
-    req.trialVisitorId = visitorId;
-    next();
-  };
-  app.use("/api", ensureTrialVisitor);
-  app.use("/mcp", ensureTrialVisitor);
 
   // Record route-level usage without storing query values, request bodies, or IP addresses.
   const trackServiceUsage = (req: any, res: any, next: any) => {
@@ -829,8 +801,8 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         lamports: calls * PRICE_PER_CALL_LAMPORTS,
         sol: (calls * PRICE_PER_CALL_LAMPORTS) / 1e9,
       })),
-      trial_calls_per_visitor: TRIAL_CALLS_PER_VISITOR,
-      note: "New visitors can make 27 trial calls without signing in. After the trial, credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples from the wallet you will sign in with."
+      trial_calls_per_tool: TRIAL_CALLS_PER_TOOL,
+      note: "Each tool can be tried 3 times without signing in. After the trial, credits are floor(deposit / price_per_call_lamports); any remainder is not credited. Send exact multiples from the wallet you will sign in with."
     });
   });
 
@@ -938,14 +910,14 @@ app.post("/api/auth/login", noCache, async (req, res) => {
         [address]
       );
       const row = w.rows[0];
-      const trial = await getTrialStatus((req as any).trialVisitorId);
+      const trialUsed = await getTrialStatus(req.ip || "unknown");
       return res.json({
         address,
         paidCredits: Number(row?.paid_credits || 0),
         totalCallsMade: Number(row?.total_calls_made || 0),
         totalPaidCreditsEver: Number(row?.total_paid_credits_ever || 0),
-        trialCallsRemaining: trial.remaining,
-        trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR,
+        trialCallsUsedByTool: trialUsed,
+        trialCallsPerTool: TRIAL_CALLS_PER_TOOL,
         lamportsPerCall: 2200000,
         hasWallet: Boolean(row)
       });
@@ -957,8 +929,8 @@ app.post("/api/auth/login", noCache, async (req, res) => {
 
   app.get("/api/trial/status", noCache, async (req: any, res) => {
     try {
-      const status = await getTrialStatus(req.trialVisitorId);
-      res.json({ scope: "visitor_cookie", trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR, callsUsed: status.used, callsRemaining: status.remaining, priceAfterTrialLamports: PRICE_PER_CALL_LAMPORTS });
+      const used = await getTrialStatus(req.ip || "unknown");
+      res.json({ scope: "caller_ip", trialCallsPerTool: TRIAL_CALLS_PER_TOOL, callsUsedByTool: used, priceAfterTrialLamports: PRICE_PER_CALL_LAMPORTS });
     } catch (error) {
       console.error("trial status lookup failed:", error);
       res.status(503).json({ error: "Trial status is temporarily unavailable." });
@@ -1114,20 +1086,20 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   // 3. MCP SERVER (FOR LLMs / AGENTS)
   // ==========================================
 
-  const createMcpServer = (ctx: { apiKey?: string; ip: string; visitorId: string } = { ip: "unknown", visitorId: "" }) => {
+  const createMcpServer = (ctx: { apiKey?: string; ip: string } = { ip: "unknown" }) => {
   const mcpServer = new McpServer({ name: "solana-pulse-gateway", version: "1.0.0" });
   const rawTool = (mcpServer as any).tool.bind(mcpServer);
   (mcpServer as any).tool = (name: string, ...rest: any[]) => {
     const handler = rest.pop();
     return rawTool(name, ...rest, async (...args: any[]) => {
-      const m: any = await meterTrialOrCredit({ apiKey: ctx.apiKey, ip: ctx.ip, visitorId: ctx.visitorId, priceLamports: PRICE_PER_CALL_LAMPORTS });
+      const m: any = await meterTrialOrCredit({ apiKey: ctx.apiKey, ip: ctx.ip, tool: name, priceLamports: PRICE_PER_CALL_LAMPORTS });
       if (!m.ok) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || PRICE_PER_CALL_LAMPORTS, trialCallsPerVisitor: TRIAL_CALLS_PER_VISITOR, trialCallsUsed: m.trialCallsUsed ?? undefined, payTo: GATEWAY_WALLET, note: "The anonymous trial is used. Sign in with a wallet, add credits, and reconnect with x-api-key." }) }], isError: true };
+        return { content: [{ type: "text", text: JSON.stringify({ error: m.error || "Payment required", priceLamports: m.priceLamports || PRICE_PER_CALL_LAMPORTS, trialCallsPerTool: TRIAL_CALLS_PER_TOOL, payTo: GATEWAY_WALLET, note: `Your ${TRIAL_CALLS_PER_TOOL} trial calls for ${name} are used. Sign in with a wallet, add credits, and reconnect with x-api-key.` }) }], isError: true };
       }
       let result: any;
       try { result = await handler(...args); }
-      catch (e) { await refundTrialOrCredit(m, ctx.visitorId); throw e; }
-      if (result && result.isError) await refundTrialOrCredit(m, ctx.visitorId);
+      catch (e) { await refundTrialOrCredit(m); throw e; }
+      if (result && result.isError) await refundTrialOrCredit(m);
       const trialCallsRemaining = m.via === "trial" ? m.trialCallsRemaining : 0;
       return { ...result, _meta: { ...(result?._meta || {}), trialCallsRemaining } };
     });
@@ -1136,7 +1108,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta").describe('Cluster to query: "mainnet-beta" (real funds; the default) or "devnet" (test network). Optional.');
   const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
-  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_solana_balance", "Get a wallet's current SOL balance. Use it to check a wallet can cover a transfer or fee, or that funds arrived. Returns {wallet, network, balance_sol}. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose SOL balance to read: base58 public key, 32-44 characters (required)."), network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
     stats.solanaRpcCalls++;
@@ -1146,7 +1118,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"network\":\"mainnet-beta\"}", {
+  mcpServer.tool("get_solana_blockhash", "Get the latest finalized blockhash. Use it when building a transaction you will sign and send yourself; a transaction is only valid with a recent blockhash. Returns {network, blockhash, timestamp}. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {\"network\":\"mainnet-beta\"}", {
     network: NETWORK
   }, READ_ONLY, async ({ network }) => {
     stats.solanaRpcCalls++;
@@ -1156,7 +1128,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\"}", {
+  mcpServer.tool("get_token_accounts", "List every SPL token account a wallet owns: account address, mint, balance, decimals. Use it to see what tokens a wallet holds before swapping or sending. Returns {wallet, tokenCount, tokens}. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {\"wallet\":\"<wallet address>\"}", {
     wallet: z.string().describe("Wallet whose token accounts to list: base58 public key, 32-44 characters (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ wallet, network }) => {
@@ -1180,7 +1152,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
+  mcpServer.tool("get_recent_transactions", "List a wallet's most recent transaction signatures, newest first, with slot, time and error status. Use it to find a transaction to inspect with decode_tx. Returns {wallet, count, signatures}. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {\"wallet\":\"<wallet address>\",\"limit\":5}", {
     wallet: z.string().describe("Wallet whose transaction history to list: base58 public key, 32-44 characters (required)."),
     limit: z.number().int().min(1).max(1000).optional().default(10).describe("How many signatures to return, newest first: integer 1-1000 (optional, default 10)."),
     network: NETWORK
@@ -1193,7 +1165,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("simulate_solana_transaction", "Dry-run a transaction against live chain state without sending it. Returns success, error, program logs and compute units used. Use it to test a transaction; for a SAFE or UNSAFE verdict with fix hints use validate_transaction. Nothing is broadcast. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+  mcpServer.tool("simulate_solana_transaction", "Dry-run a transaction against live chain state without sending it. Returns success, error, program logs and compute units used. Use it to test a transaction; for a SAFE or UNSAFE verdict with fix hints use validate_transaction. Nothing is broadcast. Cost: 1 credit (0.0022 SOL) after 3 free trial calls; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
     transaction: z.string().describe("The transaction to test: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ transaction, network }) => {
@@ -1224,7 +1196,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 
   // ---- Added: remaining gateway endpoints exposed as MCP tools ----
 
-  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: 1 credit (0.0022 SOL) after the 27-call trial. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+  mcpServer.tool("find_ata", "Derive the Associated Token Account (ATA) address for a wallet and token mint, and say whether it already exists on-chain. Use it before sending SPL tokens, to know the destination account and whether it must be created. Returns {owner, mint, ataAddress, exists, network}. Cost: 1 credit (0.0022 SOL) after 3 free trial calls. Example: {\"wallet\":\"<wallet address>\",\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
     wallet: z.string().describe("Owner of the token account: a regular wallet address (base58 public key, 32-44 characters), not a program-derived address (required)."),
     mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v is USDC."),
     network: NETWORK
@@ -1239,7 +1211,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("token_profile", "Live safety profile of an SPL token: decimals, supply, freeze and mint authority status, a risk level (HIGH when a freeze authority exists, so holders can be frozen), and the top 10 holders. Use it before buying or recommending an unfamiliar token. Cached 60 seconds. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
+  mcpServer.tool("token_profile", "Live safety profile of an SPL token: decimals, supply, freeze and mint authority status, a risk level (HIGH when a freeze authority exists, so holders can be frozen), and the top 10 holders. Use it before buying or recommending an unfamiliar token. Cached 60 seconds. Cost: 1 credit (0.0022 SOL) after 3 free trial calls; calls that return an error are refunded. Example: {\"mint\":\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"}", {
     mint: z.string().describe("Token mint address: base58, 32-44 characters (required). Pass the mint, not a ticker symbol."),
     network: NETWORK
   }, READ_ONLY, async ({ mint, network }: any) => {
@@ -1312,7 +1284,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     }
   });
 
-  mcpServer.tool("optimal_fee", "Live priority-fee recommendation for current congestion: low, medium and high tiers in micro-lamports per compute unit with estimated confirmation times, plus min, max and average. Use it just before sending a transaction so it lands without overpaying. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"network\":\"mainnet-beta\"}", {
+  mcpServer.tool("optimal_fee", "Live priority-fee recommendation for current congestion: low, medium and high tiers in micro-lamports per compute unit with estimated confirmation times, plus min, max and average. Use it just before sending a transaction so it lands without overpaying. Cost: 1 credit (0.0022 SOL) after 3 free trial calls; calls that return an error are refunded. Example: {\"network\":\"mainnet-beta\"}", {
     network: NETWORK
   }, READ_ONLY, async ({ network }: any) => {
     stats.solanaRpcCalls++;
@@ -1346,7 +1318,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("decode_tx", "Explain a confirmed transaction in plain language: category (swap, SOL transfer, meme-coin trade), success or failure, fee, slot, time, each account's SOL balance change, and raw logs. Use it to check what a transaction actually did. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"signature\":\"<transaction signature>\"}", {
+  mcpServer.tool("decode_tx", "Explain a confirmed transaction in plain language: category (swap, SOL transfer, meme-coin trade), success or failure, fee, slot, time, each account's SOL balance change, and raw logs. Use it to check what a transaction actually did. Cost: 1 credit (0.0022 SOL) after 3 free trial calls; calls that return an error are refunded. Example: {\"signature\":\"<transaction signature>\"}", {
     signature: z.string().describe("Signature of a confirmed transaction: base58 string, about 88 characters; get one from get_recent_transactions (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ signature, network }: any) => {
@@ -1384,7 +1356,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     } catch (err: any) { return { content: [{ type: "text", text: `Error: ${err.message}` }], isError: true }; }
   });
 
-  mcpServer.tool("validate_transaction", "Pre-send safety check: decodes the transaction, checks the fee payer can pay fees, tests it against live chain state without sending, and returns a SAFE or UNSAFE verdict with issues (each with a code and fix hint), logs and compute units. Use it as the last step before signing an agent-built transaction. Cost: 1 credit (0.0022 SOL), x-api-key header required; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
+  mcpServer.tool("validate_transaction", "Pre-send safety check: decodes the transaction, checks the fee payer can pay fees, tests it against live chain state without sending, and returns a SAFE or UNSAFE verdict with issues (each with a code and fix hint), logs and compute units. Use it as the last step before signing an agent-built transaction. Cost: 1 credit (0.0022 SOL) after 3 free trial calls; calls that return an error are refunded. Example: {\"transaction\":\"<base64 transaction>\"}", {
     transaction: z.string().describe("The transaction to check: base64-encoded serialized VersionedTransaction (not a legacy Transaction), signed or unsigned (required)."),
     network: NETWORK
   }, READ_ONLY, async ({ transaction, network }: any) => {
@@ -1492,7 +1464,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     transports.set(sessionId, transport);
-    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", visitorId: (req as any).trialVisitorId }).connect(transport);
+    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" }).connect(transport);
     res.on("close", () => transports.delete(sessionId));
   });
 
@@ -1505,7 +1477,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
   });
 
   app.post("/mcp", express.json(), async (req, res) => {
-    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", visitorId: (req as any).trialVisitorId });
+    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {
@@ -1530,7 +1502,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
           "description": "Twenty read-only tools combine live Solana account data, transaction effects, token market context, portfolio estimates, and transaction cost analysis. Metered calls cost 0.0022 SOL per credit."
         }
       },
-      "instructions": "Connect using POST /mcp (Streamable HTTP) or /mcp/sse (SSE). Each visitor gets 27 free data calls tracked by a first-party cookie and shared between HTTP and MCP. No wallet sign-in is needed for those trial calls. Afterward, each successful data call costs one 0.0022 SOL credit and requires an x-api-key. Token authority and concentration fields are screening signals, not complete safety checks. Market values are estimates; transaction simulation is not a guarantee of later execution.",
+      "instructions": "Connect using POST /mcp (Streamable HTTP) or /mcp/sse (SSE). Each tool can be tried 3 times free per caller, shared between HTTP and MCP. No wallet sign-in is needed for trial calls. Afterward, each successful data call costs one 0.0022 SOL credit and requires an x-api-key. Token authority and concentration fields are screening signals, not complete safety checks. Market values are estimates; transaction simulation is not a guarantee of later execution.",
       "mcp_sse_endpoint": "/mcp/sse",
       "tools": [
         { "name": "get_solana_balance", "description": "Read a wallet's SOL balance. Trial call, then 1 credit." },
@@ -1573,7 +1545,7 @@ app.post("/api/payments/helius-webhook", async (req, res) => {
 Solana blockchain API and Model Context Protocol (MCP) server. Provides read-only lookups, transaction simulation, token metadata, priority-fee estimates, and transaction decoding on mainnet-beta and devnet.
 
 ## Pricing
-- Each visitor gets 27 free data calls tracked by a first-party cookie, shared between HTTP and MCP; no wallet sign-in is needed for the trial.
+- Each tool can be tried 3 times free per caller (counted by IP address), shared between HTTP and MCP; no wallet sign-in is needed for the trial.
 - After the trial, each successful data call costs 0.0022 SOL (one credit).
 - Requests are rate-limited to 120 per minute per IP.
 
@@ -1588,12 +1560,12 @@ Solana blockchain API and Model Context Protocol (MCP) server. Provides read-onl
 - GET /api/solana/token-profile?mint=<mint> — token details, mint authorities, risk signal, and top holders.
 - GET /api/solana/optimal-fee — recent priority-fee estimates.
 - GET /api/solana/decode-tx?signature=<signature> — transaction summary and balance changes.
-- GET /api/trial/status — remaining calls for this visitor's first-party cookie.
+- GET /api/trial/status — trial calls used per tool for this caller.
 
 ## MCP Tools (20)
 - Core tools: get_solana_balance, get_solana_blockhash, get_token_accounts, get_recent_transactions, simulate_solana_transaction, find_ata, token_profile, optimal_fee, decode_tx, and validate_transaction.
 - Intelligence tools: get_wallet_snapshot, summarize_wallet_activity, resolve_token_symbol, get_token_market_snapshot, analyze_token_concentration, compare_tokens, inspect_address, explain_transaction_effects, analyze_wallet_portfolio, and estimate_transaction_cost.
-- All tools share the 27-call trial allowance, then cost one credit per successful call.
+- Each tool has 3 free trial calls, then costs one credit per successful call.
 
 ## Authentication
 - Sign in with a wallet: GET /api/auth/challenge, sign the returned message, then POST /api/auth/login with wallet, signature (base58) and message

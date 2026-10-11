@@ -16,8 +16,7 @@ LLM agents that call raw Solana RPC directly must interpret transaction logs, to
 
 ## Pricing
 
-* Trial: 27 calls per visitor, tracked by a first-party cookie and shared across HTTP and MCP; no wallet sign-in is needed.
-* Non-browser clients should retain the returned `pulse_trial` cookie between calls so their trial count stays with the same visitor.
+* Trial: 3 free calls per tool for each caller (counted by IP address), shared across HTTP and MCP; no wallet sign-in is needed.
 * After the trial, each successful data call costs 0.0022 SOL (one credit).
 * Data routes are rate-limited to 120 requests per minute per IP. Failed calls are refunded and do not consume trial calls.
 
@@ -33,7 +32,7 @@ LLM agents that call raw Solana RPC directly must interpret transaction logs, to
 * `GET /api/solana/token-profile?mint=<base58>` — mint decimals/supply, freeze & mint authority, top holders; freeze-authority risk is a heuristic, not honeypot detection
 * `GET /api/solana/optimal-fee` — tiered priority fee recommendations based on live network congestion
 * `GET /api/solana/decode-tx?signature=<sig>` — translate raw transaction logs into a plain-English summary
-* `GET /api/trial/status` — show trial calls remaining for this browser cookie
+* `GET /api/trial/status` — show trial calls used per tool for this caller
 * `GET /.well-known/mcp.json` — MCP tool manifest for agent auto-discovery
 * `/mcp/sse`, `/mcp/messages`, `/mcp` — MCP server endpoints (SSE and streamable HTTP transports)
 

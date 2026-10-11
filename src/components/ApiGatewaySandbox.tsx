@@ -39,10 +39,10 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({ onOpenMcp,
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-300">Interactive API explorer</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white">Make a real request</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-400">New here? Start with a live example. You get 27 calls as a visitor before billing begins; edit any part of the request, run it, then inspect the live response.</p>
+            <p className="mt-1 max-w-2xl text-sm text-slate-400">New here? Start with a live example. Each tool gets 3 free calls before billing begins; edit any part of the request, run it, then inspect the live response.</p>
           </div>
           <div className="flex gap-2 text-[11px]">
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-emerald-300">{state.trialCallsRemaining} visitor trial calls left</span>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-emerald-300">{state.trialCallsRemaining} free calls left for this tool</span>
             <span className="rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-amber-200">Then 0.0022 SOL per successful call</span>
           </div>
         </div>
@@ -60,7 +60,7 @@ export const ApiGatewaySandbox: React.FC<ApiGatewaySandboxProps> = ({ onOpenMcp,
           </div>
         </div>
         <p className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-xs leading-5 text-slate-400">
-          Edit the path, query values, headers, or JSON body before running. Your visitor trial is shared across this playground and MCP.
+          Edit the path, query values, headers, or JSON body before running. Free trial calls are shared across this playground and MCP.
         </p>
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(17rem,.78fr)_minmax(0,1.55fr)]">
         <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 sm:p-4">

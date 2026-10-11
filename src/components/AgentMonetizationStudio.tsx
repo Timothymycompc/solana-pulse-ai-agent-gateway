@@ -65,12 +65,12 @@ export const AgentMonetizationStudio: React.FC = () => {
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
             <span className="text-[11px] font-semibold text-slate-400 uppercase">After the trial</span>
             <p className="text-2xl font-extrabold text-white mt-1">{PRICE_PER_CALL_SOL} SOL <span className="text-sm font-normal text-slate-400">/ call</span></p>
-            <p className="text-xs text-slate-400 mt-1">Each visitor gets 27 calls first. After that, this rate applies to every successful data call and is deducted from your credit balance.</p>
+            <p className="text-xs text-slate-400 mt-1">Each tool can be tried 3 times free first. After that, this rate applies to every successful data call and is deducted from your credit balance.</p>
           </div>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase">Visitor trial</span>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-1">27 calls <span className="text-sm font-normal text-slate-400">/ no wallet needed</span></p>
-            <p className="text-xs text-slate-400 mt-1">A first-party browser cookie tracks the visitor trial, shared across HTTP and MCP data calls. After it is used, sign in and add credits to continue.</p>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Free trial</span>
+            <p className="text-2xl font-extrabold text-emerald-400 mt-1">3 calls per tool <span className="text-sm font-normal text-slate-400">/ no wallet needed</span></p>
+            <p className="text-xs text-slate-400 mt-1">Trial calls are counted per tool and caller, shared across HTTP and MCP data calls. After it is used, sign in and add credits to continue.</p>
           </div>
         </div>
       </div>

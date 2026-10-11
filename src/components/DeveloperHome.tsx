@@ -10,7 +10,7 @@ interface DeveloperHomeProps {
 
 export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMcp }) => {
   const [copied, setCopied] = React.useState(false);
-  const curl = `curl -b pulse-trial-cookies.txt -c pulse-trial-cookies.txt '${window.location.origin}/api/solana/balance?wallet=${exampleWallet}&network=mainnet-beta'`;
+  const curl = `curl '${window.location.origin}/api/solana/balance?wallet=${exampleWallet}&network=mainnet-beta'`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(curl);
@@ -30,7 +30,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
             Build with Solana data, without stitching every answer together.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
-            Get current account data and ready-to-use analysis over HTTP or MCP. Try 27 calls as a visitor before wallet sign-in is needed.
+            Get current account data and ready-to-use analysis over HTTP or MCP. Try every tool 3 times free before wallet sign-in is needed.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={onTryApi} className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
@@ -41,7 +41,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
             </button>
           </div>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-800 pt-4 text-xs text-slate-400">
-            <span><strong className="text-white">27</strong> calls per visitor</span>
+            <span><strong className="text-white">3</strong> free calls per tool</span>
             <span><strong className="text-white">0.0022 SOL</strong> after trial</span>
             <a href="/llms.txt" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">LLM guide <ExternalLink className="h-3 w-3" /></a>
           </div>
@@ -51,7 +51,7 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
           <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <div>
               <p className="text-xs font-semibold text-white">First live request</p>
-              <p className="mt-1 text-[11px] text-slate-500">The cookie jar keeps your trial count between cURL calls.</p>
+              <p className="mt-1 text-[11px] text-slate-500">Each tool has 3 free calls; no key needed.</p>
             </div>
             <button onClick={() => void copy()} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-2 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white" aria-label="Copy cURL example">
               {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy'}
