@@ -24,7 +24,7 @@ export function mcpDescription(tool: ToolDef): string {
 // Public documentation for one tool (everything except the code).
 export function toolDoc(tool: ToolDef) {
   return {
-    name: tool.name, title: tool.title, category: tool.category, useWhen: tool.useWhen, description: tool.description,
+    name: tool.name, title: tool.title, category: tool.category, useWhen: tool.useWhen, benefit: tool.benefit, description: tool.description,
     price: priceOf(tool.name), priceText: priceText(tool.name),
     http: { method: "POST", path: `/api/tools/${tool.name}`, body: "JSON object with the inputs below" },
     mcp: { method: "tools/call", name: tool.name },

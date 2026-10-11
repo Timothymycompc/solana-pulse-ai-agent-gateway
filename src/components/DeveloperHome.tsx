@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowDown, Bot, Check, Copy, ExternalLink, Terminal } from 'lucide-react';
 
-const exampleWallet = 'Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU';
+const exampleMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 interface DeveloperHomeProps {
   onTryApi: () => void;
@@ -10,7 +10,9 @@ interface DeveloperHomeProps {
 
 export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMcp }) => {
   const [copied, setCopied] = React.useState(false);
-  const curl = `curl '${window.location.origin}/api/solana/balance?wallet=${exampleWallet}&network=mainnet-beta'`;
+  const curl = `curl -X POST '${window.location.origin}/api/tools/convert_amount' \\
+  -H 'content-type: application/json' \\
+  -d '{"mint":"${exampleMint}","amount":"5"}'`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(curl);
@@ -24,13 +26,13 @@ export const DeveloperHome: React.FC<DeveloperHomeProps> = ({ onTryApi, onOpenMc
       <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:p-10">
         <div>
           <div className="animate-fade-up mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-400/25 bg-indigo-400/10 px-3 py-1.5 text-xs font-medium text-indigo-100">
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span> Live on Solana mainnet · 20 MCP tools
+            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span> Live on Solana mainnet · 15 agent tools
           </div>
           <h1 className="animate-fade-up max-w-2xl text-3xl font-bold tracking-tight text-white [animation-delay:80ms] sm:text-4xl lg:text-[2.9rem] lg:leading-[1.1]">
-            Build with Solana data, <span className="text-gradient">without stitching every answer together.</span>
+            Stop your AI agent from <span className="text-gradient">losing money on Solana.</span>
           </h1>
           <p className="animate-fade-up mt-4 max-w-xl text-sm leading-6 text-slate-200 [animation-delay:160ms] sm:text-base sm:leading-7">
-            Get current account data and ready-to-use analysis over HTTP or MCP. Basic reads are free; other tools have 3 free calls, then pay per call in USDC with x402. No account or API key.
+            An intelligence layer between Solana and your agent: check transactions before signing, confirm they match what you meant, vet tokens and explain failures. Over HTTP or MCP. Basic tools are free; paid tools have 3 free calls, then cost cents in USDC via x402. No account or API key.
           </p>
           <div className="animate-fade-up mt-6 flex flex-wrap gap-3 [animation-delay:240ms]">
             <button onClick={onTryApi} className="bg-accent-gradient group inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:brightness-110 active:scale-[0.98]">

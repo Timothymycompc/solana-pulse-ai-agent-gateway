@@ -30,6 +30,8 @@ export interface ToolDef {
   name: string;
   title: string;
   category: ToolCategory;
+  // A concrete example of the money or the hallucination this tool prevents.
+  benefit: { kind: "money" | "accuracy"; text: string };
   // One line telling an agent when to call this tool. Most paid listings lack this; ours always have it.
   useWhen: string;
   description: string;

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bot, Copy, Check, Terminal, Sparkles, PiggyBank, ShieldCheck } from 'lucide-react';
-import { priceOf } from '../../pricing';
+import { CATEGORY_LABELS, loadTools, type ToolDoc } from '../lib/toolsApi';
 
 export const McpDocsView: React.FC = () => {
   const [copied, setCopied] = useState<string | null>(null);
+  const [tools, setTools] = useState<ToolDoc[] | null>(null);
+  const [docsError, setDocsError] = useState('');
+  useEffect(() => { loadTools().then((index) => setTools(index.tools)).catch((e) => setDocsError(e.message)); }, []);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -20,148 +23,6 @@ export const McpDocsView: React.FC = () => {
     }
   }, null, 2);
 
-  const tools = [
-    {
-      name: "get_solana_balance",
-      description: "Returns the native SOL balance for a wallet on mainnet-beta or devnet.",
-      params: { wallet: "string (Base58 public key)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { wallet: "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU", network: "mainnet-beta", balance_sol: 1.45 },
-      helps: { kind: "accuracy", text: "Before sending 2 SOL, the agent checks and sees 1.45 SOL, so it stops. Without the check, a model may reuse a balance from earlier in the chat and build a transfer that fails and still pays its fee." }
-    },
-    {
-      name: "get_solana_blockhash",
-      description: "Fetches the latest finalized blockhash directly from the Solana cluster.",
-      params: { network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { network: "mainnet-beta", blockhash: "4uQeVj5tqViQh7yWWGStvfEG1Zmhx6uasJtWCJziofM", timestamp: "2026-10-08T12:00:00.000Z" },
-      helps: { kind: "accuracy", text: "A blockhash expires after about 150 blocks (roughly a minute), so a model cannot know a current one. An invented or stale blockhash gets the transaction rejected; fetch it right before signing." }
-    },
-    {
-      name: "get_token_accounts",
-      description: "Lists every SPL token account, mint address, balance, and decimals owned by a wallet.",
-      params: { wallet: "string (Base58 public key)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { wallet: "Brpc8...", tokenCount: 2, tokens: [{ mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: 250.5, decimals: 6 }] },
-      helps: { kind: "accuracy", text: "Asked what a wallet holds, a model may list popular tokens it expects to see. This returns the real list with exact amounts and decimals, so it cannot invent a USDC balance that is not there." }
-    },
-    {
-      name: "get_recent_transactions",
-      description: "Lists recent transaction signatures for a wallet, newest first.",
-      params: { wallet: "string (Base58 public key)", limit: "integer (optional, default: 10, range: 1-1000)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { wallet: "Brpc8...", count: 1, signatures: [{ signature: "5K7e...", slot: 28941000, err: null }] },
-      helps: { kind: "accuracy", text: "Models can produce realistic-looking but fake transaction signatures. This returns real ones, so the next step (like decode_tx) looks up a transaction that actually exists." }
-    },
-    {
-      name: "simulate_solana_transaction",
-      description: "Simulates a serialized base64 transaction against live chain state without broadcasting it.",
-      params: { transaction: "string (Base64 serialized transaction)", network: "mainnet-beta | devnet" },
-      exampleOutput: { network: "mainnet-beta", success: true, unitsConsumed: 450, error: null },
-      helps: { kind: "money", text: "Failed Solana transactions still pay their fee. A dry run catches errors such as insufficient funds or a bad instruction before any network fee is spent." }
-    },
-    {
-      name: "find_ata",
-      description: "Derives the associated token account for a wallet and mint, and checks whether it exists on-chain.",
-      params: { wallet: "string (Base58 public key)", mint: "string (Base58 token mint)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { owner: "Brpc8...", mint: "EPjFW...", ataAddress: "9z...", exists: true, network: "mainnet-beta" },
-      helps: { kind: "money", text: "Token account addresses are derived, and a model cannot compute one in its head. Sending to a made-up address can lose the tokens. It also says whether the account exists, so you only pay the roughly 0.002 SOL account deposit when one is needed." }
-    },
-    {
-      name: "token_profile",
-      description: "Returns token mint details, freeze and mint authority status, and up to 10 largest holders. The freeze-authority risk flag is a heuristic, not honeypot detection.",
-      params: { mint: "string (Base58 token mint)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { mint: "EPjFW...", decimals: 6, security: { isHoneypotRisk: false, riskLevel: "LOW" }, topHolders: [] },
-      helps: { kind: "money", text: "Reports the real decimals. Getting them wrong is a 1,000x mistake: 1 USDC is 1,000,000 base units (6 decimals) while 1 SOL is 1,000,000,000 lamports (9). It also shows whether someone can still freeze the token or mint more." }
-    },
-    {
-      name: "optimal_fee",
-      description: "Returns live low, medium, and high priority-fee recommendations based on recent network fees.",
-      params: { network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { network: "mainnet-beta", current_congestion: "LOW", tiers: { low: { lamports: 0 }, medium: { lamports: 0 }, high: { lamports: 0 } } },
-      helps: { kind: "money", text: "Instead of always paying a high fixed priority fee to be safe, pay the tier current congestion calls for. When the network is quiet, the low tier can be close to zero." }
-    },
-    {
-      name: "decode_tx",
-      description: "Explains a confirmed transaction with category, status, fee, account SOL balance changes, and logs.",
-      params: { signature: "string (Base58 transaction signature)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { signature: "5K7e...", category: "Transfer", details: { status: "SUCCESS" }, balance_changes: [] },
-      helps: { kind: "accuracy", text: "Raw transaction logs are long and easy to misread, and a model may report a failed swap as successful. This returns the status, fee and balance changes straight from the chain." }
-    },
-    {
-      name: "validate_transaction",
-      description: "Checks a transaction's fee payer balance and simulates it, returning a SAFE or UNSAFE verdict and fix hints. Does not broadcast.",
-      params: { transaction: "string (Base64 serialized VersionedTransaction)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { verdict: "SAFE", safe: true, issues: [], simulation: { success: true, unitsConsumed: 450 } },
-      helps: { kind: "money", text: "Catches common agent mistakes, such as a fee payer that cannot cover the fee, before sending, and says how to fix it. The agent fixes the transaction instead of retrying a failing one and paying fees each time." }
-    },
-    {
-      name: "get_wallet_snapshot",
-      description: "Combines SOL balance, SPL and Token-2022 holdings, and five recent signatures into one wallet snapshot. Not an investment recommendation.",
-      params: { wallet: "Base58 wallet address", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { wallet: "<address>", sol: { balance: 0 }, tokenAccountCount: 0, tokens: [], recentActivity: { checked: 0, latestSignature: null } },
-      helps: { kind: "money", text: "One call instead of three (balance, tokens, recent activity): it is one paid call instead of three and gives the model fewer pieces to stitch together." }
-    },
-    {
-      name: "summarize_wallet_activity",
-      description: "Counts successes and failures in a sample of recent wallet signatures and returns the newest activity. Does not decode instructions.",
-      params: { wallet: "Base58 wallet address", limit: "integer 1–100 (optional, default 20)", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { examined: 0, successful: 0, failed: 0, latest: null, note: "Only the requested recent sample is counted." },
-      helps: { kind: "accuracy", text: "Gives exact success and failure counts for the sample, instead of the model skimming a long list and estimating \"mostly successful.\"" }
-    },
-    {
-      name: "resolve_token_symbol",
-      description: "Finds Solana token pair candidates for a ticker or name, ranked by reported liquidity, to help agents select a mint. Ticker matches can be ambiguous.",
-      params: { query: "ticker, token name, or mint text (1–80 characters)" },
-      exampleOutput: { query: "BONK", candidates: [{ mint: "<mint>", symbol: "BONK", liquidityUsd: 0, pairUrl: "<pair URL>" }], source: "DexScreener" },
-      helps: { kind: "money", text: "Tickers are not unique; copycat tokens reuse names like BONK. A model picking a mint from memory can choose a fake one. This lists real candidates ranked by liquidity so the agent uses the right mint address." }
-    },
-    {
-      name: "get_token_market_snapshot",
-      description: "Returns the most liquid matching DEX pair, token price, liquidity, volume, and pair link. Third-party market data; not an execution quote.",
-      params: { mint: "Base58 token mint" },
-      exampleOutput: { mint: "<mint>", found: true, priceUsd: null, liquidityUsd: 0, volume24hUsd: 0, source: "DexScreener" },
-      helps: { kind: "accuracy", text: "A model's price knowledge is months old. This returns the current DEX price, liquidity and 24-hour volume with a source link. Low liquidity also warns that a trade could move the price a lot." }
-    },
-    {
-      name: "analyze_token_concentration",
-      description: "Calculates the combined supply share in the ten largest token accounts and reports mint authorities. Token accounts are not unique beneficial owners.",
-      params: { mint: "Base58 SPL token mint", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { mint: "<mint>", top10TokenAccountSharePct: 0, topTokenAccounts: [], mintAuthority: null, freezeAuthority: null },
-      helps: { kind: "money", text: "If the ten largest accounts hold most of the supply, a few sellers can crash the price. The agent gets the real percentage instead of guessing that a token \"looks well distributed.\"" }
-    },
-    {
-      name: "compare_tokens",
-      description: "Compares two token mints side by side across supply, decimals, mint and freeze authorities, and top-account concentration. Does not rank investments.",
-      params: { mintA: "First Base58 SPL token mint", mintB: "Second Base58 SPL token mint", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { tokens: [{ mint: "<mint A>", decimals: 6 }, { mint: "<mint B>", decimals: 9 }], note: "Concentration is by token account, not beneficial owner." },
-      helps: { kind: "accuracy", text: "Puts the real decimals, supply and authorities of two tokens side by side, so a model does not mix up the details of two similar-looking tokens." }
-    },
-    {
-      name: "inspect_address",
-      description: "Classifies common account types from live owner, executable, parsed token, and lamport fields; custom accounts can remain inconclusive.",
-      params: { address: "Base58 wallet, program, mint, or token account", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { exists: true, classification: "system_owned_wallet_or_account", ownerProgram: "11111111111111111111111111111111", token: null },
-      helps: { kind: "money", text: "Says whether an address is a normal wallet, a token account, a mint or a program. Sending SOL to a mint or program address by mistake, thinking it is a wallet, can leave the funds stuck." }
-    },
-    {
-      name: "explain_transaction_effects",
-      description: "Joins pre/post RPC balances into SOL and token changes, fee, status, and common program labels, avoiding manual transaction metadata joins.",
-      params: { signature: "Base58 confirmed transaction signature", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { succeeded: true, feeLamports: 5000, solChanges: [], tokenChanges: [], programs: [] },
-      helps: { kind: "accuracy", text: "Computes exact before-and-after balances. Doing it by hand means lining up long arrays of numbers by position, a step models often get wrong." }
-    },
-    {
-      name: "analyze_wallet_portfolio",
-      description: "Joins live SOL and token balances with DEX prices for up to ten mints, reporting priced and unpriced assets separately and marking partial totals.",
-      params: { wallet: "Base58 wallet address", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { sol: { balance: 0, priceUsd: null }, tokens: [], estimatedPricedValueUsd: 0, partial: true, marketSource: "DexScreener" },
-      helps: { kind: "accuracy", text: "Marks which tokens had no price instead of silently counting them as $0 or inventing a value, and flags the total as partial when prices are missing." }
-    },
-    {
-      name: "estimate_transaction_cost",
-      description: "Reads signer count and compute-budget instructions, estimates base and priority fees when possible, and simulates without signing or broadcasting.",
-      params: { transaction: "Base64 serialized VersionedTransaction", network: "mainnet-beta | devnet (optional)" },
-      exampleOutput: { baseFeeLamports: 5000, computeUnitLimit: null, priorityFeeLamports: null, unitsConsumed: 0, simulationSucceeded: false },
-      helps: { kind: "money", text: "Shows the full cost (base fee, priority fee and compute used) before signing, so an accidentally huge priority-fee setting is noticed before it is paid." }
-    }
-  ];
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -198,7 +59,7 @@ export const McpDocsView: React.FC = () => {
             </div>
             <div>
       <h3 className="text-base font-bold text-white">Claude Desktop & Cursor Configuration</h3>
-              <p className="text-xs text-slate-400">Add this snippet to <code className="text-indigo-300">claude_desktop_config.json</code> or Cursor's <code className="text-indigo-300">mcp.json</code> (requires Node.js) to enable all 20 tools. Paid tools need an x402-capable client (see Pricing) once their 3 free calls are used.</p>
+              <p className="text-xs text-slate-400">Add this snippet to <code className="text-indigo-300">claude_desktop_config.json</code> or Cursor's <code className="text-indigo-300">mcp.json</code> (requires Node.js) to enable all 15 tools. Paid tools need an x402-capable client (see Pricing) once their 3 free calls are used.</p>
             </div>
           </div>
           <button
@@ -214,40 +75,67 @@ export const McpDocsView: React.FC = () => {
         </pre>
       </div>
 
-      {/* Structured Tool Schemas */}
+      {/* Tool reference, generated from the live registry */}
       <div>
-        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-indigo-400" />
-          <span>Available MCP Tools & Schemas</span>
+        <h3 className="mb-1 flex items-center gap-2 text-lg font-bold text-white">
+          <Terminal className="h-5 w-5 text-indigo-400" />
+          <span>Tool reference</span>
         </h3>
-
+        <p className="mb-4 text-xs text-slate-300">Every input (with how to get it) and every returned field (with what it means and how it's computed). Generated from the same definitions the server runs, so it can't drift.</p>
+        {docsError && <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-xs text-rose-100">Could not load the tool reference: {docsError}</p>}
+        {!tools && !docsError && <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-20 rounded-xl" />)}</div>}
         <div className="space-y-4">
-          {tools.map((t, idx) => (
-            <details key={idx} data-reveal data-reveal-index={idx % 6} className="lift group rounded-xl border border-white/10 glass transition-colors hover:border-white/15">
+          {tools?.map((t, idx) => (
+            <details key={t.name} data-reveal data-reveal-index={idx % 6} className="lift group rounded-xl border border-white/10 glass transition-colors hover:border-white/15">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-sm font-bold text-indigo-300">{t.name}</span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold text-slate-300">{priceOf(t.name) ? `3 free, then ${priceOf(t.name)} USDC` : "Free"}</span>
+                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${t.price ? 'border-amber-400/30 text-amber-200' : 'border-emerald-400/30 text-emerald-300'}`}>{t.priceText}</span>
+                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-slate-300">{CATEGORY_LABELS[t.category]}</span>
                   </div>
-                  <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">{t.description}</p>
-                  <p className={`mt-2 flex max-w-4xl gap-2 rounded-lg border px-3 py-2 text-xs leading-5 ${t.helps.kind === 'money' ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-100' : 'border-sky-500/20 bg-sky-500/5 text-sky-100'}`}>
-                    {t.helps.kind === 'money' ? <PiggyBank className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />}
-                    <span><strong className="font-semibold">{t.helps.kind === 'money' ? 'Saves money: ' : 'Prevents hallucination: '}</strong>{t.helps.text}</span>
+                  <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-200"><span className="font-semibold text-white">Use when:</span> {t.useWhen}</p>
+                  <p className={`mt-2 flex max-w-4xl gap-2 rounded-lg border px-3 py-2 text-xs leading-5 ${t.benefit.kind === 'money' ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-100' : 'border-sky-500/20 bg-sky-500/5 text-sky-100'}`}>
+                    {t.benefit.kind === 'money' ? <PiggyBank className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />}
+                    <span><strong className="font-semibold">{t.benefit.kind === 'money' ? 'Saves money: ' : 'Prevents hallucination: '}</strong>{t.benefit.text}</span>
                   </p>
                 </div>
-                <span className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:hidden">Details</span>
-                <span className="hidden shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-400 group-open:inline">Close</span>
+                <span className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-300 group-open:hidden">Details</span>
+                <span className="hidden shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[10px] text-slate-300 group-open:inline">Close</span>
               </summary>
-              <div className="grid grid-cols-1 gap-4 border-t border-white/10 p-4 text-xs font-mono lg:grid-cols-2 sm:p-5">
-                <div className="glass-inset p-3 rounded-lg border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Parameters (Zod / JSON Schema)</div>
-                  <pre className="text-indigo-300 whitespace-pre-wrap">{JSON.stringify(t.params, null, 2)}</pre>
+              <div className="space-y-5 border-t border-white/10 p-4 sm:p-5">
+                <p className="text-xs leading-5 text-slate-300">{t.description} <span className="font-mono text-slate-400">HTTP: POST {t.http.path} · MCP: tools/call "{t.name}"</span></p>
+                <div>
+                  <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-300">Inputs</h4>
+                  <div className="overflow-x-auto rounded-lg border border-white/10">
+                    <table className="w-full min-w-[560px] text-left text-[11px]">
+                      <thead className="bg-white/[0.03] text-[10px] uppercase tracking-wider text-slate-400"><tr><th className="px-3 py-2">Name</th><th className="px-3 py-2">What it is</th><th className="px-3 py-2">How to get it</th></tr></thead>
+                      <tbody>{t.inputs.map((i) => (
+                        <tr key={i.name} className="border-t border-white/5 align-top">
+                          <td className="px-3 py-2"><code className="text-indigo-200">{i.name}</code>{i.required && <span className="text-rose-300">*</span>}<div className="text-[10px] text-slate-400">{i.type}{i.required ? '' : ' · optional'}</div></td>
+                          <td className="px-3 py-2 text-slate-200">{i.description}</td>
+                          <td className="px-3 py-2 text-slate-300">{i.howToGet}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="glass-inset p-3 rounded-lg border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Example Output Shape · Live values vary</div>
-                  <pre className="text-emerald-400 whitespace-pre-wrap">{JSON.stringify(t.exampleOutput, null, 2)}</pre>
+                <div>
+                  <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-300">Returned fields</h4>
+                  <div className="overflow-x-auto rounded-lg border border-white/10">
+                    <table className="w-full min-w-[640px] text-left text-[11px]">
+                      <thead className="bg-white/[0.03] text-[10px] uppercase tracking-wider text-slate-400"><tr><th className="px-3 py-2">Field</th><th className="px-3 py-2">What it means</th><th className="px-3 py-2">How it's computed</th></tr></thead>
+                      <tbody>{t.outputs.map((o) => (
+                        <tr key={o.field} className="border-t border-white/5 align-top">
+                          <td className="px-3 py-2"><code className="text-indigo-200">{o.field}</code><div className="text-[10px] text-slate-400">{o.type}</div></td>
+                          <td className="px-3 py-2 text-slate-200">{o.meaning}</td>
+                          <td className="px-3 py-2 text-slate-300">{o.howComputed}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
                 </div>
+                {t.notes.length > 0 && <ul className="list-disc space-y-1 pl-5 text-[11px] text-slate-300">{t.notes.map((n) => <li key={n}>{n}</li>)}</ul>}
               </div>
             </details>
           ))}

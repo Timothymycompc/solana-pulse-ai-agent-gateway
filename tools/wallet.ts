@@ -8,6 +8,7 @@ export const walletSnapshot: ToolDef = {
   name: "wallet_snapshot",
   title: "Wallet snapshot",
   category: "wallets",
+  benefit: { kind: "accuracy", text: "Separates priced from unpriced and verified from unverified holdings, so spam airdrops don't inflate a wallet's reported worth." },
   useWhen: "Use when asked about a wallet's overall holdings or worth. One call replaces balance + tokens + activity lookups, and separates priced from unpriced and verified from unverified holdings so the total is not inflated by spam.",
   description: "SOL balance, top token holdings with USD values, total estimated value, and recent activity in one response.",
   inputs: { wallet: z.string(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta") },
