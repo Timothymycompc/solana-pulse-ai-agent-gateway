@@ -1,0 +1,32 @@
+# Publishes server.json to the MCP Registry whenever it changes on main. No login needed:
+# GitHub's own identity token (OIDC) proves the io.github.Timothymycompc namespace.
+name: Publish to MCP Registry
+on:
+  push:
+    branches: [main]
+    paths: [server.json]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if this version is already published
+        id: check
+        run: |
+          NAME=$(jq -r .name server.json); VERSION=$(jq -r .version server.json)
+          if curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=$NAME" | jq -e --arg v "$VERSION" '[.servers[] | (.server // .) | .version] | index($v)' >/dev/null; then
+            echo "Version $VERSION is already published; bump the version in server.json to publish changes."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install mcp-publisher
+        if: steps.check.outputs.skip != 'true'
+        run: curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+      - name: Publish
+        if: steps.check.outputs.skip != 'true'
+        run: ./mcp-publisher login github-oidc && ./mcp-publisher publish
