@@ -2,10 +2,10 @@
 import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction, type Connection } from "@solana/web3.js";
 import { createApproveInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
-import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners, type LoadedTransaction } from "./decode";
+import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners, type DecodedInstruction, type LoadedTransaction } from "./decode";
 import { explainError } from "./errors";
 import {
-  assertAddress, BASE_FEE_LAMPORTS_PER_SIGNATURE, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, labelFor,
+  assertAddress, BASE_FEE_LAMPORTS_PER_SIGNATURE, COMPUTE_BUDGET_PROGRAM, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, labelFor,
   lamportsToSol, NATIVE_MINT, NETWORK_DOC, parseUnits, USDC_MINT,
 } from "./lib";
 import { ToolError, type ToolContext, type ToolDef } from "./types";
@@ -41,24 +41,25 @@ async function exampleTransaction(conn: Connection, kind: "sol_transfer" | "drai
 
 type Check = { id: string; status: "pass" | "info" | "warn" | "fail"; detail: string };
 
-function permissionChecks(loaded: LoadedTransaction, signers: Set<string>): Check[] {
-  const checks: Check[] = [];
-  for (const ix of loaded.instructions) {
-    if (ix.type === "token_approve" && !signers.has(String(ix.info.delegate))) {
-      checks.push({ id: "token_approval", status: "fail", detail: `Instruction ${ix.index} lets ${ix.info.delegate} move up to ${ix.info.amountRaw} base units from token account ${ix.info.account} at any time. This is the most common wallet-drainer pattern.` });
-    }
-    if (ix.type === "token_set_authority") {
-      checks.push({ id: "authority_change", status: "fail", detail: `Instruction ${ix.index} changes the ${ix.info.authorityType} authority of ${ix.info.account} to ${ix.info.newAuthority ?? "nobody"}. Whoever holds that authority controls the account.` });
-    }
-    if (ix.type === "assign_owner" && signers.has(String(ix.info.account))) {
-      checks.push({ id: "wallet_reassigned", status: "fail", detail: `Instruction ${ix.index} hands ownership of signer ${ix.info.account} to program ${ix.info.newOwnerProgram}. The wallet would stop being a normal wallet.` });
-    }
-    if (ix.type === "token_close_account" && !signers.has(String(ix.info.destination))) {
-      checks.push({ id: "close_to_other", status: "fail", detail: `Instruction ${ix.index} closes token account ${ix.info.account} and sends its SOL deposit to ${ix.info.destination}, which is not a signer.` });
-    }
+// The drainer patterns: handing control of funds or accounts to someone who is not signing.
+function permissionCheck(ix: DecodedInstruction, signers: Set<string>): Check | null {
+  if (ix.type === "token_approve" && !signers.has(String(ix.info.delegate))) {
+    return { id: "token_approval", status: "fail", detail: `Instruction ${ix.index} lets ${ix.info.delegate} move up to ${ix.info.amountRaw} base units from token account ${ix.info.account} at any time. This is the most common wallet-drainer pattern.` };
   }
-  return checks;
+  if (ix.type === "token_set_authority") {
+    return { id: "authority_change", status: "fail", detail: `Instruction ${ix.index} changes the ${ix.info.authorityType} authority of ${ix.info.account} to ${ix.info.newAuthority ?? "nobody"}. Whoever holds that authority controls the account.` };
+  }
+  if (ix.type === "assign_owner" && signers.has(String(ix.info.account))) {
+    return { id: "wallet_reassigned", status: "fail", detail: `Instruction ${ix.index} hands ownership of signer ${ix.info.account} to program ${ix.info.newOwnerProgram}. The wallet would stop being a normal wallet.` };
+  }
+  if (ix.type === "token_close_account" && !signers.has(String(ix.info.destination))) {
+    return { id: "close_to_other", status: "fail", detail: `Instruction ${ix.index} closes token account ${ix.info.account} and sends its SOL deposit to ${ix.info.destination}, which is not a signer.` };
+  }
+  return null;
 }
+
+const permissionChecks = (loaded: LoadedTransaction, signers: Set<string>): Check[] =>
+  loaded.instructions.map((ix) => permissionCheck(ix, signers)).filter((c): c is Check => c !== null);
 
 export const preflightTransaction: ToolDef = {
   name: "preflight_transaction",
@@ -130,7 +131,7 @@ export const checkTransactionIntent: ToolDef = {
   category: "transactions",
   benefit: { kind: "accuracy", text: "Asked to send 5 USDC, an agent can build a transaction for 50 (a decimals slip) or to a hallucinated address. This returns MISMATCH and names the exact field." },
   useWhen: 'Use right before signing a transfer your agent built from an instruction like "send 5 USDC to X". Confirms the transaction moves exactly that token, amount and recipient and nothing else, catching hallucinated amounts, wrong decimals and injected instructions.',
-  description: "Compares a transaction against the stated intent field by field (asset, amount in exact base units, recipient, sender) and flags any extra transfers or permission changes.",
+  description: "Compares a transaction against the stated intent field by field (asset, amount in exact base units, recipient, sender), flags every instruction that is not part of the transfer, and checks the simulated balance changes so funds moved any other way are caught.",
   inputs: {
     transaction: z.string().min(20),
     intent: z.object({ action: z.literal("transfer").optional().default("transfer"), token: z.string(), amount: z.string(), recipient: z.string(), sender: z.string().optional() }),
@@ -153,9 +154,12 @@ export const checkTransactionIntent: ToolDef = {
     { field: "fieldChecks[].expected / actual", type: "string", meaning: "The intended value and what the transaction actually does.", howComputed: "actual comes from the decoded transfer instruction; for tokens the recipient is the owner of the destination token account (read on chain, or from an ATA-create instruction in the same transaction)." },
     { field: "fieldChecks[].ok", type: "boolean", meaning: "Whether they match.", howComputed: "Exact equality (amounts compared in base units)." },
     { field: "transfers[]", type: "object[]", meaning: "Every transfer found in the transaction with from wallet, to wallet, asset and exact amount.", howComputed: "Decoded System and Token transfer instructions; token account owners resolved on chain." },
-    { field: "unexpectedEffects[]", type: "string[]", meaning: "Anything the intent did not ask for: extra transfers out of the sender, approvals, authority changes, account closures to others.", howComputed: "Transfers other than the matched one whose source is the sender, plus the permission checks used by preflight_transaction." },
+    { field: "unexpectedEffects[]", type: "string[]", meaning: "Anything the intent did not ask for: extra transfers, approvals, authority changes, account closures, calls to other programs, or the sender losing more than the transfer explains.", howComputed: "Every instruction except the matched transfer, Compute Budget, Memo and creating the recipient's token account is listed (approvals and authority changes with the details preflight_transaction gives). Then the simulation's balance changes for the sender are compared with the amount, plus fees and the recipient's account deposit for SOL; any larger loss is listed." },
   ],
-  notes: ["Creating the recipient's token account (about 0.002 SOL deposit) is allowed and reported as expected, since token transfers to new holders need it."],
+  notes: [
+    "Creating the recipient's token account (about 0.002 SOL deposit) is allowed and not flagged, since token transfers to new holders need it.",
+    "Any other instruction gives MISMATCH, even a harmless one, because a transfer should not need it. Read unexpectedEffects before overriding.",
+  ],
   example: async (ctx) => ({ transaction: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer"), intent: { action: "transfer", token: "SOL", amount: "0.01", recipient: EXAMPLE_RECIPIENT } }),
   run: async ({ transaction, intent, network }, ctx) => {
     const conn = ctx.connection(network);
@@ -186,8 +190,8 @@ export const checkTransactionIntent: ToolDef = {
 
     const candidates = transfers.filter((t) => t.asset === assetMint);
     const match = candidates.find((t) => t.to === recipient && BigInt(t.amountRaw) === amountBase) ?? candidates.find((t) => t.to === recipient) ?? candidates[0] ?? null;
-    const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed" });
-    const simError = sim.value.err;
+    const sim = await simulateWithChanges(conn, loaded, symbolsFor(ctx));
+    const simError = sim.error;
     const fieldChecks = [
       { field: "asset", expected: isSol ? "SOL" : assetMint, actual: match ? (match.asset === NATIVE_MINT ? "SOL" : match.asset) : `no ${isSol ? "SOL" : "token"} transfer found`, ok: Boolean(match) },
       { field: "amount", expected: `${intent.amount} (${amountBase} base units)`, actual: match ? `${match.amount} (${match.amountRaw} base units)` : "none", ok: Boolean(match) && BigInt(match!.amountRaw) === amountBase },
@@ -195,10 +199,31 @@ export const checkTransactionIntent: ToolDef = {
       { field: "sender", expected: sender, actual: match?.from ?? "none", ok: match?.from === sender },
       { field: "simulation", expected: "succeeds", actual: simError ? `fails: ${explainError(simError).matches[0]?.name ?? JSON.stringify(simError)}` : "succeeds", ok: !simError },
     ];
-    const unexpectedEffects = [
-      ...transfers.filter((t) => t !== match && t.from === sender).map((t) => `Extra transfer at instruction ${t.index}: ${t.amount} ${t.asset === NATIVE_MINT ? "SOL" : t.asset} to ${t.to}.`),
-      ...permissionChecks(loaded, new Set(loaded.signers)).map((c) => c.detail),
-    ];
+
+    // Besides the matched transfer, only setup steps are expected: compute budget, a memo, and creating the recipient's
+    // token account. Anything else (another program, a new account, a swap) can move funds, so it is reported.
+    const isSetup = (ix: DecodedInstruction) => ix.programId === COMPUTE_BUDGET_PROGRAM || ix.type === "memo"
+      || (ix.type.startsWith("create_token_account") && ix.info.owner === recipient && ix.info.mint === assetMint);
+    const signers = new Set(loaded.signers);
+    const unexpectedEffects = loaded.instructions.filter((ix) => ix.index !== match?.index && !isSetup(ix)).map((ix) => {
+      const t = transfers.find((x) => x.index === ix.index);
+      if (t) return `Extra transfer at instruction ${t.index}: ${t.amount} ${t.asset === NATIVE_MINT ? "SOL" : t.asset} from ${t.from} to ${t.to}.`;
+      return permissionCheck(ix, signers)?.detail ?? `Instruction ${ix.index} (${ix.program ?? ix.programId}: ${ix.type}) is not part of this transfer. It can move funds or change permissions.`;
+    });
+
+    // Ground truth from the simulation: the sender may lose only the amount, the fees (when it pays them) and the
+    // deposit that creates the recipient's token account. This also catches funds moved inside other programs.
+    const fee = BigInt(feeBreakdown(loaded).totalLamports);
+    const deposits = loaded.instructions.filter((ix) => ix.type.startsWith("create_token_account") && isSetup(ix) && ix.info.payer === sender)
+      .reduce((sum, ix) => sum + (sim.lamportDeltas.get(String(ix.info.tokenAccount)) ?? 0n), 0n);
+    const allowedLoss = (asset: string) => asset === "SOL"
+      ? (isSol ? amountBase : 0n) + (sender === loaded.feePayer ? fee : 0n) + deposits
+      : asset === assetMint ? amountBase : 0n;
+    for (const c of sim.changes) {
+      if (c.wallet !== sender || !c.changeRaw.startsWith("-")) continue;
+      const allowed = allowedLoss(c.asset);
+      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(`Simulation: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`);
+    }
     const verdict = fieldChecks.every((c) => c.ok) && !unexpectedEffects.length ? "MATCH" : "MISMATCH";
     const firstBad = fieldChecks.find((c) => !c.ok);
     const explanation = verdict === "MATCH"

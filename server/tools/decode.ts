@@ -130,6 +130,8 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
   const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed", accounts: { encoding: "base64", addresses: watched } });
   const value = sim.value;
   const changes: WalletChange[] = [];
+  // Raw lamport change of every watched account, token accounts included (e.g. the deposit that creates one).
+  const lamportDeltas = new Map<string, bigint>();
   if (!value.err && value.accounts) {
     const tokenDeltas = new Map<string, { wallet: string; mint: string; before: bigint; after: bigint }>();
     watched.forEach((address, i) => {
@@ -139,6 +141,7 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
       const post = postRaw ? readState(postRaw.lamports, postRaw.owner, Buffer.from(postRaw.data[0], "base64")) : null;
       const before = pre?.lamports ?? 0n;
       const after = post?.lamports ?? 0n;
+      lamportDeltas.set(address, after - before);
       const isTokenAccount = Boolean(pre?.token || post?.token);
       if (!isTokenAccount && before !== after) {
         changes.push({ wallet: address, asset: "SOL", symbol: "SOL", before: lamportsToSol(before), after: lamportsToSol(after), change: formatUnits(after - before, 9), changeRaw: (after - before).toString(), decimals: 9 });
@@ -164,7 +167,7 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
   }
   return {
     success: value.err === null, error: value.err ?? null, unitsConsumed: value.unitsConsumed ?? null,
-    logs: (value.logs ?? []).slice(-25), changes, watchedAccounts: watched.length, totalWritable: loaded.writable.length,
+    logs: (value.logs ?? []).slice(-25), changes, lamportDeltas, watchedAccounts: watched.length, totalWritable: loaded.writable.length,
   };
 }
 
