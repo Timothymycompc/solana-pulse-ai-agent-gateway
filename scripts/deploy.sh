@@ -118,7 +118,7 @@ fi
 
 # ---------- 6. Go live ----------
 bold "6/6  Making it live"
-gcloud run services update-traffic $SVC --region $REGION --to-revisions=$NEW=100 --quiet >/tmp/pulse-traffic.log 2>&1 \
+gcloud run services update-traffic $SVC --region $REGION --to-latest --quiet >/tmp/pulse-traffic.log 2>&1 \
   || { tail -3 /tmp/pulse-traffic.log | sed 's/^/      /'; stop "Could not switch traffic to $NEW." "Retry: gcloud run services update-traffic $SVC --region $REGION --to-revisions=$NEW=100"; }
 ok "All visitors now use $NEW (was $PREV)"
 sleep 3
