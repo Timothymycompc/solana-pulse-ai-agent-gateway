@@ -49,40 +49,40 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   const freeLeft = tool.price ? Math.max(freeCallsPerTool - (freeUsed[tool.name] ?? 0), 0) : null;
 
   return (
-    <section aria-label={`Try ${tool.name}`} className="glass rounded-xl border">
+    <section aria-label={`Try ${tool.name}`} className="surface rounded-xl border">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200">Try it</h2>
+          <span className="relative flex h-2 w-2"><span className="relative inline-flex h-2 w-2 rounded-full bg-success-400" /></span>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-200">Try it</h2>
         </div>
         <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-md border border-white/10 bg-white/[0.03] p-0.5 text-[11px]">
           {(['http', 'mcp'] as const).map((t) => (
-            <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded px-2 py-1 font-medium transition ${transport === t ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>
+            <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded px-2 py-1 font-medium transition ${transport === t ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>
           ))}
         </div>
       </div>
 
       <div className="space-y-4 p-4">
         <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className={exampleState === 'error' ? 'text-amber-200' : 'text-slate-400'}>
+          <span className={exampleState === 'error' ? 'text-warning-200' : 'text-ink-400'}>
             {exampleState === 'loading' ? 'Loading live mainnet example…' : exampleState === 'ready' ? 'Live mainnet example loaded; edit anything.' : `Example unavailable (${exampleError}).`}
           </span>
-          <button onClick={() => void fillExample()} disabled={exampleState === 'loading'} aria-label="Reload live example" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-slate-300 transition hover:border-white/25 hover:text-white disabled:opacity-50">
+          <button onClick={() => void fillExample()} disabled={exampleState === 'loading'} aria-label="Reload live example" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-ink-300 transition hover:border-white/25 hover:text-white disabled:opacity-50">
             <RefreshCw className={`h-3 w-3 ${exampleState === 'loading' ? 'animate-spin' : ''}`} />Reload
           </button>
         </div>
         <ToolForm tool={tool} values={values} onChange={setValues} compact />
 
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => void run()} disabled={running} className={`bg-accent-gradient group inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 ${!result && !running ? 'animate-pulse-ring' : ''}`}>
+          <button onClick={() => void run()} disabled={running} className={`bg-accent-600 hover:bg-accent-500 group inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70`}>
             {running ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}{running ? 'Running…' : 'Run request'}
             {!running && <kbd className="ml-1 hidden rounded border border-white/25 bg-white/10 px-1 font-sans text-[9px] font-medium sm:inline">{isMac ? '⌘' : 'Ctrl'}↵</kbd>}
           </button>
-          <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy cURL' : 'Copy MCP request'} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2.5 text-[11px] text-slate-300 transition hover:border-white/25 hover:text-white">
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}{transport === 'http' ? 'cURL' : 'MCP'}
+          <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy cURL' : 'Copy MCP request'} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2.5 text-[11px] text-ink-300 transition hover:border-white/25 hover:text-white">
+            {copied ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{transport === 'http' ? 'cURL' : 'MCP'}
           </button>
         </div>
-        <p className="text-[11px] text-slate-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
+        <p className="text-[11px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
 
         <ToolResult tool={tool} result={result} running={running} showFieldGuide={false} />
       </div>

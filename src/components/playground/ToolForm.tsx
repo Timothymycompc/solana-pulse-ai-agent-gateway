@@ -4,7 +4,7 @@ import type { InputDoc, JsonSchema, ToolDoc } from '../../lib/toolsApi';
 
 type Values = Record<string, unknown>;
 
-const fieldClass = 'w-full rounded-lg border border-white/10 glass-inset px-3 py-2.5 font-mono text-xs text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-indigo-400/70 focus:ring-4 focus:ring-indigo-500/15';
+const fieldClass = 'w-full rounded-lg border border-white/10 surface-inset px-3 py-2.5 font-mono text-xs text-ink-100 outline-none transition placeholder:text-ink-500 focus:border-accent-400/70 focus:ring-4 focus:ring-accent-500/15';
 const LONG_TEXT = new Set(['transaction', 'error']);
 
 // One editable input, chosen from its JSON schema; documented with what it is and how to get it.
@@ -14,14 +14,14 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
   const id = `field-${path}`;
   const label = (
     <label htmlFor={id} className="flex items-baseline justify-between gap-2">
-      <span className="font-mono text-xs font-semibold text-slate-100">{path}{required && <span className="ml-0.5 text-rose-300" aria-label="required">*</span>}</span>
-      <span className="text-[10px] text-slate-400">{doc?.type ?? schema.type ?? 'value'}{!required && ' · optional'}</span>
+      <span className="font-mono text-xs font-semibold text-ink-100">{path}{required && <span className="ml-0.5 text-danger-300" aria-label="required">*</span>}</span>
+      <span className="text-[10px] text-ink-400">{doc?.type ?? schema.type ?? 'value'}{!required && ' · optional'}</span>
     </label>
   );
   const help = doc && !compact && (
     <div className="space-y-0.5 text-[11px] leading-5">
-      <p className="text-slate-300">{doc.description}</p>
-      <p className="flex gap-1 text-slate-400"><Info className="mt-0.5 h-3 w-3 shrink-0 text-indigo-300" /><span><span className="font-semibold text-indigo-200">How to get it:</span> {doc.howToGet}</span></p>
+      <p className="text-ink-300">{doc.description}</p>
+      <p className="flex gap-1 text-ink-400"><Info className="mt-0.5 h-3 w-3 shrink-0 text-accent-300" /><span><span className="font-semibold text-accent-200">How to get it:</span> {doc.howToGet}</span></p>
     </div>
   );
 
@@ -38,7 +38,7 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
     const on = Boolean(value ?? schema.default);
     control = (
       <button id={id} type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)}
-        className={`relative h-6 w-11 rounded-full border transition ${on ? 'border-indigo-400/60 bg-indigo-500/40' : 'border-white/15 bg-white/5'}`}>
+        className={`relative h-6 w-11 rounded-full border transition ${on ? 'border-accent-400/60 bg-accent-500/40' : 'border-white/15 bg-white/5'}`}>
         <span className={`absolute top-0.5 h-4.5 w-4.5 rounded-full bg-white shadow transition-all duration-300 ${on ? 'left-[22px]' : 'left-0.5'}`} />
       </button>
     );
@@ -68,7 +68,7 @@ export function ToolForm({ tool, values, onChange, compact }: { tool: ToolDoc; v
           const innerRequired = new Set(schema.required ?? []);
           return (
             <fieldset key={key} className="space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-              <legend className="px-1 font-mono text-xs font-semibold text-indigo-200">{key}{required.has(key) && <span className="text-rose-300">*</span>}</legend>
+              <legend className="px-1 font-mono text-xs font-semibold text-accent-200">{key}{required.has(key) && <span className="text-danger-300">*</span>}</legend>
               {Object.entries(schema.properties).map(([innerKey, innerSchema]) => (
                 <Field key={innerKey} path={`${key}.${innerKey}`} schema={innerSchema} doc={docFor(`${key}.${innerKey}`)} required={innerRequired.has(innerKey) && innerSchema.default === undefined}
                   value={inner[innerKey]} onChange={(v) => set(key, { ...inner, [innerKey]: v })} compact={compact} />
@@ -78,7 +78,7 @@ export function ToolForm({ tool, values, onChange, compact }: { tool: ToolDoc; v
         }
         return <Field key={key} path={key} schema={schema} doc={docFor(key)} required={required.has(key) && schema.default === undefined} value={values[key]} onChange={(v) => set(key, v)} compact={compact} />;
       })}
-      {Object.keys(props).length === 0 && <p className="text-xs text-slate-400">This tool needs no inputs.</p>}
+      {Object.keys(props).length === 0 && <p className="text-xs text-ink-400">This tool needs no inputs.</p>}
     </div>
   );
 }

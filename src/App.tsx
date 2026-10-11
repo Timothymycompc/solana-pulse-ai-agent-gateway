@@ -21,7 +21,7 @@ export function App() {
   else if (path === '/status') page = <StatusPage />;
   else if (toolMatch) {
     page = index ? <ToolPage name={toolMatch[1]} index={index} />
-      : error ? <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-100">Could not load the tools: {error}</p>
+      : error ? <p className="rounded-lg border border-danger-400/30 bg-danger-500/10 p-4 text-sm text-danger-100">Could not load the tools: {error}</p>
       : <div className="space-y-4"><div className="skeleton h-10 w-72 rounded-lg" /><div className="skeleton h-4 w-full max-w-2xl rounded" /><div className="skeleton h-64 rounded-xl" /></div>;
   } else page = <NotFoundPage />;
 

@@ -43,14 +43,14 @@ const tiers = [
 ] as const;
 
 const CodeBlock: React.FC<{ id: string; title: string; code: string; copied: string | null; onCopy: (id: string, code: string) => void }> = ({ id, title, code, copied, onCopy }) => (
-  <div className="min-w-0 rounded-xl border border-white/10 glass-inset">
+  <div className="min-w-0 rounded-xl border border-white/10 surface-inset">
     <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-      <span className="text-xs font-semibold text-slate-300">{title}</span>
-      <button onClick={() => onCopy(id, code)} className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2 py-1 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white">
-        {copied === id ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}{copied === id ? 'Copied' : 'Copy'}
+      <span className="text-xs font-semibold text-ink-300">{title}</span>
+      <button onClick={() => onCopy(id, code)} className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2 py-1 text-[11px] text-ink-300 hover:border-ink-500 hover:text-white">
+        {copied === id ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{copied === id ? 'Copied' : 'Copy'}
       </button>
     </div>
-    <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-5 text-slate-300">{code}</pre>
+    <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-5 text-ink-300">{code}</pre>
   </div>
 );
 
@@ -69,16 +69,16 @@ export const PricingView: React.FC = () => {
       <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Basic tools are free. Paid tools have {FREE_CALLS_PER_TOOL} free calls each, then a few cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-indigo-400" />Prices</h3>
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-accent-400" />Prices</h3>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {tiers.map((tier) => {
             const tools = Object.keys(TOOL_PRICES).filter((tool) => TOOL_PRICES[tool] === tier.price);
             return (
-              <div key={tier.label} data-reveal className="lift rounded-xl border border-white/10 glass p-4">
-                <p className={`text-xl font-extrabold ${tier.price ? 'text-white' : 'text-emerald-400'}`}>{tier.label}</p>
-                <p className="mt-1 text-[11px] text-slate-400">{tier.note}</p>
+              <div key={tier.label} className="rounded-xl border border-white/10 surface p-4">
+                <p className={`text-xl font-extrabold ${tier.price ? 'text-white' : 'text-success-400'}`}>{tier.label}</p>
+                <p className="mt-1 text-[11px] text-ink-400">{tier.note}</p>
                 <ul className="mt-3 space-y-1">
-                  {tools.map((tool) => <li key={tool} className="truncate font-mono text-[11px] text-indigo-300">{tool}</li>)}
+                  {tools.map((tool) => <li key={tool} className="truncate font-mono text-[11px] text-accent-300">{tool}</li>)}
                 </ul>
               </div>
             );
@@ -86,7 +86,7 @@ export const PricingView: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 glass p-6">
+      <section className="rounded-2xl border border-white/10 surface p-6">
         <h3 className="text-base font-bold text-white">How a paid call works</h3>
         <ol className="mt-4 grid gap-3 md:grid-cols-3">
           {[
@@ -94,10 +94,10 @@ export const PricingView: React.FC = () => {
             ['Your client pays', 'An x402 client signs a USDC transfer for that amount and retries the same call with it attached. No sign-up and no prepaid balance.'],
             ['Get the answer and a receipt', 'The payment is checked, the tool runs, and the transfer settles on Solana only if the call succeeded. The receipt includes the transaction signature.'],
           ].map(([title, detail], i) => (
-            <li key={title} className="rounded-xl border border-white/10 glass-inset p-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Step {i + 1}</span>
+            <li key={title} className="rounded-xl border border-white/10 surface-inset p-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-300">Step {i + 1}</span>
               <p className="mt-1 text-sm font-semibold text-white">{title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">{detail}</p>
+              <p className="mt-1 text-xs leading-5 text-ink-400">{detail}</p>
             </li>
           ))}
         </ol>
@@ -109,7 +109,7 @@ export const PricingView: React.FC = () => {
           <CodeBlock id="http" title="HTTP · @x402/fetch" code={httpExample} copied={copied} onCopy={copy} />
           <CodeBlock id="mcp" title="MCP · @x402/mcp" code={mcpExample} copied={copied} onCopy={copy} />
         </div>
-        <p className="text-xs text-slate-400">Network <code className="text-slate-300">{NETWORK}</code> (Solana mainnet), asset USDC, scheme <code className="text-slate-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-indigo-300 hover:text-indigo-200">mcp.json</a>, <a href="/llms.txt" className="text-indigo-300 hover:text-indigo-200">llms.txt</a> and <a href="/api/trial/status" className="text-indigo-300 hover:text-indigo-200">/api/trial/status</a>.</p>
+        <p className="text-xs text-ink-400">Network <code className="text-ink-300">{NETWORK}</code> (Solana mainnet), asset USDC, scheme <code className="text-ink-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-accent-300 hover:text-accent-200">mcp.json</a>, <a href="/llms.txt" className="text-accent-300 hover:text-accent-200">llms.txt</a> and <a href="/api/trial/status" className="text-accent-300 hover:text-accent-200">/api/trial/status</a>.</p>
       </section>
     </div>
   );

@@ -5,7 +5,6 @@ import { toolPath } from '../nav';
 import { CATEGORY_LABELS, type ToolsIndex } from '../lib/toolsApi';
 import { CodeBlock, H2 } from '../components/docs/DocParts';
 import { ServiceUsagePanel } from '../components/ServiceUsagePanel';
-import { useReveal } from '../hooks/motion';
 
 const HEADLINE = [
   { name: 'preflight_transaction', icon: ShieldAlert, line: 'See exactly what a transaction does to each wallet, and block drainers, before your agent signs.' },
@@ -14,33 +13,32 @@ const HEADLINE = [
 ];
 
 export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) => {
-  const ref = useReveal<HTMLDivElement>([Boolean(index)]);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   return (
-    <div ref={ref} className="space-y-14">
+    <div className="space-y-14">
       <section className="space-y-6 pt-2">
-        <p className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-300">
-          <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
+        <p className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-ink-300">
+          <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-400 opacity-60" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success-400" /></span>
           Live on Solana mainnet · {index?.tools.length ?? 15} agent tools · MCP and HTTP
         </p>
         <h1 className="animate-fade-up max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight text-white [animation-delay:60ms] sm:text-5xl">
           Stop your AI agent from <span className="text-gradient">losing money on Solana.</span>
         </h1>
-        <p className="animate-fade-up max-w-2xl text-base leading-7 text-slate-300 [animation-delay:120ms]">
+        <p className="animate-fade-up max-w-2xl text-base leading-7 text-ink-300 [animation-delay:120ms]">
           Solana Pulse is an intelligence layer between Solana and your agent. It checks transactions before signing, confirms they match what was meant, vets tokens, explains failures and converts amounts with real decimals. Basic tools are free; paid tools have 3 free calls, then cost cents in USDC via x402. No account or API key.
         </p>
         <div className="animate-fade-up flex flex-wrap gap-3 [animation-delay:180ms]">
-          <Link to="/docs/quickstart" className="bg-accent-gradient inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-110">
+          <Link to="/docs/quickstart" className="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-500">
             <BookOpen className="h-4 w-4" />Quickstart
           </Link>
-          <Link to={toolPath('preflight_transaction')} className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:border-white/30 hover:bg-white/[0.06]">
+          <Link to={toolPath('preflight_transaction')} className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-ink-100 transition hover:border-white/30 hover:bg-white/[0.06]">
             Try a tool live <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link to="/docs/connect" className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:text-white">
+          <Link to="/docs/connect" className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-ink-300 transition hover:text-white">
             <Bot className="h-4 w-4" />Connect an agent
           </Link>
         </div>
-        <div data-reveal className="max-w-2xl">
+        <div className="max-w-2xl">
           <CodeBlock title="Your first call (free, no key)" code={`curl -X POST '${origin}/api/tools/convert_amount' \\\n  -H 'content-type: application/json' \\\n  -d '{"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'`} />
         </div>
       </section>
@@ -51,11 +49,11 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
           {HEADLINE.map(({ name, icon: Icon, line }, i) => {
             const tool = index?.tools.find((t) => t.name === name);
             return (
-              <Link key={name} to={toolPath(name)} data-reveal data-reveal-index={i} className="lift glass group rounded-xl border p-5">
-                <Icon className="h-5 w-5 text-indigo-300" />
-                <p className="mt-3 flex items-center justify-between gap-2 text-sm font-semibold text-white">{tool?.title ?? name}<span className="font-mono text-[11px] font-normal text-slate-500">{tool?.price ?? ''}</span></p>
-                <p className="mt-1.5 text-[13px] leading-6 text-slate-400">{line}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs text-indigo-300 transition group-hover:gap-2">Docs and live demo <ArrowRight className="h-3 w-3" /></span>
+              <Link key={name} to={toolPath(name)} className="surface group rounded-xl border p-5">
+                <Icon className="h-5 w-5 text-accent-300" />
+                <p className="mt-3 flex items-center justify-between gap-2 text-sm font-semibold text-white">{tool?.title ?? name}<span className="font-mono text-[11px] font-normal text-ink-500">{tool?.price ?? ''}</span></p>
+                <p className="mt-1.5 text-[13px] leading-6 text-ink-400">{line}</p>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs text-accent-300 transition group-hover:gap-2">Docs and live demo <ArrowRight className="h-3 w-3" /></span>
               </Link>
             );
           })}
@@ -70,14 +68,14 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
             const tools = index.tools.filter((t) => t.category === category);
             if (!tools.length) return null;
             return (
-              <div key={category} data-reveal>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{CATEGORY_LABELS[category]}</p>
+              <div key={category}>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-500">{CATEGORY_LABELS[category]}</p>
                 <ul className="divide-y divide-white/[0.06] rounded-lg border border-white/10">
                   {tools.map((t) => (
                     <li key={t.name}>
                       <Link to={toolPath(t.name)} className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-white/[0.03]">
-                        <span className="min-w-0"><span className="block truncate text-sm text-slate-100">{t.title}</span><code className="text-[11px] text-slate-500">{t.name}</code></span>
-                        <span className={`shrink-0 font-mono text-[11px] ${t.price ? 'text-slate-400' : 'text-emerald-400/90'}`}>{t.price ?? 'Free'}</span>
+                        <span className="min-w-0"><span className="block truncate text-sm text-ink-100">{t.title}</span><code className="text-[11px] text-ink-500">{t.name}</code></span>
+                        <span className={`shrink-0 font-mono text-[11px] ${t.price ? 'text-ink-400' : 'text-success-400/90'}`}>{t.price ?? 'Free'}</span>
                       </Link>
                     </li>
                   ))}
@@ -96,16 +94,16 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
             ['The gateway does the Solana work', 'It reads live chain state, simulates, decodes and cross-checks, so the model never has to guess decimals, addresses or effects.'],
             ['Get a verdict and the facts', 'Structured JSON with a verdict where it matters, the reasons, and a fix. Every field is documented with how it was computed.'],
           ].map(([title, text], i) => (
-            <li key={title} data-reveal data-reveal-index={i} className="rounded-xl border border-white/10 p-5">
-              <span className="font-mono text-xs text-indigo-300">0{i + 1}</span>
+            <li key={title} className="rounded-xl border border-white/10 p-5">
+              <span className="font-mono text-xs text-accent-300">0{i + 1}</span>
               <p className="mt-2 text-sm font-semibold text-white">{title}</p>
-              <p className="mt-1.5 text-[13px] leading-6 text-slate-400">{text}</p>
+              <p className="mt-1.5 text-[13px] leading-6 text-ink-400">{text}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section data-reveal><ServiceUsagePanel /></section>
+      <section><ServiceUsagePanel /></section>
     </div>
   );
 };

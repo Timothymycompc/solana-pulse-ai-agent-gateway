@@ -10,7 +10,7 @@ const origin = () => (typeof window !== 'undefined' ? window.location.origin : '
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
 const NextLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
-  <Link to={to} className="inline-flex items-center gap-1 text-sm text-indigo-300 transition hover:gap-2 hover:text-indigo-200">{children}<ArrowRight className="h-3.5 w-3.5" /></Link>
+  <Link to={to} className="inline-flex items-center gap-1 text-sm text-accent-300 transition hover:gap-2 hover:text-accent-200">{children}<ArrowRight className="h-3.5 w-3.5" /></Link>
 );
 
 export const QuickstartPage: React.FC = () => (
@@ -60,9 +60,9 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Discovery files</H2>
     <Table head={['File', 'What it is']} minWidth={420} rows={[
-      [<a className="text-indigo-300 hover:text-indigo-200" href="/.well-known/mcp.json">/.well-known/mcp.json</a>, 'Machine-readable manifest: tools, prices and payment details.'],
-      [<a className="text-indigo-300 hover:text-indigo-200" href="/llms.txt">/llms.txt</a>, 'Plain-text guide for language models.'],
-      [<a className="text-indigo-300 hover:text-indigo-200" href="/api/tools">/api/tools</a>, 'Every tool with full input and output documentation, as JSON.'],
+      [<a className="text-accent-300 hover:text-accent-200" href="/.well-known/mcp.json">/.well-known/mcp.json</a>, 'Machine-readable manifest: tools, prices and payment details.'],
+      [<a className="text-accent-300 hover:text-accent-200" href="/llms.txt">/llms.txt</a>, 'Plain-text guide for language models.'],
+      [<a className="text-accent-300 hover:text-accent-200" href="/api/tools">/api/tools</a>, 'Every tool with full input and output documentation, as JSON.'],
     ]} />
   </article>
 );
@@ -82,22 +82,22 @@ export const CallsPage: React.FC = () => (
 
     <H2>How a call travels: think of a restaurant</H2>
     <Table head={['In a restaurant', 'In the gateway']} minWidth={480} rows={[
-      [<><b className="text-slate-100">The customer</b> wants something</>, <><b className="text-slate-100">The client</b>: your app or AI agent</>],
-      [<><b className="text-slate-100">The menu</b> lists every dish</>, <><b className="text-slate-100">The API</b>: the list of tools and how to ask</>],
-      [<><b className="text-slate-100">A dish</b> has its own name</>, <><b className="text-slate-100">An endpoint</b>: one address, one job, like <Code>/api/tools/get_solana_balance</Code></>],
-      [<><b className="text-slate-100">The cashier</b> checks you can order</>, <><b className="text-slate-100">Free calls and payment</b>: counts free calls, then checks the x402 payment</>],
-      [<><b className="text-slate-100">The chef</b> cooks</>, <><b className="text-slate-100">The logic</b>: validates inputs and does the work</>],
-      [<><b className="text-slate-100">The supplier</b> delivers ingredients</>, <><b className="text-slate-100">The blockchain</b>: Solana, read live</>],
-      [<><b className="text-slate-100">The plate</b> arrives</>, <><b className="text-slate-100">The response</b>: structured JSON, usually in well under a second</>],
+      [<><b className="text-ink-100">The customer</b> wants something</>, <><b className="text-ink-100">The client</b>: your app or AI agent</>],
+      [<><b className="text-ink-100">The menu</b> lists every dish</>, <><b className="text-ink-100">The API</b>: the list of tools and how to ask</>],
+      [<><b className="text-ink-100">A dish</b> has its own name</>, <><b className="text-ink-100">An endpoint</b>: one address, one job, like <Code>/api/tools/get_solana_balance</Code></>],
+      [<><b className="text-ink-100">The cashier</b> checks you can order</>, <><b className="text-ink-100">Free calls and payment</b>: counts free calls, then checks the x402 payment</>],
+      [<><b className="text-ink-100">The chef</b> cooks</>, <><b className="text-ink-100">The logic</b>: validates inputs and does the work</>],
+      [<><b className="text-ink-100">The supplier</b> delivers ingredients</>, <><b className="text-ink-100">The blockchain</b>: Solana, read live</>],
+      [<><b className="text-ink-100">The plate</b> arrives</>, <><b className="text-ink-100">The response</b>: structured JSON, usually in well under a second</>],
     ]} />
 
     <H2>Glossary</H2>
     <Table head={['Term', 'Meaning']} minWidth={420} rows={[
-      [<b className="text-slate-100">API</b>, 'Everything the gateway can do and the format for asking.'],
-      [<b className="text-slate-100">Endpoint</b>, 'A single address that does one job.'],
-      [<b className="text-slate-100">Request / response</b>, 'What you send, and what comes back.'],
-      [<b className="text-slate-100">MCP server</b>, 'A menu written for AI agents, so they can find and call tools themselves.'],
-      [<b className="text-slate-100">x402</b>, 'An open standard for paying per request, here in USDC on Solana.'],
+      [<b className="text-ink-100">API</b>, 'Everything the gateway can do and the format for asking.'],
+      [<b className="text-ink-100">Endpoint</b>, 'A single address that does one job.'],
+      [<b className="text-ink-100">Request / response</b>, 'What you send, and what comes back.'],
+      [<b className="text-ink-100">MCP server</b>, 'A menu written for AI agents, so they can find and call tools themselves.'],
+      [<b className="text-ink-100">x402</b>, 'An open standard for paying per request, here in USDC on Solana.'],
     ]} />
     <NextLink to="/docs/quickstart">Make your first call</NextLink>
   </article>

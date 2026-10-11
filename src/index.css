@@ -2,39 +2,61 @@
 
 /* Motion system: one easing family and three durations, used by every animation on the site. */
 @theme {
-  /* Palette: neutral graphite greys (no blue tint) and one steel-blue accent.
-     Components use the slate and indigo scales by name; remapping them here restyles the whole site. */
-  --color-slate-50: #fafafa;
-  --color-slate-100: #f4f4f5;
-  --color-slate-200: #e4e4e7;
-  --color-slate-300: #d4d4d8;
-  --color-slate-400: #a1a1aa;
-  --color-slate-500: #71717a;
-  --color-slate-600: #52525b;
-  --color-slate-700: #3f3f46;
-  --color-slate-800: #27272a;
-  --color-slate-900: #161618;
-  --color-slate-950: #0b0b0d;
+  /* ============================================================
+     COLORS: change the site's look here, nowhere else.
+     ink      neutral greys for backgrounds, borders and text
+     accent   the brand color (links, highlights, primary buttons)
+     success / warning / danger   status: safe, caution, blocked
+     info     secondary highlight (hallucination-prevention notes)
+     Use them in markup as e.g. bg-ink-950, text-accent-300, border-danger-400.
+     ============================================================ */
+  --color-ink-50: #fafafa;
+  --color-ink-100: #f4f4f5;
+  --color-ink-200: #e4e4e7;
+  --color-ink-300: #d4d4d8;
+  --color-ink-400: #a1a1aa;
+  --color-ink-500: #71717a;
+  --color-ink-600: #52525b;
+  --color-ink-700: #3f3f46;
+  --color-ink-800: #27272a;
+  --color-ink-900: #161618;
+  --color-ink-950: #0b0b0d;
 
-  --color-indigo-50: #eff4fc;
-  --color-indigo-100: #dde8f8;
-  --color-indigo-200: #bdd0ef;
-  --color-indigo-300: #94b2e3;
-  --color-indigo-400: #6c91d2;
-  --color-indigo-500: #4f76bd;
-  --color-indigo-600: #3f61a3;
-  --color-indigo-700: #354f83;
-  --color-indigo-800: #2d426b;
-  --color-indigo-900: #263755;
-  --color-indigo-950: #172135;
+  --color-accent-50: #eff4fc;
+  --color-accent-100: #dde8f8;
+  --color-accent-200: #bdd0ef;
+  --color-accent-300: #94b2e3;
+  --color-accent-400: #6c91d2;
+  --color-accent-500: #4f76bd;
+  --color-accent-600: #3f61a3;
+  --color-accent-700: #354f83;
+  --color-accent-800: #2d426b;
+  --color-accent-900: #263755;
+  --color-accent-950: #172135;
 
-  /* Secondary accents follow the same steel blue so nothing reads as neon. */
-  --color-violet-300: #94b2e3;
-  --color-cyan-300: #a5c4d4;
-  --color-sky-100: #e4edf6;
-  --color-sky-300: #9fbbd8;
-  --color-sky-400: #7fa3c9;
-  --color-sky-500: #5f88b5;
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-300: #6ee7b7;
+  --color-success-400: #34d399;
+  --color-success-500: #10b981;
+
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+
+  --color-danger-100: #ffe4e6;
+  --color-danger-300: #fda4af;
+  --color-danger-400: #fb7185;
+  --color-danger-500: #f43f5e;
+
+  --color-info-50: #f0f6fb;
+  --color-info-100: #e4edf6;
+  --color-info-300: #9fbbd8;
+  --color-info-400: #7fa3c9;
+  --color-info-500: #5f88b5;
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -85,11 +107,11 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white;
+    @apply bg-ink-950 text-ink-100 antialiased selection:bg-accent-500 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   :focus-visible {
-    outline: 2px solid var(--color-indigo-400);
+    outline: 2px solid var(--color-accent-400);
     outline-offset: 2px;
   }
 }
@@ -135,12 +157,10 @@
   }
 
   /* Glass panels: translucent dark surface over the aurora background, with a faint top highlight. */
-  .glass {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
+  /* Plain card surface. */
+  .surface {
+    background: rgb(255 255 255 / 0.02);
     border-color: rgb(255 255 255 / 0.09);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 40px -20px rgb(0 0 0 / 0.7);
   }
   .glass-strong {
     background: linear-gradient(180deg, rgb(22 22 24 / 0.86), rgb(11 11 13 / 0.82));
@@ -150,14 +170,14 @@
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 18px 50px -24px rgb(0 0 0 / 0.8);
   }
   /* Inset surfaces (editors, code) stay darker than the panel around them for legibility. */
-  .glass-inset {
+  .surface-inset {
     background: rgb(11 11 13 / 0.72);
     border-color: rgb(255 255 255 / 0.08);
   }
 
   /* Highlighted headline words: solid steel blue, no gradient. */
   .text-gradient {
-    color: var(--color-indigo-300);
+    color: var(--color-accent-300);
   }
   .bg-accent-gradient {
     background: linear-gradient(180deg, #4f76bd 0%, #3f61a3 100%);
@@ -180,11 +200,11 @@
   }
 
   /* JSON syntax colors for the response viewer. */
-  .json-key { color: var(--color-indigo-300); }
-  .json-string { color: var(--color-emerald-300); }
-  .json-number { color: var(--color-amber-300); }
-  .json-boolean { color: var(--color-sky-300); }
-  .json-null { color: var(--color-slate-500); }
+  .json-key { color: var(--color-accent-300); }
+  .json-string { color: var(--color-success-300); }
+  .json-number { color: var(--color-warning-300); }
+  .json-boolean { color: var(--color-info-300); }
+  .json-null { color: var(--color-ink-500); }
 }
 
 /* Page changes use the View Transitions API where the browser supports it. */
