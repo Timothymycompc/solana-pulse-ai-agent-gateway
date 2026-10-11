@@ -34,8 +34,10 @@ export async function ensureSchema() {
     );
   `);
   await pool.query(`ALTER TABLE service_usage ADD COLUMN IF NOT EXISTS caller_hash TEXT, ADD COLUMN IF NOT EXISTS client TEXT;`);
-  await pool.query(`DROP INDEX IF EXISTS service_usage_wallet_idx;`);
-  await pool.query(`ALTER TABLE service_usage DROP COLUMN IF EXISTS wallet_address;`);
+  try {
+    await pool.query(`DROP INDEX IF EXISTS service_usage_wallet_idx;`);
+    await pool.query(`ALTER TABLE service_usage DROP COLUMN IF EXISTS wallet_address;`);
+  } catch (error: any) { console.warn(`legacy column service_usage.wallet_address not dropped: ${error?.message ?? error}`); }
   await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_created_idx ON service_usage (created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS service_usage_endpoint_idx ON service_usage (endpoint, created_at DESC);`);
 
@@ -53,9 +55,11 @@ export async function ensureSchema() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS x402_payments_created_idx ON x402_payments (created_at DESC);`);
 
-  // Tables from the retired SOL-credit system and the old cookie trial.
-  for (const table of ["wallets", "used_wallet_signatures", "processed_payments", "call_history", "anonymous_trial_usage"]) {
-    await pool.query(`DROP TABLE IF EXISTS ${table};`);
+  // Tables from the retired SOL-credit system and the old cookie trial. Cleanup must never stop the server
+  // from starting: CASCADE removes foreign keys that point at these tables, and failures are only logged.
+  for (const table of ["missed_endpoints", "wallets", "used_wallet_signatures", "processed_payments", "call_history", "anonymous_trial_usage"]) {
+    try { await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE;`); }
+    catch (error: any) { console.warn(`legacy table ${table} not dropped: ${error?.message ?? error}`); }
   }
 }
 
