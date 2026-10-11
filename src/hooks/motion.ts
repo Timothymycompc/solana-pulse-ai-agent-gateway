@@ -10,34 +10,6 @@ export function withViewTransition(update: () => void) {
   doc.startViewTransition(() => flushSync(update));
 }
 
-// Reveal every [data-reveal] element inside the returned ref once it scrolls into view.
-// Items in the same batch are staggered by their data-reveal-index.
-export function useReveal<T extends HTMLElement>(deps: unknown[] = []) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-    const items: HTMLElement[] = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]:not([data-reveal="shown"])'));
-    if (reducedMotion() || !('IntersectionObserver' in window)) {
-      items.forEach((el) => { el.dataset.reveal = 'shown'; });
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target as HTMLElement;
-        el.style.setProperty('--reveal-delay', `${Number(el.dataset.revealIndex || 0) * 60}ms`);
-        el.dataset.reveal = 'shown';
-        observer.unobserve(el);
-      });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-    items.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-  return ref;
-}
-
 // Animate a number from its previous value to the new one.
 export function useCountUp(target: number, durationMs = 700) {
   const [value, setValue] = useState(target);

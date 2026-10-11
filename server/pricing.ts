@@ -33,8 +33,3 @@ export const TOOL_ROUTE_PREFIX = "/api/tools/";
 export const toolForRoute = (path: string) => (path.startsWith(TOOL_ROUTE_PREFIX) ? path.slice(TOOL_ROUTE_PREFIX.length).split("/")[0] : path);
 
 export const priceOf = (tool: string): ToolPrice => (tool in TOOL_PRICES ? TOOL_PRICES[tool] : "$0.001");
-
-export const priceLabel = (tool: string): string => {
-  const price = priceOf(tool);
-  return price ? `${FREE_CALLS_PER_TOOL} free calls, then ${price} USDC per call via x402` : "Free (rate-limited)";
-};

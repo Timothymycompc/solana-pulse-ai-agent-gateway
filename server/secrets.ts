@@ -7,7 +7,7 @@ const client = new SecretManagerServiceClient();
  * @param secretName The name of the secret (e.g., 'DATABASE_URL')
  * @returns The plaintext value of the secret
  */
-export async function getSecret(secretName: string): Promise<string> {
+async function getSecret(secretName: string): Promise<string> {
   try {
     // We assume the secret is named exactly the same as the env var
     // Format: projects/PROJECT_ID/secrets/SECRET_NAME/versions/latest

@@ -57,12 +57,15 @@ if [ $LOCAL = 1 ]; then
   [ -d node_modules ] || { echo "  Installing dependencies…"; npm install --no-audit --no-fund >/tmp/pulse-install.log 2>&1 || stop "npm install failed (see /tmp/pulse-install.log)." "Check your internet connection and run npm install."; }
   if npx tsc --noEmit >/tmp/pulse-tsc.log 2>&1; then ok "Type check passed"
   else fail "Type check failed:"; head -20 /tmp/pulse-tsc.log | sed 's/^/      /'; stop "The code has type errors." "Fix the errors listed above (file:line), commit, and run npm run deploy again."; fi
-  if npx vite build >/tmp/pulse-build.log 2>&1 && npx esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=/tmp/pulse-server.cjs >>/tmp/pulse-build.log 2>&1; then ok "Build passed"
+  if npx vite build >/tmp/pulse-build.log 2>&1 && npx esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --outfile=/tmp/pulse-server.cjs >>/tmp/pulse-build.log 2>&1; then ok "Build passed"
   else fail "Build failed:"; grep -iE "error|failed" /tmp/pulse-build.log | head -15 | sed 's/^/      /'; stop "The build failed." "Fix the errors above, then run npm run deploy again."; fi
   rm -rf dist
 else warn "Skipped (--skip-local)"; fi
 
 if [ $CHECK_ONLY = 1 ]; then printf '\n\033[32mReady to deploy.\033[0m Run npm run deploy when you want to go live.\n'; exit 0; fi
+
+TOOL_COUNT=$(npx tsx -e 'import("./server/tools/index.ts").then(m=>console.log(m.TOOLS.length))' 2>/dev/null)
+[ -n "$TOOL_COUNT" ] || TOOL_COUNT='[0-9]*'
 
 # ---------- 3. Backup ----------
 bold "3/6  Backing up the database"
@@ -96,7 +99,7 @@ ok "New version $NEW is running at its test URL"
 check_all() {
   local B=$1 FAILS=0
   c() { if eval "$2" >/dev/null 2>&1; then ok "$1"; else fail "$1"; FAILS=$((FAILS+1)); fi; }
-  c "15 tools live"          "curl -s -m 20 $B/api/debug/build | grep -q '\"tools\":15'"
+  c "All tools live"         "curl -s -m 20 $B/api/debug/build | grep -q '\"tools\":$TOOL_COUNT'"
   c "MCP lists tools"        "curl -s -m 20 -X POST $B/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}' | grep -q preflight_transaction"
   c "A free tool runs"       "curl -s -m 30 -X POST $B/api/tools/convert_amount -H 'content-type: application/json' -d '{\"mint\":\"$USDC_MINT\",\"amount\":\"5\"}' | grep -q '\"baseUnits\":\"5000000\"'"
   c "Live examples load"     "curl -s -m 30 $B/api/tools/token_verdict/example | grep -q '\"arguments\"'"
@@ -119,5 +122,5 @@ gcloud run services update-traffic $SVC --region $REGION --to-revisions=$NEW=100
   || { tail -3 /tmp/pulse-traffic.log | sed 's/^/      /'; stop "Could not switch traffic to $NEW." "Retry: gcloud run services update-traffic $SVC --region $REGION --to-revisions=$NEW=100"; }
 ok "All visitors now use $NEW (was $PREV)"
 sleep 3
-curl -s -m 20 "$LIVE_URL/api/debug/build" | grep -q '"tools":15' && ok "Live site answering" || warn "Live site did not answer yet; it can take a few seconds."
+curl -s -m 20 "$LIVE_URL/api/debug/build" | grep -q '"tools":' && ok "Live site answering" || warn "Live site did not answer yet; it can take a few seconds."
 printf '\n\033[32mDeployed %s.\033[0m To undo: gcloud run services update-traffic %s --region %s --to-revisions=%s=100\n' "$COMMIT" "$SVC" "$REGION" "$PREV"

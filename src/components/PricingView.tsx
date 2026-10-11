@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Copy, Coins } from 'lucide-react';
-import { FREE_CALLS_PER_TOOL, TOOL_PRICES } from '../../pricing';
+import { FREE_CALLS_PER_TOOL, TOOL_PRICES } from '../../server/pricing';
 import { PageHeader } from './docs/DocParts';
 
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';

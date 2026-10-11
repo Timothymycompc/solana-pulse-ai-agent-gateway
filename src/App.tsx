@@ -6,7 +6,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { ToolPage } from './pages/ToolPage';
 import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, StatusPage } from './pages/GuidePages';
 
-export function App() {
+function App() {
   const path = usePath();
   const { index, error } = useToolsIndex();
   const sections = useMemo(() => buildSections(index?.tools ?? null), [index]);

@@ -6,17 +6,17 @@ export type NavSection = { title: string; items: NavItem[] };
 
 export const REPO_URL = 'https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway';
 
-export const GUIDE_PAGES: NavItem[] = [
+const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
   { title: 'Quickstart', path: '/docs/quickstart', keywords: 'curl http first request example' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
   { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude cursor config agent' },
 ];
-export const PAYMENT_PAGES: NavItem[] = [
+const PAYMENT_PAGES: NavItem[] = [
   { title: 'Pricing & x402', path: '/docs/pricing', keywords: 'price usdc pay payment free calls x402' },
   { title: 'Live usage', path: '/status', keywords: 'stats usage analytics callers' },
 ];
-export const RESOURCE_LINKS: NavItem[] = [
+const RESOURCE_LINKS: NavItem[] = [
   { title: 'llms.txt', path: '/llms.txt', external: true },
   { title: 'mcp.json', path: '/.well-known/mcp.json', external: true },
   { title: 'Tool reference (JSON)', path: '/api/tools', external: true },

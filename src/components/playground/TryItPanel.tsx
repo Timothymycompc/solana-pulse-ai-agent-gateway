@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, Check, Copy, Play, RefreshCw } from 'lucide-react';
 import { loadExample, loadFreeCallsUsed, runTool, type RunResult, type ToolDoc } from '../../lib/toolsApi';
 import { ToolForm, toArguments } from './ToolForm';
+import { button } from '../ui/button';
 import { ToolResult } from './ToolResult';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -74,7 +75,7 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
         <ToolForm tool={tool} values={values} onChange={setValues} compact />
 
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => void run()} disabled={running} className={`bg-accent-600 hover:bg-accent-500 group inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70`}>
+          <button onClick={() => void run()} disabled={running} className={button('primary', 'md', 'group flex-1 active:scale-[0.98] disabled:cursor-wait')}>
             {running ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}{running ? 'Running…' : 'Run request'}
             {!running && <kbd className="ml-1 hidden rounded border border-white/25 bg-white/10 px-1 font-sans text-[9px] font-medium sm:inline">{isMac ? '⌘' : 'Ctrl'}↵</kbd>}
           </button>

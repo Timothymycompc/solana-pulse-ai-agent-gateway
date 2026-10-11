@@ -53,9 +53,9 @@ MCP (Claude Desktop, Cursor):
 
 ## Architecture
 
-- **Tool registry (`tools/`)**: one definition per tool holds its use-when line, documentation, live example and code. MCP tools, HTTP routes, `/api/tools`, `llms.txt`, `/.well-known/mcp.json` and the playground are all generated from it, so docs cannot drift from behavior.
-- **Transaction analysis (`tools/decode.ts`)**: decodes System, SPL Token, Token-2022, Compute Budget, Associated Token Account and Memo instructions, resolves address lookup tables, simulates against live state and computes per-wallet balance changes.
-- **Payments (`x402.ts`, `meter.ts`, `pricing.ts`)**: an admission gate (free tool, owner key, free call, or x402), the official `@x402/express` and `@x402/mcp` integrations, and a revenue ledger of settled payments.
+- **Tool registry (`server/tools/`)**: one definition per tool holds its use-when line, documentation, live example and code. MCP tools, HTTP routes, `/api/tools`, `llms.txt`, `/.well-known/mcp.json` and the playground are all generated from it, so docs cannot drift from behavior.
+- **Transaction analysis (`server/tools/decode.ts`)**: decodes System, SPL Token, Token-2022, Compute Budget, Associated Token Account and Memo instructions, resolves address lookup tables, simulates against live state and computes per-wallet balance changes.
+- **Payments (`server/x402.ts`, `server/meter.ts`, `server/pricing.ts`)**: an admission gate (free tool, owner key, free call, or x402), the official `@x402/express` and `@x402/mcp` integrations, and a revenue ledger of settled payments.
 - **Server**: Node.js, Express, TypeScript on Google Cloud Run, PostgreSQL on Cloud SQL (free-call counts, anonymous usage stats, payment ledger).
 - **Frontend**: React, Vite, Tailwind with a registry-driven playground.
 
@@ -67,3 +67,5 @@ cp .env.example .env   # set DATABASE_URL at minimum
 npm run dev            # Express + Vite on http://localhost:3000
 npm run build          # type-check, then bundle frontend and server into dist/
 ```
+
+See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, change a price, recolor the site or deploy.

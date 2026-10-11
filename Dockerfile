@@ -11,7 +11,7 @@ RUN npm install
 # Copy the rest of the source
 COPY . .
 
-# Runs: vite build && esbuild server.ts ... --outfile=dist/server.cjs
+# Runs: vite build && esbuild server/index.ts ... --outfile=dist/server.cjs
 RUN npm run build
 
 ENV NODE_ENV=production

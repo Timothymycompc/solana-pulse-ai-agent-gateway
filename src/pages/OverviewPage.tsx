@@ -4,6 +4,7 @@ import { Link } from '../router';
 import { toolPath } from '../nav';
 import { CATEGORY_LABELS, type ToolsIndex } from '../lib/toolsApi';
 import { CodeBlock, H2 } from '../components/docs/DocParts';
+import { button } from '../components/ui/button';
 import { ServiceUsagePanel } from '../components/ServiceUsagePanel';
 
 const HEADLINE = [
@@ -28,13 +29,13 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
           Solana Pulse is an intelligence layer between Solana and your agent. It checks transactions before signing, confirms they match what was meant, vets tokens, explains failures and converts amounts with real decimals. Basic tools are free; paid tools have 3 free calls, then cost cents in USDC via x402. No account or API key.
         </p>
         <div className="animate-fade-up flex flex-wrap gap-3 [animation-delay:180ms]">
-          <Link to="/docs/quickstart" className="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-accent-500">
+          <Link to="/docs/quickstart" className={button('primary')}>
             <BookOpen className="h-4 w-4" />Quickstart
           </Link>
-          <Link to={toolPath('preflight_transaction')} className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-ink-100 transition hover:border-white/30 hover:bg-white/[0.06]">
+          <Link to={toolPath('preflight_transaction')} className={button('secondary')}>
             Try a tool live <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link to="/docs/connect" className="inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-ink-300 transition hover:text-white">
+          <Link to="/docs/connect" className={button('ghost')}>
             <Bot className="h-4 w-4" />Connect an agent
           </Link>
         </div>

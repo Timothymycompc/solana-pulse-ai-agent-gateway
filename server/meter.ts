@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { keyFromReq } from "./authKey";
+import { keyFromReq } from "./auth";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { pool } from "./db";
 import { FREE_CALLS_PER_TOOL, priceOf, toolForRoute } from "./pricing";
