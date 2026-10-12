@@ -9,7 +9,7 @@ import { z } from "zod";
 import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
 import { recordPayment } from "./db";
 import { TOOLS_BY_NAME } from "./tools";
-import { BONK_MINT, EXAMPLE_RECIPIENT, EXAMPLE_WALLET } from "./tools/lib";
+import { BONK_MINT, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "./tools/lib";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator.payai.network";
@@ -26,11 +26,21 @@ const fitDescription = (text: string) => {
   return cut.slice(0, cut.lastIndexOf(". ") + 1) || cut;
 };
 
-// A fixed, real input for each paid tool's listing. The playground's examples fetch live data, which listings
-// built at startup can't, so the transaction tools use an unsigned 0.01 SOL transfer recorded from mainnet
-// (tests/fixtures/intent-sol-match.json) and explain_transaction a confirmed swap by the payout wallet.
+// A fixed, real input for each paid tool's listing, matching the playground's examples where those are fixed.
+// The transaction tools' playground examples fetch live data, which listings built at startup can't, so they use an
+// unsigned 0.01 SOL transfer recorded from mainnet (tests/fixtures/intent-sol-match.json) and, for
+// explain_transaction, a confirmed swap by the payout wallet.
 const SOL_TRANSFER = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEEtNEWetTmK6RLkue8tADNy8eH6av+X5ckYlACi5O/AAQICAAEMAgAAAICWmAAAAAAAAA==";
+const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4";
 export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
+  get_solana_balance: { wallet: EXAMPLE_WALLET },
+  get_token_accounts: { wallet: EXAMPLE_WALLET, limit: 10 },
+  get_recent_transactions: { wallet: EXAMPLE_WALLET, limit: 5 },
+  get_solana_blockhash: {},
+  find_ata: { wallet: EXAMPLE_WALLET, mint: USDC_MINT },
+  inspect_address: { address: USDC_MINT },
+  convert_amount: { mint: USDC_MINT, amount: "5", direction: "to_base_units" },
+  explain_error: { error: `Program ${JUPITER} failed: custom program error: 0x1771`, programId: JUPITER },
   preflight_transaction: { transaction: SOL_TRANSFER },
   check_transaction_intent: { transaction: SOL_TRANSFER, intent: { action: "transfer", token: "SOL", amount: "0.01", recipient: EXAMPLE_RECIPIENT } },
   explain_transaction: { signature: "3VC82Y2Uq42qczUPPzxuyUqeDPzgqKQf5utk1sKUsjgaTn9JZqDwMxqBb73U1FetJLF8WZqjrRyjsXovESSq3Phv" },

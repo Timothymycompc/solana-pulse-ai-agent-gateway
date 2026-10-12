@@ -5,7 +5,7 @@ import express from "express";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
 import { admitCall, getFreeCallStatus, hashIp, paidRouteMiddleware, refundFreeCall } from "../server/meter";
-import { FREE_CALLS_PER_TOOL } from "../server/pricing";
+import { FREE_CALLS_PER_TOOL, TOOL_PRICES } from "../server/pricing";
 
 const db = new PGlite();
 before(async () => {
@@ -20,8 +20,14 @@ before(async () => {
 const ip = "203.0.113.7";
 const use = (tool: string, callerIp = ip) => admitCall({ tool, ip: callerIp, hasPayment: false });
 
-test("free tools never touch the allowance", async () => {
-  assert.deepEqual(await use("get_solana_balance"), { via: "free_tool" });
+test("a tool priced null (free, no daily limit) never touches the allowance", async () => {
+  // Every real tool is priced today, so check the free path with a stand-in.
+  TOOL_PRICES.stand_in_free_tool = null;
+  try {
+    assert.deepEqual(await use("stand_in_free_tool"), { via: "free_tool" });
+  } finally {
+    delete TOOL_PRICES.stand_in_free_tool;
+  }
 });
 
 test("each paid tool gives the daily allowance, then asks for payment", async () => {

@@ -5,7 +5,7 @@
 - Live: https://solana-pulse-gateway-1021990235790.us-central1.run.app
 - MCP endpoint: `POST /mcp` (Streamable HTTP) or `/mcp/sse`
 - Listed in the official MCP Registry as `io.github.Timothymycompc/solana-pulse-gateway`
-- Open source (MIT) and free to use: basic tools have no daily limit, every other tool gives 25 free calls a day
+- Open source (MIT) and free to use: every tool gives 25 free calls a day
 
 ## Why
 
@@ -15,18 +15,18 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 
 | Tool | Prevents | Price |
 |---|---|---|
-| `preflight_transaction` | Signing a drainer or a doomed transaction: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.01 |
-| `check_transaction_intent` | A transaction that differs from what was asked ("send 5 USDC to X"): compares asset, exact amount, recipient and sender, and flags anything extra | $0.01 |
-| `token_verdict` | Buying scam tokens: SAFE / CAUTION / AVOID from mint and freeze powers, Token-2022 traps, verification, liquidity, concentration and age | $0.01 |
-| `explain_transaction` | Guessing from logs: real balance changes by wallet, programs used, and the decoded failure reason | $0.005 |
-| `resolve_token` | Copycat tickers: the verified mint for a ticker, with copycats counted | $0.001 |
-| `fee_advice` | Fee unit mistakes: tiers in micro-lamports per compute unit plus the exact cost in SOL | $0.001 |
-| `wallet_snapshot` | Inflated totals from spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.001 |
-| `convert_amount` | Decimal errors: human amounts to exact base units using the mint's real decimals | Free |
-| `explain_error` | Blind retries: Solana error codes in plain language with a fix | Free |
-| `inspect_address` | Sending to the wrong kind of address: wallet, token account, mint, program and more | Free |
-| `find_ata` | Wrong token accounts: Token-2022 aware derivation, existence check and creation cost | Free |
-| `get_solana_balance`, `get_token_accounts`, `get_recent_transactions`, `get_solana_blockhash` | Stale or invented data: live reads (holdings ranked by value with spam flagged; blockhash with seconds left) | Free |
+| `preflight_transaction` | Signing a drainer or a doomed transaction: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
+| `check_transaction_intent` | A transaction that differs from what was asked ("send 5 USDC to X"): compares asset, exact amount, recipient and sender, and flags anything extra | $0.02 |
+| `token_verdict` | Buying scam tokens: SAFE / CAUTION / AVOID from mint and freeze powers, Token-2022 traps, verification, liquidity, concentration and age | $0.02 |
+| `explain_transaction` | Guessing from logs: real balance changes by wallet, programs used, and the decoded failure reason | $0.01 |
+| `resolve_token` | Copycat tickers: the verified mint for a ticker, with copycats counted | $0.01 |
+| `fee_advice` | Fee unit mistakes: tiers in micro-lamports per compute unit plus the exact cost in SOL | $0.01 |
+| `wallet_snapshot` | Inflated totals from spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.01 |
+| `convert_amount` | Decimal errors: human amounts to exact base units using the mint's real decimals | $0.01 |
+| `explain_error` | Blind retries: Solana error codes in plain language with a fix | $0.01 |
+| `inspect_address` | Sending to the wrong kind of address: wallet, token account, mint, program and more | $0.01 |
+| `find_ata` | Wrong token accounts: Token-2022 aware derivation, existence check and creation cost | $0.01 |
+| `get_solana_balance`, `get_token_accounts`, `get_recent_transactions`, `get_solana_blockhash` | Stale or invented data: live reads (holdings ranked by value with spam flagged; blockhash with seconds left) | $0.01 |
 
 Prices apply only after a tool's 25 free calls for the day.
 
@@ -50,8 +50,8 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 
 ## Pricing and payments
 
-- Free tools are rate-limited to 120 requests per minute per IP.
-- Every other tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.001 to $0.01 USDC per call. Normal use stays free; payment covers heavy, automated use.
+- All calls are rate-limited to 120 requests per minute per IP.
+- Every tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.01 USDC per call ($0.02 for `preflight_transaction`, `check_transaction_intent` and `token_verdict`). Normal use stays free; payment covers heavy, automated use.
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
 - Each paid tool publishes an x402 discovery listing (the Bazaar extension: description, input schema and a real example), so facilitator directories such as PayAI's, which Coinbase AgentKit can search, list it after its first paid call.

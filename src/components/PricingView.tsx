@@ -36,10 +36,8 @@ await client.connect(new StreamableHTTPClientTransport(
 const result = await client.callTool("preflight_transaction", { transaction: "<base64>" });`;
 
 const tiers = [
-  { price: null, label: 'Free', note: 'Rate-limited to 120 requests per minute per IP.' },
-  { price: '$0.001', label: '$0.001 per call', note: `After ${FREE_CALLS_TEXT}.` },
-  { price: '$0.005', label: '$0.005 per call', note: `After ${FREE_CALLS_TEXT}.` },
   { price: '$0.01', label: '$0.01 per call', note: `After ${FREE_CALLS_TEXT}.` },
+  { price: '$0.02', label: '$0.02 per call', note: `After ${FREE_CALLS_TEXT}. Checks that protect funds.` },
 ] as const;
 
 const CodeBlock: React.FC<{ id: string; title: string; code: string; copied: string | null; onCopy: (id: string, code: string) => void }> = ({ id, title, code, copied, onCopy }) => (
@@ -66,11 +64,11 @@ export const PricingView: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Basic tools are free. Every other tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then a few cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
+      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Every tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then one or two cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-accent-400" />Prices</h3>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {tiers.map((tier) => {
             const tools = Object.keys(TOOL_PRICES).filter((tool) => TOOL_PRICES[tool] === tier.price);
             return (

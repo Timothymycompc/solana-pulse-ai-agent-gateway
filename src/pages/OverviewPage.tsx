@@ -26,7 +26,7 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
           Stop your AI agent from <span className="text-gradient">losing money on Solana.</span>
         </h1>
         <p className="animate-fade-up max-w-2xl text-base leading-7 text-ink-300 [animation-delay:120ms]">
-          Solana Pulse is an intelligence layer between Solana and your agent. It checks transactions before signing, confirms they match what was meant, vets tokens, explains failures and converts amounts with real decimals. Open source and free to use: basic tools have no daily limit, every other tool gives 25 free calls a day, and heavier use costs cents in USDC via x402. No account or API key.
+          Solana Pulse is an intelligence layer between Solana and your agent. It checks transactions before signing, confirms they match what was meant, vets tokens, explains failures and converts amounts with real decimals. Open source and free to use: every tool gives 25 free calls a day, and heavier use costs one or two cents a call in USDC via x402. No account or API key.
         </p>
         <div className="animate-fade-up flex flex-wrap gap-3 [animation-delay:180ms]">
           <Link to="/docs/quickstart" className={button('primary')}>

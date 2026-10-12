@@ -1,4 +1,4 @@
-// Free tools: basic reads plus the free helpers that prevent the most common agent mistakes.
+// Basic reads plus the helpers that prevent the most common agent mistakes.
 import { PublicKey } from "@solana/web3.js";
 import { getAccountLenForMint, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
 import { z } from "zod";

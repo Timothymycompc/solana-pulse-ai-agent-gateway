@@ -15,7 +15,7 @@ const NextLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chi
 
 export const QuickstartPage: React.FC = () => (
   <article className="max-w-3xl">
-    <PageHeader eyebrow="Get started" title="Quickstart" lead="Make a real call in under a minute. No account, no API key; free tools work immediately and every other tool gives you 25 free calls a day." />
+    <PageHeader eyebrow="Get started" title="Quickstart" lead="Make a real call in under a minute. No account, no API key; every tool gives you 25 free calls a day." />
 
     <H2>1. Make your first call</H2>
     <P>Every tool is a <Code>POST</Code> to <Code>/api/tools/&lt;name&gt;</Code> with a JSON body. This one converts 5 USDC into the exact base units a transfer needs:</P>
@@ -88,7 +88,7 @@ export const CallsPage: React.FC = () => (
     <P>AI agents make the same calls over MCP: instead of a web address, the agent picks a tool by name, such as <Code>get_solana_balance</Code>, and gets the same answer.</P>
 
     <H2>What calls cost</H2>
-    <P>Basic tools, like this balance call, are always free. Every other tool gives each caller 25 free calls a day, then costs $0.001 to $0.01 in USDC, paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
+    <P>Every tool, including this balance call, gives each caller 25 free calls a day, then costs $0.01 in USDC ($0.02 for the three safety checks), paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
 
     <H2>How a call travels: think of a restaurant</H2>
     <Table head={['In a restaurant', 'In the gateway']} minWidth={480} rows={[
