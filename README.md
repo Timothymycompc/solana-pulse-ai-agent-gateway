@@ -54,6 +54,18 @@ MCP (Claude Desktop, Cursor):
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
 
+### How payments evolved
+
+Version 1 (September to October 2026) was a prepaid credit system I built directly on Solana. Its code is kept at the [`v1-sol-credits`](https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/v1-sol-credits) tag.
+
+- **Wallet sign-in**: the server issued a sign-in message and checked the wallet's ed25519 signature on it (tweetnacl). Messages expired after 5 minutes and could not be used twice. Sign-in returned an API key, and only its SHA-256 hash was stored.
+- **Deposits**: a Helius webhook, authenticated with a shared secret compared in constant time, reported SOL sent to the payout wallet. Each transaction signature was recorded once, so a resent webhook could not credit twice. Every 0.0022 SOL bought one call.
+- **Metering**: one conditional `UPDATE` took a credit, so concurrent calls could not spend the same credit, and a call that failed was refunded.
+
+Version 2 replaced it with x402 because the buyers are AI agents. Under v1 an agent had to sign in, store a key, send a deposit and wait for it to be credited before its first paid call, using a client written for this one service. With x402 it pays inside the request that needs payment, using a standard that agent payment libraries already support. The switch also moved prices from SOL to USDC and removed accounts, stored balances, the webhook and four database tables.
+
+What I would fix in v1: the server did not store the sign-in messages it issued, so it accepted any signed message carrying a recent timestamp, and a deposit smaller than one call's price added no credit.
+
 ## Architecture
 
 - **Tool registry (`server/tools/`)**: one definition per tool holds its use-when line, documentation, live example and code. MCP tools, HTTP routes, `/api/tools`, `llms.txt`, `/.well-known/mcp.json` and the playground are all generated from it, so docs cannot drift from behavior.
