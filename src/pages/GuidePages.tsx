@@ -47,12 +47,22 @@ export const ConnectPage: React.FC = () => (
       ['Server-Sent Events', <Code>{`${origin()}/mcp/sse`}</Code>],
     ]} />
 
-    <H2>Claude Desktop</H2>
-    <P>Add this to <Code>claude_desktop_config.json</Code> and restart Claude. It uses <Code>mcp-remote</Code>, so Node.js must be installed.</P>
-    <CodeBlock title="claude_desktop_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { command: 'npx', args: ['-y', 'mcp-remote', `${origin()}/mcp`] } } }, null, 2)} />
+    <H2>Claude</H2>
+    <P>On claude.ai and in the Claude apps, open Customize, then Connectors, choose Add and then Add custom connector. Name it Solana Pulse, paste the URL below, and pick No sign in. Free plans allow one custom connector.</P>
+    <CodeBlock title="Connector URL" code={`${origin()}/mcp`} />
+    <P>In Claude Code, run:</P>
+    <CodeBlock title="Terminal" code={`claude mcp add --transport http solana-pulse ${origin()}/mcp`} />
 
     <H2>Cursor and other clients that accept a URL</H2>
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>ElizaOS</H2>
+    <P>Add the MCP plugin and this server to your character file. Every tool becomes an action your agent can call.</P>
+    <CodeBlock title="character.json" code={JSON.stringify({ plugins: ['@elizaos/plugin-mcp'], settings: { mcp: { servers: { 'solana-pulse': { type: 'streamable-http', url: `${origin()}/mcp` } } } } }, null, 2)} />
+
+    <H2>Coinbase AgentKit</H2>
+    <P>AgentKit's x402 actions call the HTTP API (<Code>POST /api/tools/&lt;name&gt;</Code>) and pay from the agent's Solana wallet once a tool's free calls are used up. Register the gateway so the agent is allowed to call it, and cap what it can spend per call:</P>
+    <CodeBlock title="TypeScript" code={`import { AgentKit, SolanaKeypairWalletProvider, x402ActionProvider } from "@coinbase/agentkit";\n\nconst walletProvider = await SolanaKeypairWalletProvider.fromNetwork("solana-mainnet", process.env.SOLANA_PRIVATE_KEY!);\nconst agentkit = await AgentKit.from({\n  walletProvider,\n  actionProviders: [x402ActionProvider({ registeredServices: ["${origin()}"], maxPaymentUsdc: 0.05 })],\n});`} />
 
     <H2>An agent that can pay</H2>
     <P>Desktop apps can use every tool within its daily free calls. To go beyond them, build your agent with an x402-capable MCP client, which answers payment requests from a Solana wallet holding USDC:</P>

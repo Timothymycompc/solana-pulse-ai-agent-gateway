@@ -29,7 +29,7 @@ export function toolDoc(tool: ToolDef) {
     http: { method: "POST", path: `/api/tools/${tool.name}`, body: "JSON object with the inputs below" },
     mcp: { method: "tools/call", name: tool.name },
     inputs: tool.inputDocs, outputs: tool.outputs, notes: tool.notes ?? [],
-    inputSchema: z.toJSONSchema(z.object(tool.inputs)),
+    inputSchema: z.toJSONSchema(z.object(tool.inputs), { io: "input" }),
   };
 }
 

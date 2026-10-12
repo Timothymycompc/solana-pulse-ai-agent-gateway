@@ -54,8 +54,8 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 1. Pick the file in `server/tools/` that matches the category (`transactions.ts`, `tokens.ts`, `wallet.ts`, `basic.ts`), or create a new one.
 2. Write a `ToolDef` (copy an existing one such as `walletSnapshot` in `wallet.ts`). Fill in every field: `useWhen` tells agents when to call it, `inputDocs` says how to get each input, `outputs` says what each field means and how it is computed, and `example` builds real mainnet inputs for the playground.
 3. Add it to that file's list at the bottom (for example `WALLET_TOOLS`). New files also need adding to `TOOLS` in `server/tools/index.ts`.
-4. Give it a price in `server/pricing.ts` (`null` means free).
-5. Run `npm run check`. It fails if the price, an input's docs, or an output's docs are missing.
+4. Give it a price in `server/pricing.ts` (`null` means free). A paid tool also needs a fixed, real example input in `LISTING_EXAMPLES` in `server/x402.ts`; x402 directories show it in the tool's listing.
+5. Run `npm run check`. It fails if the price, a paid tool's listing example, an input's docs, or an output's docs are missing.
 
 That is all. The MCP tool, `POST /api/tools/<name>`, the docs page, the playground, `llms.txt`, `mcp.json` and the sitemap update by themselves.
 

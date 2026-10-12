@@ -41,11 +41,12 @@ curl -X POST https://solana-pulse-gateway-1021990235790.us-central1.run.app/api/
   -H 'content-type: application/json' -d '{"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'
 ```
 
-MCP (Claude Desktop, Cursor):
+MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 
-```json
-{ "mcpServers": { "solana-pulse": { "command": "npx", "args": ["-y", "mcp-remote", "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp"] } } }
-```
+- **Claude** (claude.ai and the Claude apps): Customize, Connectors, Add custom connector, paste the URL, choose No sign in.
+- **Claude Code**: `claude mcp add --transport http solana-pulse https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`
+- **Cursor and other clients that take a URL**: `{ "mcpServers": { "solana-pulse": { "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
+- **ElizaOS and Coinbase AgentKit**: setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
 
 ## Pricing and payments
 
@@ -53,6 +54,7 @@ MCP (Claude Desktop, Cursor):
 - Every other tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.001 to $0.01 USDC per call. Normal use stays free; payment covers heavy, automated use.
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
+- Each paid tool publishes an x402 discovery listing (the Bazaar extension: description, input schema and a real example), so facilitator directories such as PayAI's, which Coinbase AgentKit can search, list it after its first paid call.
 
 ### How payments evolved
 
@@ -88,13 +90,14 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 21 tests, offline, about 15 seconds
+npm test               # 24 tests, offline, about 15 seconds
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 ```
 
 - **Safety checks** (`tests/safety.test.ts`) run against real mainnet transactions recorded in `tests/fixtures/`: a drainer token approval (BLOCK), SOL moved by a hidden extra instruction, a 10x decimals slip, an extra USDC transfer to a stranger (all MISMATCH), plus clean transfers that must pass, including one that creates the recipient's token account.
 - **Free-call metering** (`tests/meter.test.ts`) runs the real SQL on an in-memory Postgres (PGlite): the daily allowance, refunds for failed calls, the daily reset and percent-encoded tool names.
 - **Units** (`tests/units.test.ts`): exact amount math, error explanations and instruction decoding.
+- **Discovery listings** (`tests/discovery.test.ts`): every paid tool's x402 listing passes the Bazaar extension's own validators, and its example is a valid input.
 
 GitHub Actions runs the type check, the tool check and the tests on every push.
 
