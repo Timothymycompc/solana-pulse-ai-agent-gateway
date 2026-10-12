@@ -1,7 +1,7 @@
 // Token intelligence: resolve tickers to the right mint, and give a reasoned safety verdict for a mint.
 import { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
-import { assertAddress, BONK_MINT, formatUnits, jupSearch, KNOWN_STABLECOINS, NETWORK_DOC, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken } from "./lib";
+import { assertAddress, BONK_MINT, formatUnits, jupLookup, KNOWN_STABLECOINS, NETWORK_DOC, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken } from "./lib";
 import { ToolError, type ToolDef } from "./types";
 
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
@@ -42,7 +42,9 @@ export const resolveToken: ToolDef = {
   example: async () => ({ query: "BONK" }),
   run: async ({ query }, ctx) => {
     const q = String(query).trim();
-    const results = (await jupSearch(ctx, q)).map(candidate);
+    const search = await jupLookup(ctx, q);
+    if (!search.ok) throw new ToolError(503, "Token search (Jupiter) is unavailable right now.", "Retry in a few seconds. Do not pick a mint from memory meanwhile. Failed calls are never charged.");
+    const results = search.tokens.map(candidate);
     const same = results.filter((c) => c.symbol.toLowerCase() === q.toLowerCase());
     const verifiedSame = same.filter((c) => c.verified).sort((a, b) => (b.liquidityUsd ?? 0) - (a.liquidityUsd ?? 0));
     const bestMatch = verifiedSame[0] ?? null;
@@ -93,7 +95,7 @@ export const tokenVerdict: ToolDef = {
     { field: "token.freezeAuthority", type: "string | null", meaning: "Who can freeze holders' tokens; null means nobody.", howComputed: "On-chain mint account." },
     { field: "token.extensions", type: "string[]", meaning: "Token-2022 extensions enabled on the mint.", howComputed: "Parsed mint extensions." },
     { field: "token.usdPrice / liquidityUsd / holderCount / top10HolderPct / firstPoolAt", type: "number | string | null", meaning: "Market facts used by the checks.", howComputed: "Jupiter token data (top10HolderPct = Jupiter audit topHoldersPercentage; firstPoolAt = first pool creation time)." },
-    { field: "checks[].id", type: "string", meaning: "Which check: verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin.", howComputed: "Fixed list of checks." },
+    { field: "checks[].id", type: "string", meaning: "Which check: verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin, market_data.", howComputed: "Fixed list of checks. market_data (warn) appears only when Jupiter cannot be reached; the market checks are then skipped instead of guessed." },
     { field: "checks[].status", type: '"pass" | "info" | "warn" | "fail"', meaning: "Result of that check. info means notable but expected (for example a regulated stablecoin's freeze power).", howComputed: "Thresholds per check: liquidity fail < $10k, warn < $100k; top-10 holders warn > 50%, fail > 80% (info for known stablecoins); age warn < 24h; permanent delegate, frozen-by-default and non-transferable fail; mint/freeze authority warn unless a known stablecoin." },
     { field: "checks[].detail", type: "string", meaning: "The fact behind the result, in plain words.", howComputed: "Built from the data." },
     { field: "checks[].source", type: '"on-chain" | "jupiter"', meaning: "Where the fact came from.", howComputed: "on-chain for mint data, jupiter for market data." },
@@ -106,7 +108,8 @@ export const tokenVerdict: ToolDef = {
   run: async ({ mint, network }, ctx) => {
     const mintAddress = assertAddress(mint, "mint");
     const conn = ctx.connection(network);
-    const [account, jupList] = await Promise.all([conn.getParsedAccountInfo(new PublicKey(mintAddress), "confirmed"), jupSearch(ctx, mintAddress)]);
+    const [account, market] = await Promise.all([conn.getParsedAccountInfo(new PublicKey(mintAddress), "confirmed"), jupLookup(ctx, mintAddress)]);
+    const jupList = market.tokens;
     const owner = account.value?.owner.toBase58();
     const parsed: any = (account.value?.data as any)?.parsed;
     if (!account.value) throw new ToolError(404, `Mint ${mintAddress} does not exist on this network.`, "Check the address (resolve_token) and network.");
@@ -119,7 +122,8 @@ export const tokenVerdict: ToolDef = {
     const add = (id: string, status: Check["status"], detail: string, source: Check["source"]) => checks.push({ id, status, detail, source });
 
     if (stable) add("known_stablecoin", "info", `${stable}: issuer powers below are expected for a regulated stablecoin.`, "on-chain");
-    add("verified", j?.isVerified ? "pass" : "warn", j?.isVerified ? "Listed as verified by Jupiter." : j ? "Not verified by Jupiter. Many scam tokens are unverified." : "Jupiter has no data on this token; it may be brand new or untraded.", "jupiter");
+    if (!market.ok) add("market_data", "warn", "Market data (Jupiter) is unavailable right now, so verification, liquidity, holder concentration and age were not checked. Retry for a full verdict.", "jupiter");
+    else add("verified", j?.isVerified ? "pass" : "warn", j?.isVerified ? "Listed as verified by Jupiter." : j ? "Not verified by Jupiter. Many scam tokens are unverified." : "Jupiter has no data on this token; it may be brand new or untraded.", "jupiter");
     add("mint_authority", info.mintAuthority ? (stable ? "info" : "warn") : "pass", info.mintAuthority ? `${info.mintAuthority} can mint unlimited new tokens, diluting holders.` : "Mint authority revoked: supply is fixed.", "on-chain");
     add("freeze_authority", info.freezeAuthority ? (stable ? "info" : "warn") : "pass", info.freezeAuthority ? `${info.freezeAuthority} can freeze any holder's tokens.` : "Freeze authority revoked: nobody can freeze holders.", "on-chain");
     for (const ext of extensions) {
@@ -130,7 +134,7 @@ export const tokenVerdict: ToolDef = {
     if (typeof j?.liquidity === "number") {
       const liq = j.liquidity;
       add("liquidity", liq < 10_000 ? "fail" : liq < 100_000 ? "warn" : "pass", `About $${Math.round(liq).toLocaleString("en-US")} of DEX liquidity.${liq < 100_000 ? " Trades of a few hundred dollars can move the price sharply, and exits may be hard." : ""}`, "jupiter");
-    } else if (!stable) add("liquidity", "warn", "No liquidity data; the token may be untradeable.", "jupiter");
+    } else if (!stable && market.ok) add("liquidity", "warn", "No liquidity data; the token may be untradeable.", "jupiter");
     const top = j?.audit?.topHoldersPercentage;
     if (typeof top === "number") {
       // Stablecoins are redeemable at the issuer, so concentration in exchange and treasury wallets is not a price risk.

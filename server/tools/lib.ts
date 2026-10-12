@@ -81,18 +81,25 @@ export type JupToken = {
   firstPool?: { id?: string; createdAt?: string };
 };
 const jupCache = new Map<string, { at: number; value: JupToken[] }>();
-export async function jupSearch(ctx: ToolContext, query: string): Promise<JupToken[]> {
+// ok is false when Jupiter could not be reached, so callers can tell "no data" from "no answer".
+export async function jupLookup(ctx: ToolContext, query: string): Promise<{ tokens: JupToken[]; ok: boolean }> {
   const key = query.trim();
   const hit = jupCache.get(key);
-  if (hit && Date.now() - hit.at < 60_000) return hit.value;
+  if (hit && Date.now() - hit.at < 60_000) return { tokens: hit.value, ok: true };
   try {
     const result = await ctx.fetchJson(`https://lite-api.jup.ag/tokens/v2/search?query=${encodeURIComponent(key)}`, 8000);
     const value: JupToken[] = Array.isArray(result) ? result : [];
     jupCache.set(key, { at: Date.now(), value });
     if (jupCache.size > 500) jupCache.clear();
-    return value;
-  } catch { return []; }
+    return { tokens: value, ok: true };
+  } catch { return { tokens: [], ok: false }; }
 }
+
+// Tests reset the cache so each recorded scenario makes its own Jupiter calls.
+export const clearJupCache = () => jupCache.clear();
+
+// For display-only data (symbols, prices), where a Jupiter outage just leaves fields empty.
+export const jupSearch = async (ctx: ToolContext, query: string): Promise<JupToken[]> => (await jupLookup(ctx, query)).tokens;
 
 // Look up many mints at once (Jupiter accepts up to 100 comma-separated mints per request).
 export async function jupByMints(ctx: ToolContext, mints: string[]): Promise<Map<string, JupToken>> {

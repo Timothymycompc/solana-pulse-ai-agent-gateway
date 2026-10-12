@@ -19,9 +19,10 @@ export const walletSnapshot: ToolDef = {
   outputs: [
     { field: "sol", type: "string", meaning: "Native SOL balance.", howComputed: "get_solana_balance." },
     { field: "solValueUsd", type: "number | null", meaning: "USD value of the SOL.", howComputed: "sol x Jupiter's SOL price, rounded to cents." },
-    { field: "tokenValueUsd", type: "number", meaning: "USD value of the priced tokens in the top holdings.", howComputed: "Sum of topHoldings[].valueUsd." },
-    { field: "totalValueUsd", type: "number", meaning: "Estimated total worth (SOL plus priced top holdings).", howComputed: "solValueUsd + tokenValueUsd. Tokens without a price and holdings outside the top 10 are not counted." },
-    { field: "isPartial", type: "boolean", meaning: "True when the total leaves something out (unpriced tokens or more holdings than shown).", howComputed: "Any top holding lacks a price, or the wallet has more non-empty token accounts than returned." },
+    { field: "tokenValueUsd", type: "number", meaning: "USD value of the verified, priced tokens in the top holdings.", howComputed: "get_token_accounts totalValueUsd for the top 10 (unverified tokens excluded)." },
+    { field: "unverifiedValueUsd", type: "number", meaning: "Claimed USD value of unverified top holdings, kept out of the total because spam tokens often carry a fake price.", howComputed: "get_token_accounts unverifiedValueUsd for the top 10." },
+    { field: "totalValueUsd", type: "number", meaning: "Estimated total worth (SOL plus verified, priced top holdings).", howComputed: "solValueUsd + tokenValueUsd. Unverified tokens, tokens without a price and holdings outside the top 10 are not counted." },
+    { field: "isPartial", type: "boolean", meaning: "True when the total leaves something out (unpriced or unverified tokens, or more holdings than shown).", howComputed: "Any top holding lacks a price or is unverified, or the wallet has more non-empty token accounts than returned." },
     { field: "tokenAccounts", type: "number", meaning: "Non-empty token accounts the wallet holds.", howComputed: "get_token_accounts nonZeroAccounts." },
     { field: "unverifiedHoldings", type: "number", meaning: "Top holdings that are not verified (possible spam or scams). Do not present these as real value.", howComputed: "get_token_accounts unverifiedCount for the top 10." },
     { field: "topHoldings[]", type: "object[]", meaning: "Up to 10 holdings, highest USD value first, with mint, symbol, amount, verified flag and value.", howComputed: "get_token_accounts with limit 10; fields documented there." },
@@ -38,9 +39,9 @@ export const walletSnapshot: ToolDef = {
     ]) as any[];
     const solValueUsd = typeof solPrice === "number" ? Math.round(Number(balance.sol) * solPrice * 100) / 100 : null;
     const tokenValueUsd = tokens.totalValueUsd as number;
-    const isPartial = tokens.tokens.some((t: any) => t.valueUsd === null) || tokens.nonZeroAccounts > tokens.returned;
+    const isPartial = tokens.tokens.some((t: any) => t.valueUsd === null || !t.verified) || tokens.nonZeroAccounts > tokens.returned;
     return {
-      wallet: balance.wallet, network, sol: balance.sol, solValueUsd, tokenValueUsd,
+      wallet: balance.wallet, network, sol: balance.sol, solValueUsd, tokenValueUsd, unverifiedValueUsd: tokens.unverifiedValueUsd,
       totalValueUsd: Math.round(((solValueUsd ?? 0) + tokenValueUsd) * 100) / 100, isPartial,
       tokenAccounts: tokens.nonZeroAccounts, unverifiedHoldings: tokens.unverifiedCount, topHoldings: tokens.tokens,
       activity: { checked: recent.count, failed: recent.failedCount, lastActiveAt: recent.transactions[0]?.time ?? null },

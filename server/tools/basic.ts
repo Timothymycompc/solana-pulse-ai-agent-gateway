@@ -60,7 +60,8 @@ export const getTokenAccounts: ToolDef = {
     { field: "nonZeroAccounts", type: "number", meaning: "Token accounts holding a balance above zero.", howComputed: "Accounts whose raw amount is greater than 0." },
     { field: "returned", type: "number", meaning: "How many tokens are in this response.", howComputed: "Up to limit, after sorting." },
     { field: "unverifiedCount", type: "number", meaning: "Returned tokens that Jupiter does not mark verified. Large counts usually mean spam airdrops.", howComputed: "Tokens whose Jupiter isVerified flag is not true, or that Jupiter does not know." },
-    { field: "totalValueUsd", type: "number", meaning: "Combined USD value of the returned tokens that have a price.", howComputed: "Sum of tokens[].valueUsd. Unpriced tokens add nothing, so this can understate the real value." },
+    { field: "totalValueUsd", type: "number", meaning: "Combined USD value of the returned tokens that are verified and have a price. Spam airdrops often carry a price from a tiny pool, so unverified tokens are left out.", howComputed: "Sum of tokens[].valueUsd for verified tokens. Unpriced tokens add nothing, so this can understate the real value." },
+    { field: "unverifiedValueUsd", type: "number", meaning: "The claimed USD value of returned unverified tokens, reported separately. Treat it as unreliable.", howComputed: "Sum of tokens[].valueUsd for tokens that are not verified." },
     { field: "tokens[].mint", type: "string", meaning: "The token's mint address, its unique identity. Tickers are not unique; mints are.", howComputed: "From the parsed token account." },
     { field: "tokens[].symbol", type: "string | null", meaning: "Ticker reported by Jupiter. Copycat tokens can share tickers, so trust the mint, not the symbol.", howComputed: "Jupiter token search by mint." },
     { field: "tokens[].verified", type: "boolean", meaning: "Whether Jupiter lists the token as verified.", howComputed: "Jupiter isVerified flag; false when unknown." },
@@ -99,7 +100,8 @@ export const getTokenAccounts: ToolDef = {
     return {
       wallet: owner.toBase58(), network, totalTokenAccounts: all.length, nonZeroAccounts: nonZero.length, returned: tokens.length,
       unverifiedCount: tokens.filter((t) => !t.verified).length,
-      totalValueUsd: Math.round(tokens.reduce((sum, t) => sum + (t.valueUsd ?? 0), 0) * 100) / 100,
+      totalValueUsd: Math.round(tokens.reduce((sum, t) => sum + (t.verified ? t.valueUsd ?? 0 : 0), 0) * 100) / 100,
+      unverifiedValueUsd: Math.round(tokens.reduce((sum, t) => sum + (t.verified ? 0 : t.valueUsd ?? 0), 0) * 100) / 100,
       tokens,
     };
   },
