@@ -83,7 +83,7 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
             {copied ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{transport === 'http' ? 'cURL' : 'MCP'}
           </button>
         </div>
-        <p className="text-[11px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
+        <p className="text-[11px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left today, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
 
         <ToolResult tool={tool} result={result} running={running} showFieldGuide={false} />
       </div>

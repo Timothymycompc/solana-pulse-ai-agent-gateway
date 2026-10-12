@@ -1,7 +1,9 @@
 // Single source of truth for tool prices. Every tool is either free (rate-limited)
-// or paid in USDC via x402 after FREE_CALLS_PER_TOOL free calls per caller.
+// or free for FREE_CALLS_PER_TOOL calls per caller per UTC day, then paid in USDC via x402.
 
-export const FREE_CALLS_PER_TOOL = 3;
+export const FREE_CALLS_PER_TOOL = 25;
+export const FREE_CALLS_RESET = "daily at 00:00 UTC";
+export const FREE_CALLS_TEXT = `${FREE_CALLS_PER_TOOL} free calls a day`;
 
 // Prices are USD strings understood by x402 ("$0.001" settles as 1000 base units of USDC).
 export type ToolPrice = null | "$0.001" | "$0.005" | "$0.01";

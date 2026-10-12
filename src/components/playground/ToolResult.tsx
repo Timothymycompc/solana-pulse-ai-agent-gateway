@@ -51,7 +51,7 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
           <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-success-400' : result.status === 402 ? 'bg-warning-300' : 'bg-danger-400'}`} />HTTP {result.status}
         </span>
         <div className="flex items-center gap-3 text-[11px] text-ink-300">
-          {result.freeCallsRemaining !== null && <span className="text-success-300">{result.freeCallsRemaining} free calls left for this tool</span>}
+          {result.freeCallsRemaining !== null && <span className="text-success-300">{result.freeCallsRemaining} free calls left today for this tool</span>}
           <span className="inline-flex items-center gap-1 font-mono"><Clock className="h-3 w-3 text-ink-400" />{latency} ms</span>
           <button onClick={() => void copy()} className="inline-flex items-center gap-1 rounded-md border border-white/15 px-2 py-1 transition hover:border-white/30 hover:text-white">
             {copied ? <Check className="h-3 w-3 text-success-400" /> : <Copy className="h-3 w-3" />}{copied ? 'Copied' : 'Copy'}
@@ -64,7 +64,7 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
         <div className="flex gap-3 rounded-xl border border-warning-400/30 bg-warning-500/10 p-3 text-warning-100">
           <Wallet className="mt-0.5 h-5 w-5 shrink-0" />
           <div className="text-xs leading-5">
-            <p className="font-bold">Payment required: this tool's free calls are used.</p>
+            <p className="font-bold">Payment required: today's free calls for this tool are used.</p>
             {result.payment && <p className="mt-0.5">The gateway asks for <span className="font-mono">{(Number(result.payment.amount) / 1e6).toFixed(3)} USDC</span> per call, paid with x402 to <span className="font-mono">{result.payment.payTo.slice(0, 6)}…</span>. An x402 client (see Pricing) pays and retries automatically.</p>}
           </div>
         </div>

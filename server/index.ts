@@ -14,7 +14,7 @@ import { pool, ensureSchema, recordServiceUsage } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
 import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
-import { FREE_CALLS_PER_TOOL, priceOf, TOOL_PRICES } from "./pricing";
+import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
@@ -91,14 +91,14 @@ async function startServer() {
     }
   }
 
-  // Paid tools settle in USDC via x402 to GATEWAY_WALLET; free tools, free calls and the owner key skip payment.
+  // Paid tools settle in USDC via x402 to GATEWAY_WALLET; free tools, the daily free calls and the owner key skip payment.
   const x402 = createX402(GATEWAY_WALLET);
   const paidRoute = paidRouteMiddleware(x402.httpMiddleware);
 
   // ---------- Tool API ----------
   app.get("/api/tools", noCache, (_req, res) => {
     res.json({
-      freeCallsPerTool: FREE_CALLS_PER_TOOL,
+      freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET,
       payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET },
       tools: TOOLS.map(toolDoc),
     });
@@ -136,7 +136,7 @@ async function startServer() {
   app.get("/api/trial/status", noCache, async (req: any, res) => {
     try {
       const used = await getFreeCallStatus(req.ip || "unknown");
-      res.json({ scope: "caller_ip", freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsUsedByTool: used, prices: TOOL_PRICES, network: X402_NETWORK, asset: "USDC" });
+      res.json({ scope: "caller_ip", freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET, freeCallsUsedByTool: used, prices: TOOL_PRICES, network: X402_NETWORK, asset: "USDC" });
     } catch (error) {
       console.error("free call status lookup failed:", error);
       res.status(503).json({ error: "Free call status is temporarily unavailable." });
@@ -271,7 +271,7 @@ async function startServer() {
   app.delete("/mcp", (_req, res) => res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null }));
 
   // ---------- Discovery ----------
-  const pricingSummary = `Basic tools are free (rate-limited). Paid tools have ${FREE_CALLS_PER_TOOL} free calls per caller, then cost $0.001-$0.01 USDC per call, paid per request with x402 on Solana mainnet. Calls that return an error are never charged.`;
+  const pricingSummary = `Basic tools are free (rate-limited). Every other tool gives each caller ${FREE_CALLS_TEXT} (reset ${FREE_CALLS_RESET}), then costs $0.001-$0.01 USDC per call, paid per request with x402 on Solana mainnet. Calls that return an error are never charged.`;
 
   app.get("/.well-known/mcp.json", noCache, (_req, res) => {
     res.json({
@@ -279,7 +279,7 @@ async function startServer() {
       version: "2.0.0",
       description: "An intelligence layer between Solana and AI agents: checks transactions before signing, verifies they match intent, gives token safety verdicts and explains failures.",
       instructions: `Connect with POST /mcp (Streamable HTTP) or /mcp/sse. ${pricingSummary} Paid calls follow the x402 v2 MCP transport: an unpaid call returns a PaymentRequired result and the client retries with _meta["x402/payment"]. No account or API key is needed. Field-by-field docs for every tool: GET /api/tools/<name>.`,
-      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, freeCallsPerTool: FREE_CALLS_PER_TOOL },
+      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET },
       mcp_sse_endpoint: "/mcp/sse",
       tools: TOOLS.map((t) => ({ name: t.name, description: `${t.useWhen} ${priceText(t.name)}.`, price: priceOf(t.name) })),
     });

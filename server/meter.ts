@@ -4,8 +4,8 @@ import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { pool } from "./db";
 import { FREE_CALLS_PER_TOOL, priceOf, toolForRoute } from "./pricing";
 
-// Free calls: each paid tool can be called a few times per caller IP (IPv6 grouped by /64), shared across HTTP and MCP.
-// Keyed by IP rather than a cookie, because most agents and MCP clients do not keep cookies.
+// Free calls: each paid tool can be called FREE_CALLS_PER_TOOL times per caller IP (IPv6 grouped by /64) per UTC day,
+// shared across HTTP and MCP. Keyed by IP rather than a cookie, because most agents and MCP clients do not keep cookies.
 
 function normalizeIp(raw: string): string {
   const ip = (raw || "unknown").replace(/^::ffff:/i, "");
@@ -28,14 +28,17 @@ export function isOwnerKey(apiKey?: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// True when a row's last call was on an earlier UTC day, so its count starts again from zero.
+const NEW_DAY = `(trial_tool_usage.last_call_at AT TIME ZONE 'UTC')::date < (NOW() AT TIME ZONE 'UTC')::date`;
+
 async function reserveFreeCall(ip: string, tool: string): Promise<number | null> {
   const result = await pool.query(
     `INSERT INTO trial_tool_usage (ip_hash, tool, calls_used)
      VALUES ($1, $2, 1)
      ON CONFLICT (ip_hash, tool) DO UPDATE SET
-       calls_used = trial_tool_usage.calls_used + 1,
+       calls_used = CASE WHEN ${NEW_DAY} THEN 1 ELSE trial_tool_usage.calls_used + 1 END,
        last_call_at = NOW()
-     WHERE trial_tool_usage.calls_used < $3
+     WHERE ${NEW_DAY} OR trial_tool_usage.calls_used < $3
      RETURNING calls_used`,
     [hashIp(ip), tool, FREE_CALLS_PER_TOOL]
   );
@@ -51,9 +54,9 @@ export async function refundFreeCall(ip: string, tool: string): Promise<void> {
   } catch (error) { console.error("free call refund failed:", error); }
 }
 
-// Free calls used per paid tool for this caller; tools never called are omitted.
+// Free calls used today per paid tool for this caller; tools never called are omitted.
 export async function getFreeCallStatus(ip: string): Promise<Record<string, number>> {
-  const result = await pool.query(`SELECT tool, calls_used FROM trial_tool_usage WHERE ip_hash = $1`, [hashIp(ip)]);
+  const result = await pool.query(`SELECT tool, CASE WHEN ${NEW_DAY} THEN 0 ELSE calls_used END AS calls_used FROM trial_tool_usage WHERE ip_hash = $1`, [hashIp(ip)]);
   return Object.fromEntries(result.rows.map((r: any) => [r.tool, Number(r.calls_used)]));
 }
 

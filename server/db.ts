@@ -9,7 +9,7 @@ export const pool = new Pool({
 
 // The gateway keeps three tables. No wallets, keys or balances are stored: payments settle on chain via x402.
 export async function ensureSchema() {
-  // Free calls per paid tool, counted per caller network (keyed hash, never the raw IP).
+  // Free calls per paid tool, counted per caller network per UTC day (keyed hash, never the raw IP).
   await pool.query(`
     CREATE TABLE IF NOT EXISTS trial_tool_usage (
       ip_hash TEXT NOT NULL,

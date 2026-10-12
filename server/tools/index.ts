@@ -5,14 +5,14 @@ import { TOKEN_TOOLS } from "./tokens";
 import { TRANSACTION_TOOLS } from "./transactions";
 import { WALLET_TOOLS } from "./wallet";
 import type { ToolDef } from "./types";
-import { FREE_CALLS_PER_TOOL, priceOf } from "../pricing";
+import { FREE_CALLS_TEXT, priceOf } from "../pricing";
 
 export const TOOLS: ToolDef[] = [...TRANSACTION_TOOLS, ...TOKEN_TOOLS, ...WALLET_TOOLS, ...BASIC_TOOLS];
 export const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
 
 export const priceText = (name: string) => {
   const price = priceOf(name);
-  return price ? `${FREE_CALLS_PER_TOOL} free calls, then ${price} USDC per call (x402)` : "Free (rate-limited)";
+  return price ? `${FREE_CALLS_TEXT}, then ${price} USDC per call (x402)` : "Free (rate-limited)";
 };
 
 // What an MCP client sees: use-when line first, then what it does, inputs, and cost.

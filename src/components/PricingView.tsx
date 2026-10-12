@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Copy, Coins } from 'lucide-react';
-import { FREE_CALLS_PER_TOOL, TOOL_PRICES } from '../../server/pricing';
+import { FREE_CALLS_TEXT, TOOL_PRICES } from '../../server/pricing';
 import { PageHeader } from './docs/DocParts';
 
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -33,13 +33,13 @@ const client = createx402MCPClient({
 await client.connect(new StreamableHTTPClientTransport(
   new URL("${typeof window !== 'undefined' ? window.location.origin : ''}/mcp")
 ));
-const result = await client.callTool("validate_transaction", { transaction: "<base64>" });`;
+const result = await client.callTool("preflight_transaction", { transaction: "<base64>" });`;
 
 const tiers = [
   { price: null, label: 'Free', note: 'Rate-limited to 120 requests per minute per IP.' },
-  { price: '$0.001', label: '$0.001 per call', note: `After ${FREE_CALLS_PER_TOOL} free calls.` },
-  { price: '$0.005', label: '$0.005 per call', note: `After ${FREE_CALLS_PER_TOOL} free calls.` },
-  { price: '$0.01', label: '$0.01 per call', note: `After ${FREE_CALLS_PER_TOOL} free calls.` },
+  { price: '$0.001', label: '$0.001 per call', note: `After ${FREE_CALLS_TEXT}.` },
+  { price: '$0.005', label: '$0.005 per call', note: `After ${FREE_CALLS_TEXT}.` },
+  { price: '$0.01', label: '$0.01 per call', note: `After ${FREE_CALLS_TEXT}.` },
 ] as const;
 
 const CodeBlock: React.FC<{ id: string; title: string; code: string; copied: string | null; onCopy: (id: string, code: string) => void }> = ({ id, title, code, copied, onCopy }) => (
@@ -66,7 +66,7 @@ export const PricingView: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Basic tools are free. Paid tools have {FREE_CALLS_PER_TOOL} free calls each, then a few cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
+      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Basic tools are free. Every other tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then a few cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-accent-400" />Prices</h3>
@@ -90,7 +90,7 @@ export const PricingView: React.FC = () => {
         <h3 className="text-base font-bold text-white">How a paid call works</h3>
         <ol className="mt-4 grid gap-3 md:grid-cols-3">
           {[
-            ['Call the tool', 'Once its free calls are used, the gateway answers 402 Payment Required (over MCP: a tool result with the payment details). It lists the exact USDC amount and where to pay.'],
+            ['Call the tool', 'Once that day\'s free calls are used, the gateway answers 402 Payment Required (over MCP: a tool result with the payment details). It lists the exact USDC amount and where to pay.'],
             ['Your client pays', 'An x402 client signs a USDC transfer for that amount and retries the same call with it attached. No sign-up and no prepaid balance.'],
             ['Get the answer and a receipt', 'The payment is checked, the tool runs, and the transfer settles on Solana only if the call succeeded. The receipt includes the transaction signature.'],
           ].map(([title, detail], i) => (

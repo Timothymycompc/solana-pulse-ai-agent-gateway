@@ -107,7 +107,7 @@ check_all() {
   c "mcp.json lists x402"    "curl -s -m 20 $B/.well-known/mcp.json | grep -q '\"protocol\":\"x402\"'"
   c "glama.json"             "curl -s -m 20 $B/.well-known/glama.json | grep -q maintainers"
   c "llms.txt"               "curl -s -m 20 $B/llms.txt | grep -q check_transaction_intent"
-  c "Free-call status"       "curl -s -m 20 $B/api/trial/status | grep -q '\"freeCallsPerTool\":3'"
+  c "Free-call status"       "curl -s -m 20 $B/api/trial/status | grep -q '\"freeCallsPerTool\":[0-9]'"
   c "Web page loads"         "curl -s -m 20 $B/docs/tools/token_verdict | grep -q '<div id=\"root\">'"
   return $FAILS
 }

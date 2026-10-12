@@ -15,7 +15,7 @@ const NextLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chi
 
 export const QuickstartPage: React.FC = () => (
   <article className="max-w-3xl">
-    <PageHeader eyebrow="Get started" title="Quickstart" lead="Make a real call in under a minute. No account, no API key; free tools work immediately and paid tools give you 3 free calls each." />
+    <PageHeader eyebrow="Get started" title="Quickstart" lead="Make a real call in under a minute. No account, no API key; free tools work immediately and every other tool gives you 25 free calls a day." />
 
     <H2>1. Make your first call</H2>
     <P>Every tool is a <Code>POST</Code> to <Code>/api/tools/&lt;name&gt;</Code> with a JSON body. This one converts 5 USDC into the exact base units a transfer needs:</P>
@@ -31,8 +31,8 @@ export const QuickstartPage: React.FC = () => (
     <P>Connect any MCP client (Claude, Cursor, your own agent) to <Code>/mcp</Code> and all tools appear automatically, each with a "use when" line so the model knows when to call it.</P>
     <NextLink to="/docs/connect">Connect an agent</NextLink>
 
-    <H2>4. Pay when the free calls run out</H2>
-    <P>Paid tools answer <Code>402 Payment Required</Code> after their 3 free calls. An x402 client pays the few-cent USDC price from a Solana wallet and retries automatically.</P>
+    <H2>4. Pay for heavy use</H2>
+    <P>After a tool's 25 free calls for the day, it answers <Code>402 Payment Required</Code>. An x402 client pays the few-cent USDC price from a Solana wallet and retries automatically.</P>
     <NextLink to="/docs/pricing">Pricing and x402 setup</NextLink>
   </article>
 );
@@ -55,7 +55,7 @@ export const ConnectPage: React.FC = () => (
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
 
     <H2>An agent that can pay</H2>
-    <P>Desktop apps can use the free tools and each paid tool's free calls. To keep using paid tools, build your agent with an x402-capable MCP client, which answers payment requests from a Solana wallet holding USDC:</P>
+    <P>Desktop apps can use every tool within its daily free calls. To go beyond them, build your agent with an x402-capable MCP client, which answers payment requests from a Solana wallet holding USDC:</P>
     <CodeBlock title="TypeScript" code={`import { createx402MCPClient } from "@x402/mcp";\nimport { ExactSvmScheme } from "@x402/svm/exact/client";\nimport { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";\n\nconst client = createx402MCPClient({\n  name: "my-agent",\n  version: "1.0.0",\n  schemes: [{ network: "${NETWORK}", client: new ExactSvmScheme(signer) }],\n  autoPayment: true,\n});\nawait client.connect(new StreamableHTTPClientTransport(new URL("${origin()}/mcp")));\nconst result = await client.callTool("token_verdict", { mint: "<mint>" });`} />
 
     <H2>Discovery files</H2>
@@ -78,7 +78,7 @@ export const CallsPage: React.FC = () => (
     <P>AI agents make the same calls over MCP: instead of a web address, the agent picks a tool by name, such as <Code>get_solana_balance</Code>, and gets the same answer.</P>
 
     <H2>What calls cost</H2>
-    <P>Basic tools, like this balance call, are always free. Paid tools give every caller 3 free calls each, then cost $0.001 to $0.01 in USDC, paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
+    <P>Basic tools, like this balance call, are always free. Every other tool gives each caller 25 free calls a day, then costs $0.001 to $0.01 in USDC, paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
 
     <H2>How a call travels: think of a restaurant</H2>
     <Table head={['In a restaurant', 'In the gateway']} minWidth={480} rows={[
