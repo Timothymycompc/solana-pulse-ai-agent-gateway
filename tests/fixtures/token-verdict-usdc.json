@@ -1,0 +1,148 @@
+{
+ "name": "token-verdict-usdc",
+ "recordedAt": "2026-10-12T00:18:43.064Z",
+ "args": {
+  "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+ },
+ "recording": {
+  "calls": {
+   "getParsedAccountInfo": [
+    {
+     "context": {
+      "apiVersion": "4.3.0",
+      "slot": 455846182
+     },
+     "value": {
+      "data": {
+       "parsed": {
+        "info": {
+         "decimals": 6,
+         "freezeAuthority": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+         "isInitialized": true,
+         "mintAuthority": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+         "supply": "7933128236964989"
+        },
+        "type": "mint"
+       },
+       "program": "spl-token",
+       "space": 82
+      },
+      "executable": false,
+      "lamports": 549535699757,
+      "owner": {
+       "__pk": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "rentEpoch": 18446744073709552000,
+      "space": 82
+     }
+    }
+   ]
+  },
+  "http": {
+   "https://lite-api.jup.ag/tokens/v2/search?query=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": [
+    {
+     "id": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "name": "USD Coin",
+     "symbol": "USDC",
+     "icon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+     "decimals": 6,
+     "twitter": "https://twitter.com/circle",
+     "discord": "https://discord.com/invite/buildoncircle",
+     "website": "https://www.circle.com/en/usdc",
+     "dev": "5TYZChz7APFopR5QirD5of4rQj1p9AXxeSAg6JndBdGj",
+     "circSupply": 7933128236.964989,
+     "totalSupply": 7933128236.964989,
+     "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "mintAuthority": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+     "freezeAuthority": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+     "holderCount": 5248202,
+     "fdv": 7930992020.779216,
+     "mcap": 7930992020.779216,
+     "usdPrice": 0.9997307220907108,
+     "priceBlockId": 455846171,
+     "liquidity": 470714821.6334776,
+     "stats5m": {
+      "priceChange": 0.004863701373578483,
+      "liquidityChange": -0.03919432360424851,
+      "volumeChange": -86.60398333369068,
+      "buyVolume": 1717493.640339759,
+      "sellVolume": 1673326.1002728532,
+      "buyOrganicVolume": 93389.2511973303,
+      "sellOrganicVolume": 46093.17273316195,
+      "numBuys": 7791,
+      "numSells": 7990,
+      "numTraders": 2737,
+      "numOrganicBuyers": 98,
+      "numNetBuyers": 498
+     },
+     "stats1h": {
+      "priceChange": 0.005228788296012063,
+      "liquidityChange": 0.36415734331095606,
+      "volumeChange": 152.64027690682303,
+      "buyVolume": 38591837.017790444,
+      "sellVolume": 39180186.57616964,
+      "buyOrganicVolume": 810386.6719831874,
+      "sellOrganicVolume": 1048685.692935424,
+      "numBuys": 93348,
+      "numSells": 100810,
+      "numTraders": 15881,
+      "numOrganicBuyers": 343,
+      "numNetBuyers": 2347
+     },
+     "stats6h": {
+      "priceChange": 0.010449600991703058,
+      "liquidityChange": -0.8072369537980288,
+      "volumeChange": -1.8747862397834845,
+      "buyVolume": 152896549.0278884,
+      "sellVolume": 153265489.20823017,
+      "buyOrganicVolume": 4145330.0967791355,
+      "sellOrganicVolume": 5914587.268683625,
+      "numBuys": 687313,
+      "numSells": 739595,
+      "numTraders": 73754,
+      "numOrganicBuyers": 1800,
+      "numNetBuyers": 10168
+     },
+     "stats24h": {
+      "priceChange": -0.000573786846207037,
+      "liquidityChange": 1.0943948655132782,
+      "volumeChange": 9.966042790829569,
+      "buyVolume": 489619236.43248034,
+      "sellVolume": 501847693.98860127,
+      "buyOrganicVolume": 18478145.514853947,
+      "sellOrganicVolume": 21920359.06421842,
+      "numBuys": 2480435,
+      "numSells": 2671507,
+      "numTraders": 190734,
+      "numOrganicBuyers": 5036,
+      "numNetBuyers": 26842
+     },
+     "firstPool": {
+      "id": "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2",
+      "createdAt": "2021-03-29T10:05:48Z"
+     },
+     "apy": {
+      "jupEarn": 4.937717106456496
+     },
+     "audit": {
+      "topHoldersPercentage": 25.997012747821913,
+      "devBalancePercentage": 2.526092406602357e-7,
+      "devMints": 1
+     },
+     "organicScore": 100,
+     "organicScoreLabel": "high",
+     "isVerified": true,
+     "tags": [
+      "community",
+      "moonshot-verified",
+      "strict",
+      "verified",
+      "stable"
+     ],
+     "createdAt": "2024-06-05T08:55:25.527Z",
+     "updatedAt": "2026-10-12T00:18:41.413441681Z"
+    }
+   ]
+  }
+ }
+}

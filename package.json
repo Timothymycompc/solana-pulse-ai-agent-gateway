@@ -2,6 +2,7 @@
   "name": "solana-pulse-gateway",
   "private": true,
   "version": "0.3.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "tsx server/index.ts",
@@ -9,6 +10,8 @@
     "prebuild": "npm run check",
     "start": "node dist/server.cjs",
     "check": "tsc --noEmit && tsx scripts/check-tools.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "test:record": "tsx tests/record-fixtures.ts",
     "preview": "vite preview",
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
@@ -37,6 +40,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",

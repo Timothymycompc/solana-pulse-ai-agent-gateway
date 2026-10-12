@@ -1,0 +1,125 @@
+{
+ "name": "intent-hidden-outflow",
+ "recordedAt": "2026-10-12T00:18:36.809Z",
+ "args": {
+  "transaction": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAIAAQRIwBtQWQBUVdncsMa87Ny0+1suq8GpqCtXOSuqpA8E5r7GQPN+nLoIUS/hK/FRY0GN2vbCtpSOZcD09vasuu3foVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANu0JrdaoMKlOsQCwhf4nD+gSlItqYbv1CPJeymY/qaQAgMCAAIMAgAAAICWmAAAAAAAAwIAATQAAAAAAPIFKgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "intent": {
+   "action": "transfer",
+   "token": "SOL",
+   "amount": "0.01",
+   "recipient": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU"
+  }
+ },
+ "recording": {
+  "calls": {
+   "getMultipleAccountsInfo": [
+    [],
+    [
+     {
+      "data": {
+       "__buf": ""
+      },
+      "executable": false,
+      "lamports": 1509818500542824,
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     null,
+     null
+    ]
+   ],
+   "simulateTransaction": [
+    {
+     "context": {
+      "apiVersion": "4.3.0",
+      "slot": 455846151
+     },
+     "value": {
+      "accounts": [
+       {
+        "data": [
+         "",
+         "base64"
+        ],
+        "executable": false,
+        "lamports": 1509813490532824,
+        "owner": "11111111111111111111111111111111",
+        "rentEpoch": 18446744073709552000,
+        "space": 0
+       },
+       {
+        "data": [
+         "",
+         "base64"
+        ],
+        "executable": false,
+        "lamports": 5000000000,
+        "owner": "11111111111111111111111111111111",
+        "rentEpoch": 18446744073709552000,
+        "space": 0
+       },
+       {
+        "data": [
+         "",
+         "base64"
+        ],
+        "executable": false,
+        "lamports": 10000000,
+        "owner": "11111111111111111111111111111111",
+        "rentEpoch": 18446744073709552000,
+        "space": 0
+       }
+      ],
+      "err": null,
+      "fee": 10000,
+      "innerInstructions": null,
+      "loadedAccountsDataSize": 149,
+      "loadedAddresses": {
+       "readonly": [],
+       "writable": []
+      },
+      "logs": [
+       "Program 11111111111111111111111111111111 invoke [1]",
+       "Program 11111111111111111111111111111111 success",
+       "Program 11111111111111111111111111111111 invoke [1]",
+       "Program 11111111111111111111111111111111 success"
+      ],
+      "postBalances": [
+       1509813490532824,
+       5000000000,
+       10000000,
+       1
+      ],
+      "postTokenBalances": [],
+      "preBalances": [
+       1509818500542824,
+       0,
+       0,
+       1
+      ],
+      "preTokenBalances": [],
+      "replacementBlockhash": {
+       "blockhash": "38uVicCStDYmmxUfB8YjozbDmCp2UwPv3913awcqAVv7",
+       "lastValidBlockHeight": 433883418
+      },
+      "returnData": null,
+      "unitsConsumed": 300
+     }
+    }
+   ],
+   "getMultipleParsedAccounts": [
+    {
+     "context": {
+      "apiVersion": "4.3.0",
+      "slot": 455846152
+     },
+     "value": []
+    }
+   ]
+  },
+  "http": {}
+ }
+}

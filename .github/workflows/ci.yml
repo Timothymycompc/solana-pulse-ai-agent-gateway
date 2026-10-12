@@ -1,0 +1,22 @@
+# Type check, tool check and the test suite on every push and pull request. The safety tests replay
+# recorded mainnet data from tests/fixtures, so they need no RPC key or network access to Solana.
+name: Tests
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test

@@ -18,6 +18,7 @@ src/               the website (React + Tailwind)
   pages/           one file per page type
   nav.ts           sidebar sections and links
 scripts/           deploy, RPC key setup, tool check
+tests/             safety, metering and unit tests; fixtures/ holds recorded mainnet data
 ```
 
 ## Set up on a new device
@@ -39,6 +40,8 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | --- | --- |
 | `npm run dev` | Run the site and API locally |
 | `npm run check` | Type check plus the tool check (prices, docs) |
+| `npm test` | The test suite (offline; replays recorded mainnet data) |
+| `npm run test:record` | Re-record the mainnet scenarios in `tests/fixtures/` |
 | `npm run build` | Check, then bundle everything into `dist/` |
 | `npm run deploy -- --check-only` | Check setup and code without uploading |
 | `npm run deploy` | Back up, deploy hidden, test, then go live |
@@ -60,7 +63,7 @@ A new category also needs adding to `ToolCategory` in `server/tools/types.ts` an
 
 ## Change a price
 
-Edit `server/pricing.ts`. The x402 offer, docs, pricing page and MCP descriptions all read from it.
+Edit `server/pricing.ts`. The x402 offer, docs, pricing page and MCP descriptions all read from it. `FREE_CALLS_PER_TOOL` sets the daily free calls each caller gets per paid tool.
 
 ## Change colors
 

@@ -5,10 +5,11 @@
 - Live: https://solana-pulse-gateway-1021990235790.us-central1.run.app
 - MCP endpoint: `POST /mcp` (Streamable HTTP) or `/mcp/sse`
 - Listed in the official MCP Registry as `io.github.Timothymycompc/solana-pulse-gateway`
+- Open source (MIT) and free to use: basic tools have no daily limit, every other tool gives 25 free calls a day
 
 ## Why
 
-Agents fail on Solana far more often than people do: one study of 1.5 billion failed transactions found bot accounts failing 58% of the time versus 6% for human wallets. The usual causes are mistakes a model makes confidently: wrong decimals, copycat tickers, invented addresses or signatures, expired blockhashes, priority fees in the wrong unit, and signing transactions whose effects nobody checked. Each tool here removes one of those mistakes and returns a verdict, the reasons and a fix.
+Automated accounts fail on Solana far more often than people expect: a study of over 1.5 billion failed transactions found bots failing 58% of the time ([Why Does My Transaction Fail?](https://arxiv.org/abs/2504.18055), ISSTA 2025). For AI agents the usual causes are mistakes a model makes confidently: wrong decimals, copycat tickers, invented addresses or signatures, expired blockhashes, priority fees in the wrong unit, and signing transactions whose effects nobody checked. Each tool here removes one of those mistakes and returns a verdict, the reasons and a fix.
 
 ## Tools
 
@@ -26,6 +27,8 @@ Agents fail on Solana far more often than people do: one study of 1.5 billion fa
 | `inspect_address` | Sending to the wrong kind of address: wallet, token account, mint, program and more | Free |
 | `find_ata` | Wrong token accounts: Token-2022 aware derivation, existence check and creation cost | Free |
 | `get_solana_balance`, `get_token_accounts`, `get_recent_transactions`, `get_solana_blockhash` | Stale or invented data: live reads (holdings ranked by value with spam flagged; blockhash with seconds left) | Free |
+
+Prices apply only after a tool's 25 free calls for the day.
 
 Every tool documents each input (with how to get it) and each returned field (with what it means and exactly how it is computed): `GET /api/tools` and `GET /api/tools/<name>`. `GET /api/tools/<name>/example` returns ready-to-run inputs built from live mainnet data.
 
@@ -47,7 +50,7 @@ MCP (Claude Desktop, Cursor):
 ## Pricing and payments
 
 - Free tools are rate-limited to 120 requests per minute per IP.
-- Paid tools have 3 free calls per caller (counted by a keyed hash of the caller's network, shared across HTTP and MCP), then cost $0.001 to $0.01 USDC per call.
+- Every other tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.001 to $0.01 USDC per call. Normal use stays free; payment covers heavy, automated use.
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
 
@@ -56,7 +59,7 @@ MCP (Claude Desktop, Cursor):
 - **Tool registry (`server/tools/`)**: one definition per tool holds its use-when line, documentation, live example and code. MCP tools, HTTP routes, `/api/tools`, `llms.txt`, `/.well-known/mcp.json` and the playground are all generated from it, so docs cannot drift from behavior.
 - **Transaction analysis (`server/tools/decode.ts`)**: decodes System, SPL Token, Token-2022, Compute Budget, Associated Token Account and Memo instructions, resolves address lookup tables, simulates against live state and computes per-wallet balance changes.
 - **Payments (`server/x402.ts`, `server/meter.ts`, `server/pricing.ts`)**: an admission gate (free tool, owner key, free call, or x402), the official `@x402/express` and `@x402/mcp` integrations, and a revenue ledger of settled payments.
-- **Server**: Node.js, Express, TypeScript on Google Cloud Run, PostgreSQL on Cloud SQL (free-call counts, anonymous usage stats, payment ledger).
+- **Server**: Node.js, Express, TypeScript on Google Cloud Run, PostgreSQL on Cloud SQL (daily free-call counts, anonymous usage stats, payment ledger).
 - **Frontend**: React, Vite, Tailwind with a registry-driven playground.
 
 ## Local development
@@ -69,3 +72,20 @@ npm run build          # type-check, then bundle frontend and server into dist/
 ```
 
 See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, change a price, recolor the site or deploy.
+
+## Tests
+
+```bash
+npm test               # 21 tests, offline, about 15 seconds
+npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
+```
+
+- **Safety checks** (`tests/safety.test.ts`) run against real mainnet transactions recorded in `tests/fixtures/`: a drainer token approval (BLOCK), SOL moved by a hidden extra instruction, a 10x decimals slip, an extra USDC transfer to a stranger (all MISMATCH), plus clean transfers that must pass, including one that creates the recipient's token account.
+- **Free-call metering** (`tests/meter.test.ts`) runs the real SQL on an in-memory Postgres (PGlite): the daily allowance, refunds for failed calls, the daily reset and percent-encoded tool names.
+- **Units** (`tests/units.test.ts`): exact amount math, error explanations and instruction decoding.
+
+GitHub Actions runs the type check, the tool check and the tests on every push.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
