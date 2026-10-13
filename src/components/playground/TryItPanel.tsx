@@ -49,15 +49,15 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   const freeLeft = tool.price ? Math.max(freeCallsPerTool - (freeUsed[tool.name] ?? 0), 0) : null;
 
   return (
-    <section aria-label={`Try ${tool.name}`} className="surface rounded-2xl border">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+    <section aria-label={`Try ${tool.name}`} className="overflow-hidden rounded-3xl border border-line surface shadow-[0_30px_70px_-40px_rgb(0_0_0/0.9)]">
+      <div className="wood-head flex items-center justify-between gap-2 px-4 py-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-[15px] font-semibold text-ink-50">Try it on mainnet</h2>
-          <Link to={`/toolbox?tool=${tool.name}`} className="text-[12.5px] text-gold-300 hover:text-gold-200">Open in the toolbox</Link>
+          <h2 className="text-[15px] font-semibold text-tan-200">Try it on mainnet</h2>
+          <Link to={`/toolbox?tool=${tool.name}`} className="text-[13px] text-gold-300 hover:text-gold-200">Open in the toolbox</Link>
         </div>
-        <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-md border border-line bg-code p-0.5 text-[12px]">
+        <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-lg border border-tan-500/35 bg-wood-950/60 p-0.5 text-[12px]">
           {(['http', 'mcp'] as const).map((t) => (
-            <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded px-2 py-1 font-medium transition ${transport === t ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>
+            <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded-md px-2.5 py-1 font-medium transition ${transport === t ? 'bg-gold-400/20 text-gold-200' : 'text-tan-400 hover:text-tan-200'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>
           ))}
         </div>
       </div>

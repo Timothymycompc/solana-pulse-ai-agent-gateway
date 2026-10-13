@@ -43,11 +43,11 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; sect
 
   return (
     <div className="popup-scrim fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh] animate-fade-in" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => e.stopPropagation()} className="popup animate-scale-in w-full max-w-xl overflow-hidden rounded-xl">
+      <div role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => e.stopPropagation()} className="popup animate-scale-in w-full max-w-2xl overflow-hidden rounded-2xl">
         <div className="wood-head flex items-center gap-2 px-4">
           <Search className="h-4 w-4 text-gold-400" />
           <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} placeholder="Search tools and docs" aria-label="Search tools and docs"
-            className="h-12 flex-1 bg-transparent text-[15px] text-ink-50 placeholder:text-tan-500 outline-none" />
+            className="h-14 flex-1 bg-transparent text-[16px] text-ink-50 placeholder:text-tan-500 outline-none" />
           <kbd className="rounded border border-tan-500/40 px-1.5 py-0.5 text-[11px] text-tan-400">Esc</kbd>
         </div>
         <ul role="listbox" className="max-h-[50vh] overflow-y-auto p-2">

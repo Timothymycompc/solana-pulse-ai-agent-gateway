@@ -24,6 +24,33 @@ const RESOURCE_LINKS: NavItem[] = [
   { title: 'Request a tool / report an issue', path: `${REPO_URL}/issues`, external: true },
 ];
 
+// The top bar: the menus and links people use most. Everything else is in search (⌘K).
+export const TOP_LINKS: NavItem[] = [
+  { title: 'Toolbox', path: '/toolbox' },
+  { title: 'Connect', path: '/docs/connect' },
+  { title: 'Pricing', path: '/docs/pricing' },
+];
+export const DOCS_MENU: { title: string; items: (NavItem & { about: string })[] }[] = [
+  { title: 'Learn', items: [
+    { title: 'Quickstart', path: '/docs/quickstart', about: 'A real call in under a minute' },
+    { title: 'What is a call?', path: '/docs/calls', about: 'Requests and answers, explained with a restaurant' },
+    { title: 'Live usage', path: '/status', about: 'Tool runs and callers, as they happen' },
+  ] },
+  { title: 'For machines', items: [
+    { title: 'llms.txt', path: '/llms.txt', external: true, about: 'A plain-text guide for language models' },
+    { title: 'mcp.json', path: '/.well-known/mcp.json', external: true, about: 'Tools, prices and payment details' },
+    { title: 'Tool reference', path: '/api/tools', external: true, about: 'Every input and output, as JSON' },
+  ] },
+];
+export const DOCS_PATHS = new Set(['/docs/quickstart', '/docs/calls', '/status']);
+
+// The three checks an agent runs before money moves, in the order it runs them.
+export const SAFETY_CHECKS = [
+  { name: 'token_safety', question: 'Is this token safe to buy or accept?', verdicts: ['SAFE', 'CAUTION', 'AVOID'] },
+  { name: 'tx_matches', question: 'Does it do exactly what was asked, and nothing else?', verdicts: ['MATCH', 'MISMATCH'] },
+  { name: 'check_tx', question: 'What will this transaction do to each wallet?', verdicts: ['OK', 'REVIEW', 'BLOCK'] },
+];
+
 export const toolPath = (name: string) => `/docs/tools/${name}`;
 export const CATEGORY_ORDER: ToolDoc['category'][] = ['transactions', 'tokens', 'wallets', 'network', 'reference'];
 

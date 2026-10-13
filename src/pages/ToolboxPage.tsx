@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, Check, Copy, Eraser, Play, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Activity, Check, ChevronDown, Copy, Eraser, Play, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { CATEGORY_LABELS, loadExample, loadFreeCallsUsed, runTool, snippetFor, type RunResult, type ToolDoc, type ToolsIndex } from '../lib/toolsApi';
 import { CATEGORY_ORDER, toolPath } from '../nav';
 import { Link } from '../router';
@@ -78,10 +78,22 @@ export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
   const [calls, setCalls] = useState<Call[]>(() => readStore(CALLS_KEY, []));
   const [freeUsed, setFreeUsed] = useState<Record<string, number>>({});
   const [rackQuery, setRackQuery] = useState('');
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
   const [scope, setScope] = useState<'all' | 'tool'>('all');
   const [clearArmed, setClearArmed] = useState(false);
   const [copied, setCopied] = useState(false);
   const benchRef = useRef<HTMLElement>(null);
+
+  // The tool switcher closes on a click outside it or on Escape.
+  useEffect(() => {
+    if (!switcherOpen) return;
+    const onDown = (e: MouseEvent) => { if (!switcherRef.current?.contains(e.target as Node)) setSwitcherOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSwitcherOpen(false); };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey); };
+  }, [switcherOpen]);
 
   useEffect(() => writeStore(DRAFTS_KEY, drafts), [drafts]);
   useEffect(() => writeStore(CALLS_KEY, calls), [calls]);
@@ -141,7 +153,7 @@ export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [runCurrent]);
 
-  const pick = (toolName: string) => { setName(toolName); if (window.innerWidth < 1024) benchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const pick = (toolName: string) => { setName(toolName); setSwitcherOpen(false); setRackQuery(''); };
   const openCall = (call: Call, again = false) => {
     setName(call.tool);
     setDrafts((d) => ({ ...d, [call.tool]: call.args }));
@@ -171,163 +183,159 @@ export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
 
   return (
     <div>
-      <header className="mb-8 space-y-3">
-        <h1 className="display text-[2.4rem] sm:text-[3.25rem]">Toolbox</h1>
-        <p className="max-w-[62ch] text-[17px] leading-[1.65] text-ink-300">Every tool in one place. Pick a tool, change any input, run it on mainnet, and reopen any call you've made to change it and run it again.</p>
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div>
+          <h1 className="display text-[2.3rem] sm:text-[3.2rem]">Toolbox</h1>
+          <p className="mt-3 max-w-[60ch] text-[17px] leading-[1.6] text-ink-300">Pick any tool, change any input, run it on mainnet, and reopen any call to change it and run it again.</p>
+        </div>
+        <p className="text-[13px] text-ink-500 max-sm:hidden"><kbd className="rounded-md border border-line px-1.5 py-0.5 font-sans text-[11px] text-ink-300">{isMac ? '⌘' : 'Ctrl'} ↵</kbd> runs the tool</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] 2xl:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)]">
-        {/* The rack: every tool, by category. Phones get a dropdown instead. */}
-        <nav aria-label="Tools" className="hidden lg:row-span-2 lg:block">
-          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1">
-            <label className="mb-4 flex items-center gap-2 rounded-lg border border-line bg-code px-2.5">
-              <Search className="h-3.5 w-3.5 shrink-0 text-ink-500" />
-              <input value={rackQuery} onChange={(e) => setRackQuery(e.target.value)} placeholder="Find a tool" aria-label="Find a tool" className="h-9 w-full bg-transparent text-[13px] text-ink-100 outline-none placeholder:text-ink-500" />
-            </label>
-            {groups.map((g) => (
-              <div key={g.category} className="mb-4">
-                <p className="mb-1 px-2.5 text-[12.5px] font-semibold text-tan-400">{CATEGORY_LABELS[g.category]}</p>
-                <ul className="space-y-0.5">
-                  {g.tools.map((t) => {
-                    const active = t.name === name;
-                    return (
-                      <li key={t.name}>
-                        <button onClick={() => pick(t.name)} aria-current={active ? 'true' : undefined}
-                          className={`relative flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors ${active ? 'bg-panel text-ink-50' : 'text-ink-400 hover:text-ink-100'}`}>
-                          {active && <span aria-hidden className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gold-400" />}
-                          <span className="truncate font-mono text-[13px]">{t.name}</span>
-                          <span className={`shrink-0 text-[11.5px] tabular-nums ${active ? 'text-tan-300' : 'text-ink-500'}`}>{t.price ? `${freeLeft(t)} free` : 'Free'}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-            {!groups.length && <p className="px-2.5 text-[13px] text-ink-500">No tool matches “{rackQuery}”.</p>}
-          </div>
-        </nav>
-
-        {/* The bench: the chosen tool's inputs. */}
-        <section ref={benchRef} aria-label={`Inputs for ${tool.name}`} className="min-w-0 scroll-mt-20 self-start overflow-hidden rounded-2xl border border-line surface">
-          <div className="wood-head flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <label className="lg:hidden">
-                <span className="sr-only">Tool</span>
-                <select value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md border border-tan-500/35 bg-wood-950/60 px-2 py-1.5 font-mono text-[14px] font-semibold text-gold-300 outline-none">
-                  {CATEGORY_ORDER.map((c) => (
-                    <optgroup key={c} label={CATEGORY_LABELS[c]}>
-                      {tools.filter((t) => t.category === c).map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
-                    </optgroup>
+      {/* The console: which tool, how it's sent, then its inputs beside its answer. */}
+      <section ref={benchRef} aria-label={`${tool.name} console`} className="scroll-mt-24 overflow-visible rounded-3xl border border-line surface shadow-[0_40px_90px_-50px_rgb(0_0_0/0.95)]">
+        <div className="wood-head relative z-20 flex flex-wrap items-center gap-3 rounded-t-3xl px-4 py-3 sm:px-5">
+          <div ref={switcherRef} className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
+            <button onClick={() => setSwitcherOpen((o) => !o)} aria-expanded={switcherOpen} aria-haspopup="listbox"
+              className="flex w-full min-w-0 items-center gap-3 rounded-xl border border-tan-500/30 bg-wood-950/60 px-3 py-2 text-left transition hover:border-gold-500/50 sm:w-auto">
+              <span className="min-w-0">
+                <span className="block truncate font-mono text-[15px] font-semibold text-gold-200">{tool.name}</span>
+                <span className="block truncate text-[13px] text-tan-300">{tool.title}</span>
+              </span>
+              <ChevronDown className={`ml-auto h-4 w-4 shrink-0 text-tan-400 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {switcherOpen && (
+              <div className="popup absolute left-0 top-[calc(100%+8px)] w-[min(40rem,calc(100vw-2.5rem))] origin-top-left animate-drop-in overflow-hidden rounded-2xl">
+                <label className="flex items-center gap-2 border-b border-line px-4">
+                  <Search className="h-4 w-4 shrink-0 text-gold-400" />
+                  <input autoFocus value={rackQuery} onChange={(e) => setRackQuery(e.target.value)} placeholder="Find a tool by name or what it does" aria-label="Find a tool"
+                    onKeyDown={(e) => { if (e.key === 'Enter' && groups[0]) pick(groups[0].tools[0].name); }}
+                    className="h-12 w-full bg-transparent text-[15px] text-ink-50 outline-none placeholder:text-ink-500" />
+                </label>
+                <div role="listbox" aria-label="Tools" className="grid max-h-[60vh] gap-x-4 gap-y-3 overflow-y-auto p-3 sm:grid-cols-2">
+                  {groups.map((g) => (
+                    <div key={g.category}>
+                      <p className="mb-1 px-2 text-[12.5px] font-semibold text-tan-400">{CATEGORY_LABELS[g.category]}</p>
+                      {g.tools.map((t) => {
+                        const active = t.name === name;
+                        return (
+                          <button key={t.name} role="option" aria-selected={active} onClick={() => pick(t.name)}
+                            className={`flex w-full items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.05] ${active ? 'bg-white/[0.06]' : ''}`}>
+                            <span className="min-w-0">
+                              <span className={`block truncate font-mono text-[13px] ${active ? 'text-gold-200' : 'text-ink-100'}`}>{t.name}</span>
+                              <span className="block truncate text-[12.5px] text-ink-400">{t.title}</span>
+                            </span>
+                            <span className="readout shrink-0 text-[12.5px] text-ink-500">{t.price ? `${freeLeft(t)} free` : 'Free'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   ))}
-                </select>
-              </label>
-              <p className="hidden font-mono text-[16px] font-semibold text-gold-300 lg:block">{tool.name}</p>
-              <p className="mt-0.5 truncate text-[13px] text-tan-300">{tool.title}</p>
-            </div>
-            <Segmented label="Transport" tone="wood" value={transport} onChange={setTransport} options={[['http', 'HTTP'], ['mcp', 'MCP']]} />
+                  {!groups.length && <p className="px-2 py-4 text-[13px] text-ink-500">No tool matches “{rackQuery}”.</p>}
+                </div>
+              </div>
+            )}
           </div>
+          <Segmented label="Transport" tone="wood" value={transport} onChange={setTransport} options={[['http', 'HTTP'], ['mcp', 'MCP']]} />
+          <span className="readout text-[14px] text-tan-300" title={tool.price ? `${freeLeft(tool)} of ${freeCallsPerTool} free calls left today, then ${tool.price} USDC per call` : 'Free tool'}>
+            {tool.price ? `${freeLeft(tool)}/${freeCallsPerTool} free, then ${tool.price}` : 'Free'}
+          </span>
+        </div>
 
-          <div className="space-y-4 p-4">
-            <p className="max-w-[70ch] text-[14px] leading-[1.6] text-ink-300">{tool.useWhen} <Link to={toolPath(tool.name)} className="whitespace-nowrap text-accent-300 hover:text-accent-200">Read the docs</Link></p>
+        <div className="grid lg:grid-cols-2">
+          {/* Inputs */}
+          <div className="min-w-0 space-y-4 border-b border-line p-4 sm:p-5 lg:border-b-0 lg:border-r">
+            <p className="max-w-[70ch] text-[14.5px] leading-[1.6] text-ink-300">{tool.useWhen} <Link to={toolPath(tool.name)} className="whitespace-nowrap font-medium text-accent-300 hover:text-accent-200">Read the docs</Link></p>
 
             <div className="flex flex-wrap items-center gap-2">
               <Segmented label="Edit as" value={mode} onChange={(m) => { setMode(m); resetJson(); }} options={[['form', 'Form'], ['json', 'JSON']]} />
               {mode === 'form' && (
-                <button role="switch" aria-checked={explain} onClick={() => setExplain((x) => !x)} className={`rounded-md border px-2 py-1 text-[12px] transition ${explain ? 'border-gold-500/50 text-gold-200' : 'border-line text-ink-400 hover:text-white'}`}>Explain inputs</button>
+                <button role="switch" aria-checked={explain} onClick={() => setExplain((x) => !x)} className={`rounded-lg border px-2.5 py-1 text-[12.5px] transition ${explain ? 'border-gold-500/50 text-gold-200' : 'border-line text-ink-400 hover:text-white'}`}>Explain inputs</button>
               )}
               <span className="ml-auto flex gap-2">
-                <button onClick={() => { resetJson(); void fillExample(name); }} disabled={example === 'loading'} className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[12px] text-ink-300 transition hover:border-ink-600 hover:text-white disabled:opacity-50">
+                <button onClick={() => { resetJson(); void fillExample(name); }} disabled={example === 'loading'} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[12.5px] text-ink-300 transition hover:border-ink-600 hover:text-white disabled:opacity-50">
                   <RefreshCw className={`h-3 w-3 ${example === 'loading' ? 'animate-spin' : ''}`} />Live example
                 </button>
-                <button onClick={() => { resetJson(); setValues({}); }} className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[12px] text-ink-300 transition hover:border-ink-600 hover:text-white">
+                <button onClick={() => { resetJson(); setValues({}); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[12.5px] text-ink-300 transition hover:border-ink-600 hover:text-white">
                   <Eraser className="h-3 w-3" />Clear
                 </button>
               </span>
             </div>
 
-            {example === 'loading' && <p className="text-[12.5px] text-ink-400">Loading a live mainnet example…</p>}
-            {example && example !== 'loading' && <p className="text-[12.5px] text-warning-200">No live example right now ({example}). Fill the inputs yourself.</p>}
+            {example === 'loading' && <p className="text-[13px] text-ink-400">Loading a live mainnet example…</p>}
+            {example && example !== 'loading' && <p className="text-[13px] text-warning-200">No live example right now ({example}). Fill the inputs yourself.</p>}
 
             {mode === 'form'
               ? <ToolForm tool={tool} values={values} onChange={setValues} compact={!explain} />
               : (
                 <div className="space-y-1.5">
-                  <label htmlFor="toolbox-json" className="text-[12.5px] text-ink-400">The exact inputs sent with the request. Anything you type here is sent as it is, so you can also test how the tool handles bad input.</label>
+                  <label htmlFor="toolbox-json" className="text-[13px] text-ink-400">The exact inputs sent with the request. Anything you type here is sent as it is, so you can also test how the tool handles bad input.</label>
                   <textarea id="toolbox-json" spellCheck={false} rows={Math.min(Math.max((jsonText ?? JSON.stringify(args, null, 2)).split('\n').length + 1, 6), 22)}
                     value={jsonText ?? JSON.stringify(args, null, 2)} onChange={(e) => onJson(e.target.value)}
-                    className={`w-full resize-y rounded-lg border surface-inset px-3 py-2.5 font-mono text-[12.5px] leading-[1.6] text-ink-100 outline-none transition focus:ring-4 ${jsonError ? 'border-danger-400/60 focus:ring-danger-500/15' : 'border-line focus:border-accent-400/70 focus:ring-accent-500/15'}`} />
-                  {jsonError && <p className="text-[12.5px] text-danger-300">{jsonError}</p>}
+                    className={`w-full resize-y rounded-xl border surface-inset px-3 py-2.5 font-mono text-[12.5px] leading-[1.6] text-ink-100 outline-none transition focus:ring-4 ${jsonError ? 'border-danger-400/60 focus:ring-danger-500/15' : 'border-line focus:border-accent-400/70 focus:ring-accent-500/15'}`} />
+                  {jsonError && <p className="text-[13px] text-danger-300">{jsonError}</p>}
                 </div>
               )}
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <button onClick={runCurrent} disabled={Boolean(running) || blocked} className={button('primary', 'md', 'flex-1 active:scale-[0.98] disabled:cursor-wait')}>
                 {running === name ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}{running === name ? 'Running…' : `Run ${tool.name}`}
-                {running !== name && <kbd className="ml-1 hidden rounded border border-white/25 bg-white/10 px-1 font-sans text-[10px] font-medium sm:inline">{isMac ? '⌘' : 'Ctrl'}↵</kbd>}
               </button>
-              <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy as cURL' : 'Copy the MCP request'} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2.5 text-[13px] text-ink-300 transition hover:border-ink-600 hover:text-white">
+              <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy as cURL' : 'Copy the MCP request'} className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2.5 text-[13.5px] text-ink-300 transition hover:border-ink-600 hover:text-white">
                 {copied ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{transport === 'http' ? 'cURL' : 'MCP'}
               </button>
             </div>
-            <p className="text-[12.5px] text-ink-500">{tool.price ? `${freeLeft(tool)} of ${freeCallsPerTool} free calls left today for this tool, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
           </div>
-        </section>
 
-        {/* The response, then every call made from this browser. */}
-        <div className="min-w-0 space-y-6 lg:col-start-2 2xl:col-start-3 2xl:row-start-1">
-          <section aria-label="Response" className="overflow-hidden rounded-2xl border border-line surface">
-            <div className="wood-head flex items-baseline justify-between gap-3 px-4 py-3">
-              <h2 className="text-[14px] font-semibold text-tan-200">Response</h2>
-              {current && <span className="text-[12px] text-tan-400">{ago(current.at)} over {current.transport.toUpperCase()}</span>}
+          {/* Response */}
+          <div aria-label="Response" className="min-w-0 p-4 sm:p-5">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <h2 className="text-[14px] font-semibold text-ink-200">Response</h2>
+              {current && <span className="text-[12.5px] text-ink-500">{ago(current.at)} over {current.transport.toUpperCase()}</span>}
             </div>
-            <div className="p-4"><ToolResult tool={tool} result={current?.result ?? null} running={running === name} /></div>
-          </section>
-
-          <section aria-label="Your calls" className="overflow-hidden rounded-2xl border border-line surface">
-            <div className="wood-head flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-              <h2 className="text-[14px] font-semibold text-tan-200">Your calls <span className="font-normal tabular-nums text-tan-400">{list.length}</span></h2>
-              <Segmented label="Show calls for" tone="wood" value={scope} onChange={setScope} options={[['all', 'All tools'], ['tool', tool.name]]} />
-              {calls.length > 0 && (
-                <button onClick={clearCalls} className={`ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] transition ${clearArmed ? 'bg-danger-500/15 text-danger-300' : 'text-tan-400 hover:text-tan-200'}`}>
-                  <Trash2 className="h-3 w-3" />{clearArmed ? 'Clear all calls?' : 'Clear'}
-                </button>
-              )}
-            </div>
-            {list.length ? (
-              <ul className="max-h-[28rem] divide-y divide-line overflow-y-auto">
-                {list.map((call) => {
-                  const open = current?.id === call.id && call.tool === name;
-                  return (
-                    <li key={call.id} className={`relative flex items-center gap-2 pr-2 transition-colors hover:bg-ink-800/40 ${open ? 'bg-wood-950/60' : ''}`}>
-                      {open && <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-gold-400" />}
-                      <button onClick={() => openCall(call)} title="Open this call to change its inputs" className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 text-left">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${statusTone(call.result.status)}`} aria-label={`HTTP ${call.result.status}`} />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-baseline gap-2">
-                            <span className="font-mono text-[13px] text-ink-100">{call.tool}</span>
-                            <span className="font-mono text-[11.5px] text-ink-500">{call.result.status} {call.transport.toUpperCase()}</span>
-                          </span>
-                          <span className="block truncate font-mono text-[11.5px] text-ink-500">{argSummary(call.args)}</span>
-                        </span>
-                        <span className="shrink-0 text-[12px] text-ink-500">{ago(call.at)}</span>
-                      </button>
-                      <button onClick={() => openCall(call, true)} disabled={Boolean(running)} aria-label={`Run this ${call.tool} call again`} title="Run again"
-                        className="shrink-0 rounded-md p-1.5 text-ink-400 transition hover:bg-white/5 hover:text-gold-300 disabled:opacity-40">
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="px-4 py-6 text-[13px] leading-[1.6] text-ink-400">
-                {calls.length ? `No calls to ${tool.name} yet.` : 'Calls you run appear here and stay in this browser. Open one to change its inputs and run it again.'}
-              </p>
-            )}
-          </section>
+            <ToolResult tool={tool} result={current?.result ?? null} running={running === name} />
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Every call made from this browser. */}
+      <section aria-label="Your calls" className="mt-8 overflow-hidden rounded-3xl border border-line surface">
+        <div className="wood-head flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3">
+          <h2 className="text-[14px] font-semibold text-tan-200">Your calls <span className="readout font-normal text-tan-400">{list.length}</span></h2>
+          <Segmented label="Show calls for" tone="wood" value={scope} onChange={setScope} options={[['all', 'All tools'], ['tool', tool.name]]} />
+          {calls.length > 0 && (
+            <button onClick={clearCalls} className={`ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12.5px] transition ${clearArmed ? 'bg-danger-500/15 text-danger-300' : 'text-tan-400 hover:text-tan-200'}`}>
+              <Trash2 className="h-3 w-3" />{clearArmed ? 'Clear all calls?' : 'Clear'}
+            </button>
+          )}
+        </div>
+        {list.length ? (
+          <ul className="max-h-[30rem] divide-y divide-line overflow-y-auto">
+            {list.map((call) => {
+              const open = current?.id === call.id && call.tool === name;
+              return (
+                <li key={call.id} className={`relative flex items-center gap-2 pr-3 transition-colors hover:bg-ink-800/40 ${open ? 'bg-wood-950/60' : ''}`}>
+                  {open && <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-gold-400" />}
+                  <button onClick={() => openCall(call)} title="Open this call to change its inputs" className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-5 text-left">
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${statusTone(call.result.status)}`} aria-label={`HTTP ${call.result.status}`} />
+                    <span className="w-36 shrink-0 truncate font-mono text-[13px] text-ink-100 max-sm:w-28">{call.tool}</span>
+                    <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-ink-500">{argSummary(call.args)}</span>
+                    <span className="readout shrink-0 text-[12.5px] text-ink-500 max-sm:hidden">{call.result.status} {call.transport.toUpperCase()}</span>
+                    <span className="w-20 shrink-0 text-right text-[12.5px] text-ink-500">{ago(call.at)}</span>
+                  </button>
+                  <button onClick={() => openCall(call, true)} disabled={Boolean(running)} aria-label={`Run this ${call.tool} call again`} title="Run again"
+                    className="shrink-0 rounded-lg p-1.5 text-ink-400 transition hover:bg-white/5 hover:text-gold-300 disabled:opacity-40">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="px-5 py-6 text-[14px] leading-[1.6] text-ink-400">
+            {calls.length ? `No calls to ${tool.name} yet.` : 'Calls you run appear here and stay in this browser. Open one to change its inputs and run it again.'}
+          </p>
+        )}
+      </section>
     </div>
   );
 };

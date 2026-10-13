@@ -29,7 +29,7 @@ function App() {
       : <div className="space-y-4"><div className="skeleton h-10 w-72 rounded-lg" /><div className="skeleton h-4 w-full max-w-2xl rounded" /><div className="skeleton h-64 rounded-xl" /></div>;
   } else page = <NotFoundPage />;
 
-  // Per-page tab title, from the same navigation data the sidebar uses.
+  // Per-page tab title, from the same navigation data search uses.
   useEffect(() => {
     const item = sections.flatMap((s) => s.items).find((i) => i.path === path);
     const title = path === '/owner' ? 'Owner dashboard' : item?.title ?? 'Not found';
@@ -39,7 +39,7 @@ function App() {
   // Count the visit for the owner dashboard (not the dashboard itself).
   useEffect(() => { if (path !== '/owner') recordPageView(path); }, [path]);
 
-  return <AppShell sections={sections} path={path}>{page}</AppShell>;
+  return <AppShell sections={sections} path={path} tools={index?.tools ?? null}>{page}</AppShell>;
 }
 
 export default App;
