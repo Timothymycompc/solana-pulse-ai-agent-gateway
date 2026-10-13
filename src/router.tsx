@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { withViewTransition } from './hooks/motion';
 
-// Minimal path router: real URLs (/docs/tools/token_verdict) so every page can be linked, bookmarked and indexed.
+// Minimal path router: real URLs (/docs/tools/token_safety) so every page can be linked, bookmarked and indexed.
 // The server returns index.html for unknown paths, so deep links load directly.
 
 const LEGACY: Record<string, string> = {
-  '#playground': '/docs/tools/preflight_transaction',
+  '#playground': '/docs/tools/check_tx',
   '#mcp': '/docs/connect',
   '#pricing': '/docs/pricing',
 };

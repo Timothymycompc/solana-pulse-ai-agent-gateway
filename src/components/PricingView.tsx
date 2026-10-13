@@ -16,8 +16,8 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 });
 
 const res = await fetchWithPayment(
-  "${typeof window !== 'undefined' ? window.location.origin : ''}/api/tools/token_verdict",
-  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mint: "<mint>" }) }
+  "${typeof window !== 'undefined' ? window.location.origin : ''}/api/tools/token_safety",
+  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: "<token address>" }) }
 );
 console.log(await res.json());`;
 
@@ -34,7 +34,7 @@ const client = createx402MCPClient({
 await client.connect(new StreamableHTTPClientTransport(
   new URL("${typeof window !== 'undefined' ? window.location.origin : ''}/mcp")
 ));
-const result = await client.callTool("preflight_transaction", { transaction: "<base64>" });`;
+const result = await client.callTool("check_tx", { tx: "<base64>" });`;
 
 const tiers = [
   { price: '$0.01', note: 'Reads, lookups, helpers and transaction forensics.' },

@@ -38,18 +38,18 @@ export const ToolPage: React.FC<{ name: string; index: ToolsIndex }> = ({ name, 
         ]} />
 
         <H2 id="inputs">Inputs</H2>
-        <Table head={['Name', 'What it is', 'How to get it']} rows={tool.inputs.map((input) => [
+        <Table head={['Name', "What it's looking for", 'Where to get it']} rows={tool.inputs.map((input) => [
           <><Code>{input.name}</Code><div className="mt-1 text-[12.5px] text-ink-500">{input.type}, {input.required ? 'required' : 'optional'}</div></>,
-          input.description,
-          input.howToGet,
+          input.lookingFor,
+          input.whereToGet,
         ])} />
 
         <H2 id="returns">Returned fields</H2>
-        <P>Every field the tool returns, what it means, and exactly how the gateway computes it.</P>
-        <Table head={['Field', 'What it means', "How it's computed"]} minWidth={640} rows={tool.outputs.map((o) => [
+        <P>Every field the tool returns, what it is, and exactly how it's worked out.</P>
+        <Table head={['Field', 'What it is', "How it's worked out"]} minWidth={640} rows={tool.outputs.map((o) => [
           <><Code>{o.field}</Code><div className="mt-1 text-[12.5px] text-ink-500">{o.type}</div></>,
-          <span className="text-ink-200">{o.meaning}</span>,
-          o.howComputed,
+          <span className="text-ink-200">{o.is}</span>,
+          o.howWorkedOut,
         ])} />
 
         {tool.notes.length > 0 && (<>

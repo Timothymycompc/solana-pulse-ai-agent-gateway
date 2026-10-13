@@ -18,7 +18,7 @@ import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, 
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
-import { mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
+import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
@@ -35,6 +35,35 @@ async function startServer() {
   app.use((_req, res, next) => { res.setHeader("Strict-Transport-Security", "max-age=31536000"); next(); });
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"], exposedHeaders: ["payment-required", "payment-response", "x-free-calls-remaining"] }));
   app.use(express.json({ limit: "256kb" }));
+
+  // Tools were renamed in October 2026 (preflight_transaction became check_tx, and so on). A call by an old name, or a
+  // percent-encoded one, becomes a call by the current name with the old input names moved to the new ones, before
+  // anything else sees it, so prices, free calls, x402 listings and stats all know each tool by one name.
+  const toolCall = (call: any) => {
+    if (call?.method !== "tools/call" || typeof call.params?.name !== "string") return call;
+    const tool = TOOLS_BY_NAME.get(call.params.name);
+    return tool ? { ...call, params: { ...call.params, name: tool.name, arguments: currentArgs(tool, call.params.arguments) } } : call;
+  };
+  app.use((req, _res, next) => {
+    const route = /^\/api\/tools\/([^/?]+)(.*)$/.exec(req.url);
+    if (route) {
+      let name = route[1];
+      try { name = decodeURIComponent(name); } catch { /* unknown name, left for the 404 */ }
+      const tool = TOOLS_BY_NAME.get(name);
+      // originalUrl too, so x402 names the payment after the current URL and directories list only that one.
+      if (tool && route[1] !== tool.name) req.url = req.originalUrl = `/api/tools/${tool.name}${route[2]}`;
+      if (tool && req.method === "POST") req.body = currentArgs(tool, req.body);
+    }
+    if (req.method === "POST" && (req.path === "/mcp" || req.path === "/mcp/messages") && req.body) {
+      req.body = Array.isArray(req.body) ? req.body.map(toolCall) : toolCall(req.body);
+    }
+    next();
+  });
+  // Old tool pages move to the new ones.
+  app.get("/docs/tools/:name", (req, res, next) => {
+    const tool = TOOLS_BY_NAME.get(req.params.name);
+    return tool && tool.name !== req.params.name ? res.redirect(301, `/docs/tools/${tool.name}`) : next();
+  });
 
   // The transaction a paid HTTP call settled in, from the PAYMENT-RESPONSE header x402 adds to the response.
   const settledTx = (header: unknown): string | null => {
@@ -90,7 +119,7 @@ async function startServer() {
   // Validate inputs against the tool's schema, run it, and map failures to a status and a fix.
   type ToolOutcome = { status: number; body: Record<string, unknown> };
   async function runTool(tool: ToolDef, rawArgs: unknown): Promise<ToolOutcome> {
-    const parsed = z.object(tool.inputs).safeParse(rawArgs ?? {});
+    const parsed = z.object(tool.inputs).safeParse(currentArgs(tool, rawArgs ?? {}));
     if (!parsed.success) {
       return { status: 400, body: { error: "Invalid input.", issues: parsed.error.issues.map((i) => ({ field: i.path.join("."), problem: i.message })), fix: `See GET /api/tools/${tool.name} for every input and how to get it.` } };
     }
@@ -376,7 +405,8 @@ An intelligence layer between Solana and AI agents. It checks transactions befor
 ## How to call
 - HTTP: POST /api/tools/<name> with a JSON body of inputs.
 - MCP: POST /mcp (Streamable HTTP) or /mcp/sse, then tools/call with the tool name.
-- Docs for every input (with how to get it) and every output field (with how it is computed): GET /api/tools and GET /api/tools/<name>.
+- Docs for every input (what it's looking for, where to get it) and every output field (what it is, how it's worked out): GET /api/tools and GET /api/tools/<name>.
+- Tools were renamed in October 2026 (preflight_transaction is now check_tx, and so on). Old names and old input names still work.
 - Ready-to-run live example inputs: GET /api/tools/<name>/example.
 
 ${section("transactions", "Transactions")}

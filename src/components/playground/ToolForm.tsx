@@ -20,8 +20,8 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
   );
   const help = doc && !compact && (
     <div className="space-y-0.5 text-[11px] leading-5">
-      <p className="text-ink-300">{doc.description}</p>
-      <p className="flex gap-1 text-ink-400"><Info className="mt-0.5 h-3 w-3 shrink-0 text-accent-300" /><span><span className="font-semibold text-accent-200">How to get it:</span> {doc.howToGet}</span></p>
+      <p className="text-ink-300">{doc.lookingFor}</p>
+      <p className="flex gap-1 text-ink-400"><Info className="mt-0.5 h-3 w-3 shrink-0 text-accent-300" /><span><span className="font-semibold text-accent-200">Where to get it:</span> {doc.whereToGet}</span></p>
     </div>
   );
 

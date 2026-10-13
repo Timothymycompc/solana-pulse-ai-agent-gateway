@@ -15,18 +15,20 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 
 | Tool | Prevents | Price |
 |---|---|---|
-| `preflight_transaction` | Signing a drainer or a doomed transaction: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
-| `check_transaction_intent` | A transaction that differs from what was asked ("send 5 USDC to X"): compares asset, exact amount, recipient and sender, and flags anything extra | $0.02 |
-| `token_verdict` | Buying scam tokens: SAFE / CAUTION / AVOID from mint and freeze powers, Token-2022 traps, verification, liquidity, concentration and age | $0.02 |
-| `explain_transaction` | Guessing from logs: real balance changes by wallet, programs used, and the decoded failure reason | $0.01 |
-| `resolve_token` | Copycat tickers: the verified mint for a ticker, with copycats counted | $0.01 |
-| `fee_advice` | Fee unit mistakes: tiers in micro-lamports per compute unit plus the exact cost in SOL | $0.01 |
-| `wallet_snapshot` | Inflated totals from spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.01 |
-| `convert_amount` | Decimal errors: human amounts to exact base units using the mint's real decimals | $0.01 |
-| `explain_error` | Blind retries: Solana error codes in plain language with a fix | $0.01 |
-| `inspect_address` | Sending to the wrong kind of address: wallet, token account, mint, program and more | $0.01 |
-| `find_ata` | Wrong token accounts: Token-2022 aware derivation, existence check and creation cost | $0.01 |
-| `get_solana_balance`, `get_token_accounts`, `get_recent_transactions`, `get_solana_blockhash` | Stale or invented data: live reads (holdings ranked by value with spam flagged; blockhash with seconds left) | $0.01 |
+| `check_tx` | Signing a drainer or a transaction that will fail: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
+| `tx_matches` | A transaction that differs from what was asked ("send 5 USDC to X"): compares token, exact amount, recipient and sender, and flags anything extra | $0.02 |
+| `token_safety` | Buying scam tokens: SAFE / CAUTION / AVOID from mint and freeze powers, Token-2022 traps, verification, liquidity, who holds it and age | $0.02 |
+| `explain_tx` | Guessing from logs: real balance changes by wallet, programs used, and why it failed | $0.01 |
+| `find_token` | Copycat tickers: the verified token address for a ticker, with copycats counted | $0.01 |
+| `fee` | Fee unit mistakes: cheap, normal and fast prices in micro-lamports per compute unit, plus the exact cost in SOL | $0.01 |
+| `wallet` | Totals inflated by spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.01 |
+| `convert` | Decimal errors: normal amounts to exact raw units using the token's real decimals | $0.01 |
+| `why_failed` | Blind retries: Solana error codes in plain words, with a fix | $0.01 |
+| `whats_this` | Sending to the wrong kind of address: wallet, token account, token, program and more | $0.01 |
+| `token_account` | Wrong token accounts: Token-2022 aware address, whether it exists, and what creating it costs | $0.01 |
+| `balance`, `tokens`, `history`, `blockhash` | Stale or made-up data: live reads (tokens ranked by value with spam flagged; blockhash with seconds left) | $0.01 |
+
+Every input and returned field is documented in plain words: what an input is looking for and where to get it, what each returned value is and how it's worked out (`GET /api/tools/<name>`). The tools and their fields were renamed in October 2026 to short, plain names (`preflight_transaction` became `check_tx`, `transaction` became `tx`, `walletChanges` became `balance_changes`). The old tool names and input names still work.
 
 Prices apply only after a tool's 25 free calls for the day.
 
@@ -37,8 +39,8 @@ Every tool documents each input (with how to get it) and each returned field (wi
 HTTP:
 
 ```bash
-curl -X POST https://solana-pulse-gateway-1021990235790.us-central1.run.app/api/tools/convert_amount \
-  -H 'content-type: application/json' -d '{"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'
+curl -X POST https://solana-pulse-gateway-1021990235790.us-central1.run.app/api/tools/convert \
+  -H 'content-type: application/json' -d '{"token":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'
 ```
 
 MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
@@ -54,7 +56,7 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 ## Pricing and payments
 
 - All calls are rate-limited to 120 requests per minute per IP.
-- Every tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.01 USDC per call ($0.02 for `preflight_transaction`, `check_transaction_intent` and `token_verdict`). Normal use stays free; payment covers heavy, automated use.
+- Every tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.01 USDC per call ($0.02 for `check_tx`, `tx_matches` and `token_safety`). Normal use stays free; payment covers heavy, automated use.
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
 - Usage records hold the route, status, client name and a keyed hash of the caller's network, never request contents or IP addresses. Site visits are recorded the same way, with the page and referring site. The owner sees revenue per tool, callers and visitors at `/owner`, using the owner key.

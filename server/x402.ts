@@ -29,25 +29,25 @@ const fitDescription = (text: string) => {
 // A fixed, real input for each paid tool's listing, matching the playground's examples where those are fixed.
 // The transaction tools' playground examples fetch live data, which listings built at startup can't, so they use an
 // unsigned 0.01 SOL transfer recorded from mainnet (tests/fixtures/intent-sol-match.json) and, for
-// explain_transaction, a confirmed swap by the payout wallet.
+// explain_tx, a confirmed swap by the payout wallet.
 const SOL_TRANSFER = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEEtNEWetTmK6RLkue8tADNy8eH6av+X5ckYlACi5O/AAQICAAEMAgAAAICWmAAAAAAAAA==";
 const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4";
 export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
-  get_solana_balance: { wallet: EXAMPLE_WALLET },
-  get_token_accounts: { wallet: EXAMPLE_WALLET, limit: 10 },
-  get_recent_transactions: { wallet: EXAMPLE_WALLET, limit: 5 },
-  get_solana_blockhash: {},
-  find_ata: { wallet: EXAMPLE_WALLET, mint: USDC_MINT },
-  inspect_address: { address: USDC_MINT },
-  convert_amount: { mint: USDC_MINT, amount: "5", direction: "to_base_units" },
-  explain_error: { error: `Program ${JUPITER} failed: custom program error: 0x1771`, programId: JUPITER },
-  preflight_transaction: { transaction: SOL_TRANSFER },
-  check_transaction_intent: { transaction: SOL_TRANSFER, intent: { action: "transfer", token: "SOL", amount: "0.01", recipient: EXAMPLE_RECIPIENT } },
-  explain_transaction: { signature: "3VC82Y2Uq42qczUPPzxuyUqeDPzgqKQf5utk1sKUsjgaTn9JZqDwMxqBb73U1FetJLF8WZqjrRyjsXovESSq3Phv" },
-  fee_advice: { transaction: SOL_TRANSFER },
-  resolve_token: { query: "BONK" },
-  token_verdict: { mint: BONK_MINT },
-  wallet_snapshot: { wallet: EXAMPLE_WALLET },
+  balance: { wallet: EXAMPLE_WALLET },
+  tokens: { wallet: EXAMPLE_WALLET, how_many: 10 },
+  history: { wallet: EXAMPLE_WALLET, how_many: 5 },
+  blockhash: {},
+  token_account: { wallet: EXAMPLE_WALLET, token: USDC_MINT },
+  whats_this: { address: USDC_MINT },
+  convert: { token: USDC_MINT, amount: "5", to: "raw" },
+  why_failed: { error: `Program ${JUPITER} failed: custom program error: 0x1771`, program: JUPITER },
+  check_tx: { tx: SOL_TRANSFER },
+  tx_matches: { tx: SOL_TRANSFER, expected: { token: "SOL", amount: "0.01", to: EXAMPLE_RECIPIENT } },
+  explain_tx: { tx_id: "3VC82Y2Uq42qczUPPzxuyUqeDPzgqKQf5utk1sKUsjgaTn9JZqDwMxqBb73U1FetJLF8WZqjrRyjsXovESSq3Phv" },
+  fee: { tx: SOL_TRANSFER },
+  find_token: { name: "BONK" },
+  token_safety: { token: BONK_MINT },
+  wallet: { wallet: EXAMPLE_WALLET },
 };
 
 export function discoveryFor(name: string) {
@@ -75,6 +75,7 @@ export function createX402(payTo: string) {
     const segment = resourceUrl.split(/[/?#]/).filter(Boolean).pop() ?? "unknown";
     let tool = segment;
     try { tool = decodeURIComponent(segment); } catch { /* keep the raw segment */ }
+    tool = TOOLS_BY_NAME.get(tool)?.name ?? tool;
     await recordPayment({
       txSignature: result.transaction, tool, payer: result.payer ?? null,
       amountBaseUnits: String(result.amount ?? requirements.amount), asset: requirements.asset, network: result.network,

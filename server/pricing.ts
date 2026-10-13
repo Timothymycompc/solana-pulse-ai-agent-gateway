@@ -11,22 +11,22 @@ export type ToolPrice = null | "$0.01" | "$0.02";
 
 export const TOOL_PRICES: Record<string, ToolPrice> = {
   // $0.01: basic reads, lookups, helpers and transaction forensics.
-  get_solana_balance: "$0.01",
-  get_token_accounts: "$0.01",
-  get_recent_transactions: "$0.01",
-  get_solana_blockhash: "$0.01",
-  find_ata: "$0.01",
-  inspect_address: "$0.01",
-  convert_amount: "$0.01",
-  explain_error: "$0.01",
-  resolve_token: "$0.01",
-  fee_advice: "$0.01",
-  wallet_snapshot: "$0.01",
-  explain_transaction: "$0.01",
+  balance: "$0.01",
+  tokens: "$0.01",
+  history: "$0.01",
+  blockhash: "$0.01",
+  token_account: "$0.01",
+  whats_this: "$0.01",
+  convert: "$0.01",
+  why_failed: "$0.01",
+  find_token: "$0.01",
+  fee: "$0.01",
+  wallet: "$0.01",
+  explain_tx: "$0.01",
   // $0.02: decisions that protect funds.
-  token_verdict: "$0.02",
-  preflight_transaction: "$0.02",
-  check_transaction_intent: "$0.02",
+  token_safety: "$0.02",
+  check_tx: "$0.02",
+  tx_matches: "$0.02",
 };
 
 // Every tool is served at /api/tools/<name> over HTTP and by name over MCP; both share pricing and free calls.

@@ -1,22 +1,22 @@
 import type { Connection } from "@solana/web3.js";
 import type { z } from "zod";
 
-// Documentation for one input. Every tool documents what each input is and where a caller gets it.
+// Documentation for one input, in plain words: what it is looking for and where to get it.
 export type InputDoc = {
   name: string;
   type: string;
   required: boolean;
-  description: string;
-  howToGet: string;
+  lookingFor: string;
+  whereToGet: string;
 };
 
-// Documentation for one output field: what it is, exactly how the gateway computes it, and what it means.
-// Nested fields use dot and [] paths, e.g. "walletChanges[].change".
+// Documentation for one output field, in plain words: what the value is and how the gateway works it out.
+// Nested fields use dot and [] paths, e.g. "balance_changes[].change".
 export type OutputDoc = {
   field: string;
   type: string;
-  meaning: string;
-  howComputed: string;
+  is: string;
+  howWorkedOut: string;
 };
 
 export type ToolContext = {
@@ -28,6 +28,10 @@ export type ToolCategory = "transactions" | "tokens" | "wallets" | "network" | "
 
 export interface ToolDef {
   name: string;
+  // The name the tool had before the October 2026 rename. Calls by that name still work, with the old input names.
+  oldName: string;
+  // Turns arguments written with the old input names into the current ones. Current names win when both are given.
+  oldInputs?: Record<string, string>;
   title: string;
   category: ToolCategory;
   // A concrete example of the money or the hallucination this tool prevents.

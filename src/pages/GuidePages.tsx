@@ -17,14 +17,14 @@ export const QuickstartPage: React.FC = () => (
     <PageHeader title="Quickstart" lead="Make a real call in under a minute. No account, no API key; every tool gives you 25 free calls a day." />
 
     <H2>1. Make your first call</H2>
-    <P>Every tool is a <Code>POST</Code> to <Code>/api/tools/&lt;name&gt;</Code> with a JSON body. This one converts 5 USDC into the exact base units a transfer needs:</P>
-    <CodeBlock title="Terminal" code={`curl -X POST '${origin()}/api/tools/convert_amount' \\\n  -H 'content-type: application/json' \\\n  -d '{"mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'`} />
-    <P>The response includes <Code>"baseUnits": "5000000"</Code> and the decimals it used, read from the chain.</P>
+    <P>Every tool is a <Code>POST</Code> to <Code>/api/tools/&lt;name&gt;</Code> with a JSON body. This one converts 5 USDC into the exact raw units a transfer needs:</P>
+    <CodeBlock title="Terminal" code={`curl -X POST '${origin()}/api/tools/convert' \\\n  -H 'content-type: application/json' \\\n  -d '{"token":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","amount":"5"}'`} />
+    <P>The answer includes <Code>"raw_amount": "5000000"</Code> and the decimals it used, read from the chain.</P>
 
     <H2>2. Check a transaction before your agent signs it</H2>
-    <P>Serialize the unsigned transaction to base64 and send it to <Code>preflight_transaction</Code>. You get OK, REVIEW or BLOCK, every wallet's exact balance change, and the reasons.</P>
-    <CodeBlock title="TypeScript" code={`const base64 = Buffer.from(tx.serialize({ requireAllSignatures: false })).toString("base64");\nconst res = await fetch("${origin()}/api/tools/preflight_transaction", {\n  method: "POST",\n  headers: { "content-type": "application/json" },\n  body: JSON.stringify({ transaction: base64 }),\n});\nconst { verdict, summary, walletChanges } = await res.json();\nif (verdict === "BLOCK") throw new Error(summary);`} />
-    <NextLink to={toolPath('preflight_transaction')}>Try it live with a real transaction</NextLink>
+    <P>Serialize the unsigned transaction to base64 and send it to <Code>check_tx</Code>. You get OK, REVIEW or BLOCK, every wallet's exact balance change, and the reasons.</P>
+    <CodeBlock title="TypeScript" code={`const base64 = Buffer.from(tx.serialize({ requireAllSignatures: false })).toString("base64");\nconst res = await fetch("${origin()}/api/tools/check_tx", {\n  method: "POST",\n  headers: { "content-type": "application/json" },\n  body: JSON.stringify({ tx: base64 }),\n});\nconst { verdict, summary, balance_changes } = await res.json();\nif (verdict === "BLOCK") throw new Error(summary);`} />
+    <NextLink to={toolPath('check_tx')}>Try it live with a real transaction</NextLink>
 
     <H2>3. Give the tools to your agent</H2>
     <P>Connect any MCP client (Claude, Cursor, your own agent) to <Code>/mcp</Code> and all tools appear automatically, each with a "use when" line so the model knows when to call it.</P>
@@ -86,7 +86,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>An agent that can pay</H2>
     <P>Desktop apps can use every tool within its daily free calls. To go beyond them, build your agent with an x402-capable MCP client, which answers payment requests from a Solana wallet holding USDC:</P>
-    <CodeBlock title="TypeScript" code={`import { createx402MCPClient } from "@x402/mcp";\nimport { ExactSvmScheme } from "@x402/svm/exact/client";\nimport { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";\n\nconst client = createx402MCPClient({\n  name: "my-agent",\n  version: "1.0.0",\n  schemes: [{ network: "${NETWORK}", client: new ExactSvmScheme(signer) }],\n  autoPayment: true,\n});\nawait client.connect(new StreamableHTTPClientTransport(new URL("${origin()}/mcp")));\nconst result = await client.callTool("token_verdict", { mint: "<mint>" });`} />
+    <CodeBlock title="TypeScript" code={`import { createx402MCPClient } from "@x402/mcp";\nimport { ExactSvmScheme } from "@x402/svm/exact/client";\nimport { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";\n\nconst client = createx402MCPClient({\n  name: "my-agent",\n  version: "1.0.0",\n  schemes: [{ network: "${NETWORK}", client: new ExactSvmScheme(signer) }],\n  autoPayment: true,\n});\nawait client.connect(new StreamableHTTPClientTransport(new URL("${origin()}/mcp")));\nconst result = await client.callTool("token_safety", { token: "<token address>" });`} />
 
     <H2>Discovery files</H2>
     <Table head={['File', 'What it is']} minWidth={420} rows={[
@@ -103,9 +103,9 @@ export const CallsPage: React.FC = () => (
 
     <H2>What one looks like</H2>
     <P>Each kind of question has its own tool. You send the details as JSON, and the answer comes back as structured data a program or AI agent can read.</P>
-    <CodeBlock title="The question" code={`POST ${origin()}/api/tools/get_solana_balance\n{ "wallet": "<wallet_address>" }`} />
+    <CodeBlock title="The question" code={`POST ${origin()}/api/tools/balance\n{ "wallet": "<wallet_address>" }`} />
     <CodeBlock title="The answer" code={`{\n  "wallet": "<wallet_address>",\n  "network": "mainnet-beta",\n  "lamports": "1500000000",\n  "sol": "1.5",\n  "slot": 455508107\n}`} />
-    <P>AI agents make the same calls over MCP: instead of a web address, the agent picks a tool by name, such as <Code>get_solana_balance</Code>, and gets the same answer.</P>
+    <P>AI agents make the same calls over MCP: instead of a web address, the agent picks a tool by name, such as <Code>balance</Code>, and gets the same answer.</P>
 
     <H2>What calls cost</H2>
     <P>Every tool, including this balance call, gives each caller 25 free calls a day, then costs $0.01 in USDC ($0.02 for the three safety checks), paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
@@ -114,7 +114,7 @@ export const CallsPage: React.FC = () => (
     <Table head={['In a restaurant', 'In the gateway']} minWidth={480} rows={[
       [<><b className="text-ink-100">The customer</b> wants something</>, <><b className="text-ink-100">The client</b>: your app or AI agent</>],
       [<><b className="text-ink-100">The menu</b> lists every dish</>, <><b className="text-ink-100">The API</b>: the list of tools and how to ask</>],
-      [<><b className="text-ink-100">A dish</b> has its own name</>, <><b className="text-ink-100">An endpoint</b>: one address, one job, like <Code>/api/tools/get_solana_balance</Code></>],
+      [<><b className="text-ink-100">A dish</b> has its own name</>, <><b className="text-ink-100">An endpoint</b>: one address, one job, like <Code>/api/tools/balance</Code></>],
       [<><b className="text-ink-100">The cashier</b> checks you can order</>, <><b className="text-ink-100">Free calls and payment</b>: counts free calls, then checks the x402 payment</>],
       [<><b className="text-ink-100">The chef</b> cooks</>, <><b className="text-ink-100">The logic</b>: validates inputs and does the work</>],
       [<><b className="text-ink-100">The supplier</b> delivers ingredients</>, <><b className="text-ink-100">The blockchain</b>: Solana, read live</>],

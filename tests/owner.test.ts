@@ -25,23 +25,23 @@ before(async () => {
 
   // A directory bot pinging MCP from two networks, and asking a paid tool for its price.
   for (const ip of ["192.0.2.1", "192.0.2.2"]) await run("/mcp", ip, "mcpbeat/0.1 (+https://mcpbeat.com/bot/; liveness check)");
-  await run("/api/tools/token_verdict", "192.0.2.3", "PayAI-Bazaar/1.0 (+https://docs.payai.network)", { status: 402, via: "x402" });
+  await run("/api/tools/token_safety", "192.0.2.3", "PayAI-Bazaar/1.0 (+https://docs.payai.network)", { status: 402, via: "x402" });
   // An agent: Claude Code over MCP. One free call, then one paid call.
   await run("/mcp", AGENT_IP, "node", { mcpClient: "claude-code 2.1.0" });
-  await run("/mcp/tools/token_verdict", AGENT_IP, "node", { via: "free_call" });
-  await run("/mcp/tools/token_verdict", AGENT_IP, "node", { via: "x402", paymentTx: "tx-agent" });
-  await recordPayment({ txSignature: "tx-agent", tool: "token_verdict", payer: THEIR_WALLET, amountBaseUnits: "20000", asset: "USDC", network: "solana" });
+  await run("/mcp/tools/token_safety", AGENT_IP, "node", { via: "free_call" });
+  await run("/mcp/tools/token_safety", AGENT_IP, "node", { via: "x402", paymentTx: "tx-agent" });
+  await recordPayment({ txSignature: "tx-agent", tool: "token_safety", payer: THEIR_WALLET, amountBaseUnits: "20000", asset: "USDC", network: "solana" });
   // The owner: a test payment from their own wallet, and an owner-key call.
-  await recordPayment({ txSignature: "tx-test", tool: "fee_advice", payer: MY_WALLET, amountBaseUnits: "10000", asset: "USDC", network: "solana" });
-  await run("/api/tools/fee_advice", OWNER_IP, "curl/8.5.0", { via: "owner" });
+  await recordPayment({ txSignature: "tx-test", tool: "fee", payer: MY_WALLET, amountBaseUnits: "10000", asset: "USDC", network: "solana" });
+  await run("/api/tools/fee", OWNER_IP, "curl/8.5.0", { via: "owner" });
   await noteOwnerNetwork(hashIp(OWNER_IP));
   // Someone trying the playground in a browser, and an unknown tool name from an old client.
-  await run("/api/tools/resolve_token", BROWSER_IP, BROWSER_UA, { via: "free_call" });
+  await run("/api/tools/find_token", BROWSER_IP, BROWSER_UA, { via: "free_call" });
   await run("/api/tools/get_price", BROWSER_IP, "SentinelOracle/0.1 (+https://glimind.com)", { status: 404 });
 
   // Visits: one real visitor on two pages, a crawler, and the owner.
   await recordPageView({ path: "/", referrerHost: "x.com", callerHash: hashIp(BROWSER_IP), client: BROWSER_UA });
-  await recordPageView({ path: "/docs/tools/token_verdict", referrerHost: null, callerHash: hashIp(BROWSER_IP), client: BROWSER_UA });
+  await recordPageView({ path: "/docs/tools/token_safety", referrerHost: null, callerHash: hashIp(BROWSER_IP), client: BROWSER_UA });
   await recordPageView({ path: "/", referrerHost: null, callerHash: hashIp("192.0.2.9"), client: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" });
   await recordPageView({ path: "/owner", referrerHost: null, callerHash: hashIp(OWNER_IP), client: BROWSER_UA });
 });
@@ -51,10 +51,10 @@ test("revenue per tool, with the owner's own test payments kept apart", async ()
   assert.equal(o.revenue.allTimeUsdc, 0.03);
   assert.equal(o.revenue.fromOthersUsdc, 0.02);
   assert.equal(o.revenue.payments, 2);
-  const verdict = o.tools.find((t) => t.tool === "token_verdict")!;
+  const verdict = o.tools.find((t) => t.tool === "token_safety")!;
   assert.equal(verdict.revenueUsdc, 0.02);
   assert.equal(verdict.revenueOthersUsdc, 0.02);
-  assert.equal(o.tools.find((t) => t.tool === "fee_advice")!.revenueOthersUsdc, 0);
+  assert.equal(o.tools.find((t) => t.tool === "fee")!.revenueOthersUsdc, 0);
   assert.deepEqual(o.payers.map((p) => [p.payer, p.mine]), [[THEIR_WALLET, false], [MY_WALLET, true]]);
   // The paid MCP call is linked to the app that made it.
   assert.equal(o.recentPayments.find((p) => p.txSignature === "tx-agent")!.caller!.name, "Claude Code");
@@ -62,18 +62,18 @@ test("revenue per tool, with the owner's own test payments kept apart", async ()
 
 test("each tool's runs are split by who made them", async () => {
   const o = await ownerOverview({ days: 7 });
-  const verdict = o.tools.find((t) => t.tool === "token_verdict")!;
+  const verdict = o.tools.find((t) => t.tool === "token_safety")!;
   assert.equal(verdict.runs, 3);
   assert.equal(verdict.byKind.bot, 1);
   assert.equal(verdict.byKind.ai_app, 2);
   assert.equal(verdict.paymentAsked, 1);
   assert.equal(verdict.freeCalls, 1);
   assert.equal(verdict.mcp, 2);
-  assert.equal(o.tools.find((t) => t.tool === "fee_advice")!.byKind.you, 1);
-  assert.equal(o.tools.find((t) => t.tool === "resolve_token")!.byKind.browser, 1);
+  assert.equal(o.tools.find((t) => t.tool === "fee")!.byKind.you, 1);
+  assert.equal(o.tools.find((t) => t.tool === "find_token")!.byKind.browser, 1);
   // Unknown names are reported, and every registered tool is listed even with no runs.
   assert.equal(o.tools.find((t) => t.tool === "get_price")!.known, false);
-  assert.ok(o.tools.some((t) => t.tool === "get_solana_balance" && t.runs === 0));
+  assert.ok(o.tools.some((t) => t.tool === "balance" && t.runs === 0));
 });
 
 test("callers: one row per bot across networks, apps named by their MCP client", async () => {

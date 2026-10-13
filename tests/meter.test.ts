@@ -32,32 +32,32 @@ test("a tool priced null (free, no daily limit) never touches the allowance", as
 
 test("each paid tool gives the daily allowance, then asks for payment", async () => {
   for (let i = 1; i <= FREE_CALLS_PER_TOOL; i++) {
-    assert.deepEqual(await use("token_verdict"), { via: "free_call", remaining: FREE_CALLS_PER_TOOL - i });
+    assert.deepEqual(await use("token_safety"), { via: "free_call", remaining: FREE_CALLS_PER_TOOL - i });
   }
-  assert.deepEqual(await use("token_verdict"), { via: "x402" });
+  assert.deepEqual(await use("token_safety"), { via: "x402" });
   // Another tool and another caller have their own allowance.
-  assert.equal((await use("preflight_transaction")).via, "free_call");
-  assert.equal((await use("token_verdict", "198.51.100.9")).via, "free_call");
+  assert.equal((await use("check_tx")).via, "free_call");
+  assert.equal((await use("token_safety", "198.51.100.9")).via, "free_call");
 });
 
 test("a failed call is refunded", async () => {
-  await refundFreeCall(ip, "token_verdict");
-  assert.equal((await use("token_verdict")).via, "free_call");
-  assert.equal((await use("token_verdict")).via, "x402");
+  await refundFreeCall(ip, "token_safety");
+  assert.equal((await use("token_safety")).via, "free_call");
+  assert.equal((await use("token_safety")).via, "x402");
 });
 
 test("the allowance starts again the next day", async () => {
   await db.query(`UPDATE trial_tool_usage SET last_call_at = NOW() - INTERVAL '1 day' WHERE ip_hash = $1`, [hashIp(ip)]);
-  assert.deepEqual(await getFreeCallStatus(ip), { token_verdict: 0, preflight_transaction: 0 });
-  assert.deepEqual(await use("token_verdict"), { via: "free_call", remaining: FREE_CALLS_PER_TOOL - 1 });
+  assert.deepEqual(await getFreeCallStatus(ip), { token_safety: 0, check_tx: 0 });
+  assert.deepEqual(await use("token_safety"), { via: "free_call", remaining: FREE_CALLS_PER_TOOL - 1 });
 });
 
 test("a caller that attaches a payment pays and keeps its free calls", async () => {
-  assert.deepEqual(await admitCall({ tool: "fee_advice", ip, hasPayment: true }), { via: "x402" });
-  assert.equal((await getFreeCallStatus(ip)).fee_advice, undefined);
+  assert.deepEqual(await admitCall({ tool: "fee", ip, hasPayment: true }), { via: "x402" });
+  assert.equal((await getFreeCallStatus(ip)).fee, undefined);
 });
 
-test("percent-encoded tool names share the real tool's allowance", async () => {
+test("percent-encoded and old tool names share the real tool's allowance", async () => {
   const app = express();
   app.set("trust proxy", 1);
   const payWall = (_req: any, res: any) => res.status(402).json({ paymentRequired: true });
@@ -66,8 +66,9 @@ test("percent-encoded tool names share the real tool's allowance", async () => {
   const port = (server.address() as any).port;
   const call = async (path: string) => (await fetch(`http://127.0.0.1:${port}${path}`, { method: "POST", headers: { "x-forwarded-for": "192.0.2.44" } })).status;
   try {
-    for (let i = 0; i < FREE_CALLS_PER_TOOL; i++) assert.equal(await call("/api/tools/resolve_token"), 200);
-    assert.equal(await call("/api/tools/resolve%5Ftoken"), 402);
+    for (let i = 0; i < FREE_CALLS_PER_TOOL; i++) assert.equal(await call("/api/tools/find_token"), 200);
+    assert.equal(await call("/api/tools/find%5Ftoken"), 402);
+    assert.equal(await call("/api/tools/resolve_token"), 402, "the old name shares the allowance too");
     assert.equal(await call("/api/tools/%72esolve_token"), 402);
   } finally {
     server.close();

@@ -1,4 +1,4 @@
-// Transaction decoding and simulation shared by preflight_transaction, check_transaction_intent and fee_advice.
+// Transaction decoding and simulation shared by check_tx, tx_matches and fee.
 import { AddressLookupTableAccount, Connection, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { AccountLayout } from "@solana/spl-token";
 import {

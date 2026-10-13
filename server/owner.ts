@@ -13,7 +13,7 @@ const shortId = (hash: string | null) => (hash ? hash.slice(0, 6) : null);
 const iso = (v: unknown) => new Date(v as string).toISOString();
 const ms = (v: unknown) => new Date(v as string).getTime();
 
-// "/api/tools/token_verdict" or "/mcp/tools/token%5Fverdict" → "token_verdict"
+// "/api/tools/token_safety" or "/mcp/tools/token%5Fsafety" → "token_safety"
 function toolOf(endpoint: string): string {
   const raw = endpoint.replace(/^\/(api|mcp)\/tools\//, "");
   try { return decodeURIComponent(raw); } catch { return raw; }
@@ -122,9 +122,11 @@ export async function ownerOverview(o: { days: number }) {
     return { r, caller, tool, failed };
   });
 
-  // Per tool: every registered tool, plus any unknown names callers tried (old names, typos).
+  // Per tool: every registered tool, plus any unknown names callers tried (typos, names from before 2026-10).
+  // Calls and payments made under a tool's pre-rename name count toward the tool's current name.
   const toolStats = new Map<string, any>();
-  const statsFor = (tool: string) => {
+  const statsFor = (name: string) => {
+    const tool = TOOLS_BY_NAME.get(name)?.name ?? name;
     let t = toolStats.get(tool);
     if (!t) {
       const known = TOOLS_BY_NAME.has(tool);
@@ -153,9 +155,9 @@ export async function ownerOverview(o: { days: number }) {
   const revenue = { allTimeUsdc: 0, windowUsdc: 0, last24hUsdc: 0, fromOthersUsdc: 0, fromOthersWindowUsdc: 0, payments: 0, paymentsWindow: 0 };
   for (const p of payTools.rows) {
     const t = statsFor(p.tool);
-    t.payments = Number(p.payments); t.revenueUsdc = usdc(p.total);
-    t.paymentsWindow = Number(p.payments_window); t.revenueWindowUsdc = usdc(p.total_window);
-    t.revenueOthersUsdc = usdc(p.total_others); t.otherPayers = Number(p.other_payers);
+    t.payments += Number(p.payments); t.revenueUsdc += usdc(p.total);
+    t.paymentsWindow += Number(p.payments_window); t.revenueWindowUsdc += usdc(p.total_window);
+    t.revenueOthersUsdc += usdc(p.total_others); t.otherPayers += Number(p.other_payers);
     revenue.allTimeUsdc += usdc(p.total); revenue.windowUsdc += usdc(p.total_window); revenue.last24hUsdc += usdc(p.total_24h);
     revenue.fromOthersUsdc += usdc(p.total_others); revenue.fromOthersWindowUsdc += usdc(p.total_others_window);
     revenue.payments += Number(p.payments); revenue.paymentsWindow += Number(p.payments_window);
@@ -206,7 +208,7 @@ export async function ownerOverview(o: { days: number }) {
       tools: Number(p.tools), firstAt: iso(p.first_at), lastAt: iso(p.last_at),
     })),
     recentPayments: recentPays.rows.map((p: any) => ({
-      at: iso(p.created_at), tool: p.tool, amountUsdc: usdc(p.amount_base_units), payer: p.payer, mine: Boolean(p.mine),
+      at: iso(p.created_at), tool: TOOLS_BY_NAME.get(p.tool)?.name ?? p.tool, amountUsdc: usdc(p.amount_base_units), payer: p.payer, mine: Boolean(p.mine),
       txSignature: p.tx_signature, caller: payCaller(p.caller_hash, p.client),
     })),
     visitors: visitorStats(viewRows.rows, ownerNets, days),

@@ -6,15 +6,15 @@ import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners,
 import { explainError } from "./errors";
 import {
   assertAddress, BASE_FEE_LAMPORTS_PER_SIGNATURE, COMPUTE_BUDGET_PROGRAM, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, labelFor,
-  lamportsToSol, NATIVE_MINT, NETWORK_DOC, parseUnits, USDC_MINT,
+  lamportsToSol, NATIVE_MINT, NETWORK_DOC, parseUnits, snakeKeys, USDC_MINT,
 } from "./lib";
 import { ToolError, type ToolContext, type ToolDef } from "./types";
 
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
 const TX_DOC = {
-  name: "transaction", type: "string (base64)", required: true,
-  description: "The unsigned (or signed) transaction, serialized and base64-encoded. Legacy and v0 transactions with lookup tables are supported. Signatures are not checked.",
-  howToGet: "From your wallet SDK before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or the swap transaction returned by an aggregator API.",
+  name: "tx", type: "string (base64)", required: true,
+  lookingFor: "The transaction, base64-encoded. Signed or not. Legacy and v0 both work.",
+  whereToGet: "From your wallet SDK before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'). Or the swap transaction an aggregator API gave you.",
 };
 const symbolsFor = (ctx: ToolContext) => async (mints: string[]) => {
   const map = await jupByMints(ctx, mints);
@@ -39,21 +39,21 @@ async function exampleTransaction(conn: Connection, kind: "sol_transfer" | "drai
   return Buffer.from(new VersionedTransaction(message).serialize()).toString("base64");
 }
 
-type Check = { id: string; status: "pass" | "info" | "warn" | "fail"; detail: string };
+type Check = { name: string; result: "pass" | "info" | "warn" | "fail"; detail: string };
 
 // The drainer patterns: handing control of funds or accounts to someone who is not signing.
 function permissionCheck(ix: DecodedInstruction, signers: Set<string>): Check | null {
   if (ix.type === "token_approve" && !signers.has(String(ix.info.delegate))) {
-    return { id: "token_approval", status: "fail", detail: `Instruction ${ix.index} lets ${ix.info.delegate} move up to ${ix.info.amountRaw} base units from token account ${ix.info.account} at any time. This is the most common wallet-drainer pattern.` };
+    return { name: "token_approval", result: "fail", detail: `Instruction ${ix.index} lets ${ix.info.delegate} move up to ${ix.info.amountRaw} base units from token account ${ix.info.account} at any time. This is the most common wallet-drainer pattern.` };
   }
   if (ix.type === "token_set_authority") {
-    return { id: "authority_change", status: "fail", detail: `Instruction ${ix.index} changes the ${ix.info.authorityType} authority of ${ix.info.account} to ${ix.info.newAuthority ?? "nobody"}. Whoever holds that authority controls the account.` };
+    return { name: "authority_change", result: "fail", detail: `Instruction ${ix.index} changes the ${ix.info.authorityType} authority of ${ix.info.account} to ${ix.info.newAuthority ?? "nobody"}. Whoever holds that authority controls the account.` };
   }
   if (ix.type === "assign_owner" && signers.has(String(ix.info.account))) {
-    return { id: "wallet_reassigned", status: "fail", detail: `Instruction ${ix.index} hands ownership of signer ${ix.info.account} to program ${ix.info.newOwnerProgram}. The wallet would stop being a normal wallet.` };
+    return { name: "wallet_reassigned", result: "fail", detail: `Instruction ${ix.index} hands ownership of signer ${ix.info.account} to program ${ix.info.newOwnerProgram}. The wallet would stop being a normal wallet.` };
   }
   if (ix.type === "token_close_account" && !signers.has(String(ix.info.destination))) {
-    return { id: "close_to_other", status: "fail", detail: `Instruction ${ix.index} closes token account ${ix.info.account} and sends its SOL deposit to ${ix.info.destination}, which is not a signer.` };
+    return { name: "close_to_other", result: "fail", detail: `Instruction ${ix.index} closes token account ${ix.info.account} and sends its SOL deposit to ${ix.info.destination}, which is not a signer.` };
   }
   return null;
 }
@@ -61,39 +61,49 @@ function permissionCheck(ix: DecodedInstruction, signers: Set<string>): Check | 
 const permissionChecks = (loaded: LoadedTransaction, signers: Set<string>): Check[] =>
   loaded.instructions.map((ix) => permissionCheck(ix, signers)).filter((c): c is Check => c !== null);
 
+// The fee breakdown with plain field names.
+const feeOut = (fee: ReturnType<typeof feeBreakdown>) => ({
+  base_lamports: fee.baseLamports, priority_lamports: fee.priorityLamports, total_lamports: fee.totalLamports, total_sol: fee.totalSol,
+  compute_unit_limit: fee.computeUnitLimit, compute_unit_limit_from: fee.computeUnitLimitSource, compute_unit_price: fee.microLamportsPerComputeUnit,
+});
+
 export const preflightTransaction: ToolDef = {
-  name: "preflight_transaction",
-  title: "Check before signing",
+  name: "check_tx",
+  oldName: "preflight_transaction",
+  oldInputs: { transaction: "tx" },
+  title: "Safe to sign?",
   category: "transactions",
-  benefit: { kind: "money", text: "Catches a drainer approval or a doomed transaction before your agent signs. Failed transactions still pay fees, and one hidden approval can empty a wallet." },
-  useWhen: "Use on every transaction before your agent signs it. Shows exactly what each wallet gains and loses, blocks drainer patterns, and catches failures and expired blockhashes before any fee is spent.",
-  description: "Decodes every instruction, simulates the transaction against live state, computes each wallet's SOL and token changes, and returns OK, REVIEW or BLOCK with reasons.",
-  inputs: { transaction: z.string().min(20), network: NETWORK },
+  benefit: { kind: "money", text: "Catches a drainer approval or a transaction that will fail, before you sign. Failed transactions still cost fees. One hidden approval can empty a wallet." },
+  useWhen: "Run on every transaction before you sign it. Shows what each wallet gains and loses, blocks drainer tricks, and catches failures and expired blockhashes before you pay a fee.",
+  description: "Decodes every step, dry-runs the transaction on live mainnet, works out each wallet's SOL and token changes, and answers OK, REVIEW or BLOCK with the reasons.",
+  inputs: { tx: z.string().min(20), network: NETWORK },
   inputDocs: [TX_DOC, NETWORK_DOC],
   outputs: [
-    { field: "verdict", type: '"OK" | "REVIEW" | "BLOCK"', meaning: "BLOCK: do not sign (a failing check). REVIEW: a human or the agent's policy should confirm (a warning). OK: nothing found.", howComputed: "Worst status across checks: fail gives BLOCK, warn gives REVIEW, otherwise OK." },
-    { field: "summary", type: "string", meaning: "One sentence: the verdict and the main reason.", howComputed: "Built from the worst checks and the signer's balance changes." },
-    { field: "checks[].id", type: "string", meaning: "simulation, blockhash, fee_payer_balance, token_approval, authority_change, wallet_reassigned, close_to_other, unknown_programs, priority_fee, outflow.", howComputed: "Fixed list of checks." },
-    { field: "checks[].status", type: '"pass" | "info" | "warn" | "fail"', meaning: "Result of the check.", howComputed: "simulation fails if the dry run errors; blockhash warns if expired; fee_payer_balance fails if the payer cannot cover fees; approvals to non-signers, authority changes, reassigning a signer and closing to a non-signer fail; unknown programs warn; priority fee over 0.01 SOL warns; outflows from signers are info." },
-    { field: "checks[].detail", type: "string", meaning: "The specific finding in plain words.", howComputed: "Built from decoded instructions and simulation." },
-    { field: "walletChanges[].wallet", type: "string", meaning: "The wallet (or account) whose balance changes.", howComputed: "For SOL: the account itself. For tokens: the owner of the token account." },
-    { field: "walletChanges[].asset / symbol", type: "string", meaning: '"SOL" or the token mint, and its ticker.', howComputed: "From account data; ticker from Jupiter." },
-    { field: "walletChanges[].before / after / change", type: "string (decimal)", meaning: "Balance before, after, and the difference. Negative means the wallet loses it.", howComputed: "Pre-state from getMultipleAccountsInfo, post-state from simulateTransaction's returned accounts, formatted with exact decimals. SOL changes include fees." },
-    { field: "walletChanges[].isSigner", type: "boolean", meaning: "True when the wallet signs this transaction (so it is you).", howComputed: "Wallet is among the transaction's required signers." },
-    { field: "instructions[]", type: "object[]", meaning: "Every instruction decoded: index, program, type (sol_transfer, token_transfer, token_approve, token_set_authority, token_close_account, create_token_account, set_compute_unit_price, unknown_program and more) and its key fields.", howComputed: "Decoded from the instruction data for System, SPL Token, Token-2022, Compute Budget, Associated Token Account and Memo programs." },
-    { field: "fee.baseLamports / priorityLamports / totalLamports / totalSol", type: "string", meaning: "What this transaction will cost in fees.", howComputed: "Base: 5000 lamports x signatures. Priority: ceil(microLamportsPerComputeUnit x computeUnitLimit / 1,000,000)." },
-    { field: "fee.computeUnitLimit / computeUnitLimitSource / microLamportsPerComputeUnit", type: "number | string", meaning: "The compute settings fees are charged on.", howComputed: "From the transaction's Compute Budget instructions, or the runtime default when absent." },
-    { field: "simulation.success / error / unitsConsumed / logs", type: "object", meaning: "The raw dry-run result: whether it worked, the error, compute used, and the last 25 log lines.", howComputed: "simulateTransaction with sigVerify off and a fresh blockhash." },
-    { field: "simulation.errorExplanation", type: "object | null", meaning: "Plain-language explanation of a failure.", howComputed: "explain_error applied to the simulation error." },
+    { field: "verdict", type: '"OK" | "REVIEW" | "BLOCK"', is: "The answer. BLOCK: don't sign. REVIEW: a person or your rules should look first. OK: nothing wrong found.", howWorkedOut: "The worst check wins: any fail is BLOCK, any warn is REVIEW, otherwise OK." },
+    { field: "summary", type: "string", is: "One sentence: the verdict and the main reason.", howWorkedOut: "Built from the worst check and what your wallet sends." },
+    { field: "fee_payer / signers", type: "string / string[]", is: "The wallet paying the fee, and every wallet that signs.", howWorkedOut: "Read from the transaction." },
+    { field: "checks[].name", type: "string", is: "Which check: simulation, blockhash, fee_payer_balance, token_approval, authority_change, wallet_reassigned, close_to_other, unknown_programs, priority_fee or outflow.", howWorkedOut: "A fixed list." },
+    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out.", howWorkedOut: "simulation fails if the dry run errors. blockhash warns if expired. fee_payer_balance fails if the payer can't cover fees. Approvals to non-signers, authority changes, reassigning a signer and closing to a non-signer fail. Unknown programs warn. A priority fee over 0.01 SOL warns. Money leaving your wallet is info." },
+    { field: "checks[].detail", type: "string", is: "What the check found, in plain words.", howWorkedOut: "Built from the decoded steps and the dry run." },
+    { field: "balance_changes[].wallet", type: "string", is: "The wallet whose balance changes.", howWorkedOut: "For SOL, the account itself. For tokens, the owner of the token account." },
+    { field: "balance_changes[].is_you", type: "boolean", is: "True when this wallet signs the transaction, so it's you.", howWorkedOut: "The wallet is one of the required signers." },
+    { field: "balance_changes[].token / symbol", type: "string", is: '"SOL" or the token address, and its ticker.', howWorkedOut: "From the account data. Ticker from Jupiter." },
+    { field: "balance_changes[].before / after / change", type: "string (decimal)", is: "Balance before, after, and the difference. Negative means the wallet loses it.", howWorkedOut: "Before: live account data. After: the dry run's account data. Exact decimals. SOL changes include fees." },
+    { field: "balance_changes[].raw_change / decimals", type: "string / number", is: "The change in raw units, and the token's decimals.", howWorkedOut: "after minus before, in base units." },
+    { field: "steps[]", type: "object[]", is: "Every instruction, decoded: step number, program, type (sol_transfer, token_transfer, token_approve, token_set_authority, token_close_account, create_token_account, set_compute_unit_price, unknown_program and more) and its key details.", howWorkedOut: "Decoded for the System, Token, Token-2022, Compute Budget, Associated Token Account and Memo programs." },
+    { field: "fee.base_lamports / priority_lamports / total_lamports / total_sol", type: "string", is: "What this transaction costs in fees.", howWorkedOut: "Base: 5000 lamports per signature. Priority: compute_unit_price x compute_unit_limit / 1,000,000, rounded up." },
+    { field: "fee.compute_unit_limit / compute_unit_limit_from / compute_unit_price", type: "number | string", is: "The compute settings the fee is charged on. compute_unit_price is in micro-lamports per compute unit.", howWorkedOut: "From the transaction's Compute Budget steps, or the runtime default when there are none." },
+    { field: "simulation.worked / error / compute_used / logs", type: "object", is: "The raw dry run: whether it worked, the error, compute used, and the last 25 log lines.", howWorkedOut: "simulateTransaction with signature checks off and a fresh blockhash." },
+    { field: "simulation.error_explained", type: "object | null", is: "What the failure means, in plain words.", howWorkedOut: "why_failed run on the dry-run error." },
   ],
   notes: [
-    "Simulation runs against current state; a later send can still differ if state changes.",
+    "The dry run uses the chain as it is now. If things change before you send, the real result can differ.",
     "Balance changes cover up to 64 writable accounts.",
   ],
-  example: async (ctx) => ({ transaction: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer") }),
-  run: async ({ transaction, network }, ctx) => {
+  example: async (ctx) => ({ tx: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer") }),
+  run: async ({ tx, network }, ctx) => {
     const conn = ctx.connection(network);
-    const loaded = await loadTransaction(conn, transaction);
+    const loaded = await loadTransaction(conn, tx);
     const signers = new Set(loaded.signers);
     const [sim, blockhashValid, payerBalance] = await Promise.all([
       simulateWithChanges(conn, loaded, symbolsFor(ctx)),
@@ -103,79 +113,82 @@ export const preflightTransaction: ToolDef = {
     const fee = feeBreakdown(loaded);
     const checks: Check[] = [];
     const explanation = sim.error ? explainError(sim.error).matches[0] ?? null : null;
-    checks.push(sim.success ? { id: "simulation", status: "pass", detail: `Dry run succeeded using ${sim.unitsConsumed ?? "?"} compute units.` } : { id: "simulation", status: "fail", detail: `Dry run failed: ${explanation ? `${explanation.name}: ${explanation.meaning} Fix: ${explanation.fix}` : JSON.stringify(sim.error)}` });
-    if (blockhashValid === false) checks.push({ id: "blockhash", status: "warn", detail: "The transaction's blockhash has expired, so it would be rejected. It was simulated with a fresh one; rebuild with get_solana_blockhash before signing." });
-    else if (blockhashValid) checks.push({ id: "blockhash", status: "pass", detail: "Blockhash is still valid." });
-    checks.push(BigInt(payerBalance) >= BigInt(fee.totalLamports) ? { id: "fee_payer_balance", status: "pass", detail: `Fee payer holds ${lamportsToSol(payerBalance)} SOL; fees are ${fee.totalSol} SOL.` } : { id: "fee_payer_balance", status: "fail", detail: `Fee payer holds ${lamportsToSol(payerBalance)} SOL but fees are ${fee.totalSol} SOL.` });
+    checks.push(sim.success ? { name: "simulation", result: "pass", detail: `Dry run worked, using ${sim.unitsConsumed ?? "?"} compute units.` } : { name: "simulation", result: "fail", detail: `Dry run failed: ${explanation ? `${explanation.name}: ${explanation.meaning} Fix: ${explanation.fix}` : JSON.stringify(sim.error)}` });
+    if (blockhashValid === false) checks.push({ name: "blockhash", result: "warn", detail: "The blockhash has expired, so the network would reject this. It was dry-run with a fresh one. Rebuild with blockhash before signing." });
+    else if (blockhashValid) checks.push({ name: "blockhash", result: "pass", detail: "Blockhash is still valid." });
+    checks.push(BigInt(payerBalance) >= BigInt(fee.totalLamports) ? { name: "fee_payer_balance", result: "pass", detail: `Fee payer holds ${lamportsToSol(payerBalance)} SOL; fees are ${fee.totalSol} SOL.` } : { name: "fee_payer_balance", result: "fail", detail: `Fee payer holds ${lamportsToSol(payerBalance)} SOL but fees are ${fee.totalSol} SOL.` });
     checks.push(...permissionChecks(loaded, signers));
     const unknown = [...new Set(loaded.instructions.filter((i) => i.type === "unknown_program").map((i) => i.programId))];
-    if (unknown.length) checks.push({ id: "unknown_programs", status: "warn", detail: `Calls program(s) the gateway does not recognize: ${unknown.join(", ")}. Make sure you trust them.` });
-    if (BigInt(fee.priorityLamports) > 10_000_000n) checks.push({ id: "priority_fee", status: "warn", detail: `Priority fee is ${lamportsToSol(fee.priorityLamports)} SOL, unusually high. fee_advice shows a fair price.` });
+    if (unknown.length) checks.push({ name: "unknown_programs", result: "warn", detail: `Calls program(s) we don't recognize: ${unknown.join(", ")}. Make sure you trust them.` });
+    if (BigInt(fee.priorityLamports) > 10_000_000n) checks.push({ name: "priority_fee", result: "warn", detail: `Priority fee is ${lamportsToSol(fee.priorityLamports)} SOL, unusually high. The fee tool shows a fair price.` });
     const changes = sim.changes.map((c) => ({ ...c, isSigner: signers.has(c.wallet) }));
     const outflows = changes.filter((c) => c.isSigner && c.changeRaw.startsWith("-"));
-    if (outflows.length) checks.push({ id: "outflow", status: "info", detail: `Your wallet sends: ${outflows.map((c) => `${c.change.slice(1)} ${c.symbol ?? c.asset}`).join(", ")} (SOL includes fees).` });
-    const fails = checks.filter((c) => c.status === "fail");
-    const warns = checks.filter((c) => c.status === "warn");
+    if (outflows.length) checks.push({ name: "outflow", result: "info", detail: `Your wallet sends: ${outflows.map((c) => `${c.change.slice(1)} ${c.symbol ?? c.asset}`).join(", ")} (SOL includes fees).` });
+    const fails = checks.filter((c) => c.result === "fail");
+    const warns = checks.filter((c) => c.result === "warn");
     const verdict = fails.length ? "BLOCK" : warns.length ? "REVIEW" : "OK";
-    const summary = `${verdict}: ${fails[0]?.detail ?? warns[0]?.detail ?? (outflows.length ? checks.find((c) => c.id === "outflow")!.detail : "No issues found and no outflows from signers besides fees.")}`;
+    const summary = `${verdict}: ${fails[0]?.detail ?? warns[0]?.detail ?? (outflows.length ? checks.find((c) => c.name === "outflow")!.detail : "Nothing wrong found, and no money leaves the signers except fees.")}`;
     return {
-      network, verdict, summary, feePayer: loaded.feePayer, signers: loaded.signers, checks, walletChanges: changes,
-      instructions: loaded.instructions, fee, simulation: { success: sim.success, error: sim.error, errorExplanation: explanation, unitsConsumed: sim.unitsConsumed, logs: sim.logs },
+      network, verdict, summary, fee_payer: loaded.feePayer, signers: loaded.signers, checks,
+      balance_changes: changes.map((c) => ({ wallet: c.wallet, is_you: c.isSigner, token: c.asset, symbol: c.symbol, before: c.before, after: c.after, change: c.change, raw_change: c.changeRaw, decimals: c.decimals })),
+      steps: snakeKeys(loaded.instructions), fee: feeOut(fee),
+      simulation: { worked: sim.success, error: sim.error, error_explained: snakeKeys(explanation), compute_used: sim.unitsConsumed, logs: sim.logs },
     };
   },
 };
 
 export const checkTransactionIntent: ToolDef = {
-  name: "check_transaction_intent",
-  title: "Does it do what I meant?",
+  name: "tx_matches",
+  oldName: "check_transaction_intent",
+  oldInputs: { transaction: "tx", intent: "expected", "expected.recipient": "to", "expected.sender": "from" },
+  title: "Does it do what I asked?",
   category: "transactions",
-  benefit: { kind: "accuracy", text: "Asked to send 5 USDC, an agent can build a transaction for 50 (a decimals slip) or to a hallucinated address. This returns MISMATCH and names the exact field." },
-  useWhen: 'Use right before signing a transfer your agent built from an instruction like "send 5 USDC to X". Confirms the transaction moves exactly that token, amount and recipient and nothing else, catching hallucinated amounts, wrong decimals and injected instructions.',
-  description: "Compares a transaction against the stated intent field by field (asset, amount in exact base units, recipient, sender), flags every instruction that is not part of the transfer, and checks the simulated balance changes so funds moved any other way are caught.",
+  benefit: { kind: "accuracy", text: "Asked to send 5 USDC, an agent can build a transaction for 50 (a decimals slip) or to a made-up address. This says MISMATCH and names the exact field." },
+  useWhen: 'Run right before signing a transfer your agent built from a request like "send 5 USDC to X". Confirms it moves exactly that token, amount and recipient and nothing else. Catches made-up amounts, wrong decimals and sneaked-in steps.',
+  description: "Compares the transaction with what you asked for, field by field (token, exact amount, recipient, sender), flags every step that isn't part of the transfer, and checks the dry-run balances so money moved any other way is caught.",
   inputs: {
-    transaction: z.string().min(20),
-    intent: z.object({ action: z.literal("transfer").optional().default("transfer"), token: z.string(), amount: z.string(), recipient: z.string(), sender: z.string().optional() }),
+    tx: z.string().min(20),
+    expected: z.object({ action: z.literal("transfer").optional(), token: z.string(), amount: z.string(), to: z.string(), from: z.string().optional() }),
     network: NETWORK,
   },
   inputDocs: [
     TX_DOC,
-    { name: "intent.token", type: 'string ("SOL" or mint)', required: true, description: "What should be sent.", howToGet: 'Use "SOL" for native SOL, otherwise the mint from resolve_token.' },
-    { name: "intent.amount", type: "string (decimal)", required: true, description: 'How much should be sent, in human units, e.g. "5" for 5 USDC.', howToGet: "The amount the user asked for, as a string." },
-    { name: "intent.recipient", type: "string (wallet address)", required: true, description: "The wallet that should receive it (the person, not their token account).", howToGet: "The address the user gave. Do not take it from the transaction itself." },
-    { name: "intent.sender", type: "string (wallet address)", required: false, description: "The wallet that should pay. Defaults to the transaction's fee payer.", howToGet: "Your agent's wallet address." },
-    { name: "intent.action", type: '"transfer"', required: false, description: "The kind of intent. Only transfers are supported today.", howToGet: 'Leave out, or pass "transfer".' },
+    { name: "expected.token", type: 'string ("SOL" or token address)', required: true, lookingFor: "The token that should be sent.", whereToGet: '"SOL" for SOL. Otherwise the token address from find_token.' },
+    { name: "expected.amount", type: "string (decimal)", required: true, lookingFor: 'How much should be sent, in normal units. "5" means 5 USDC.', whereToGet: "The amount the user asked for, as a string." },
+    { name: "expected.to", type: "string (wallet address)", required: true, lookingFor: "The wallet that should get it (the person, not their token account).", whereToGet: "The address the user gave you. Never take it from the transaction itself." },
+    { name: "expected.from", type: "string (wallet address)", required: false, lookingFor: "The wallet that should pay. Default: the transaction's fee payer.", whereToGet: "Your agent's wallet address." },
     NETWORK_DOC,
   ],
   outputs: [
-    { field: "verdict", type: '"MATCH" | "MISMATCH"', meaning: "MATCH: the transaction does exactly what the intent says. MISMATCH: at least one field check failed; do not sign.", howComputed: "MATCH only when every fieldChecks entry is ok and unexpectedEffects is empty." },
-    { field: "explanation", type: "string", meaning: "Plain-language result, naming the first mismatch.", howComputed: "Built from the failed checks." },
-    { field: "expected.assetMint / amountBaseUnits / decimals", type: "string | number", meaning: "The intent converted to exact on-chain terms.", howComputed: "SOL uses 9 decimals; tokens use the mint's on-chain decimals; amount converted with exact integer math." },
-    { field: "fieldChecks[].field", type: '"asset" | "amount" | "recipient" | "sender" | "simulation"', meaning: "What was compared.", howComputed: "Fixed list." },
-    { field: "fieldChecks[].expected / actual", type: "string", meaning: "The intended value and what the transaction actually does.", howComputed: "actual comes from the decoded transfer instruction; for tokens the recipient is the owner of the destination token account (read on chain, or from an ATA-create instruction in the same transaction)." },
-    { field: "fieldChecks[].ok", type: "boolean", meaning: "Whether they match.", howComputed: "Exact equality (amounts compared in base units)." },
-    { field: "transfers[]", type: "object[]", meaning: "Every transfer found in the transaction with from wallet, to wallet, asset and exact amount.", howComputed: "Decoded System and Token transfer instructions; token account owners resolved on chain." },
-    { field: "unexpectedEffects[]", type: "string[]", meaning: "Anything the intent did not ask for: extra transfers, approvals, authority changes, account closures, calls to other programs, or the sender losing more than the transfer explains.", howComputed: "Every instruction except the matched transfer, Compute Budget, Memo and creating the recipient's token account is listed (approvals and authority changes with the details preflight_transaction gives). Then the simulation's balance changes for the sender are compared with the amount, plus fees and the recipient's account deposit for SOL; any larger loss is listed." },
+    { field: "verdict", type: '"MATCH" | "MISMATCH"', is: "The answer. MATCH: it does exactly what you asked. MISMATCH: something is off. Don't sign.", howWorkedOut: "MATCH only when every compared field is ok and unexpected is empty." },
+    { field: "summary", type: "string", is: "One sentence, naming the first thing that's off.", howWorkedOut: "Built from the failed comparisons." },
+    { field: "expected.token_address / raw_amount / decimals / to / from", type: "string | number", is: "What you asked for, in exact on-chain terms.", howWorkedOut: "SOL uses 9 decimals. Tokens use their real on-chain decimals. Converted with exact integer math." },
+    { field: "compared[].what", type: '"token" | "amount" | "to" | "from" | "simulation"', is: "What was compared.", howWorkedOut: "A fixed list." },
+    { field: "compared[].expected / actual", type: "string", is: "What you asked for, and what the transaction really does.", howWorkedOut: "actual comes from the decoded transfer. For tokens, the recipient is the owner of the receiving token account (read on chain, or from a create-account step in the same transaction)." },
+    { field: "compared[].ok", type: "boolean", is: "Whether they match.", howWorkedOut: "Exact equality. Amounts compared in raw units." },
+    { field: "transfers[]", type: "object[]", is: "Every transfer in the transaction: step, from, to, token, amount and raw amount.", howWorkedOut: "Decoded System and Token transfers. Token account owners read on chain." },
+    { field: "unexpected[]", type: "string[]", is: "Anything you didn't ask for: extra transfers, approvals, authority changes, closed accounts, other programs, or the sender losing more than the transfer explains.", howWorkedOut: "Every step except the matched transfer, Compute Budget, Memo and creating the recipient's token account is listed. Then the sender's dry-run losses are compared with the amount (plus fees and the recipient's account deposit for SOL). Any bigger loss is listed." },
   ],
   notes: [
-    "Creating the recipient's token account (about 0.002 SOL deposit) is allowed and not flagged, since token transfers to new holders need it.",
-    "Any other instruction gives MISMATCH, even a harmless one, because a transfer should not need it. Read unexpectedEffects before overriding.",
+    "Creating the recipient's token account (about 0.002 SOL deposit) is allowed, since sending a token to a new holder needs it.",
+    "Any other step gives MISMATCH, even a harmless one, because a transfer shouldn't need it. Read unexpected before overriding.",
   ],
-  example: async (ctx) => ({ transaction: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer"), intent: { action: "transfer", token: "SOL", amount: "0.01", recipient: EXAMPLE_RECIPIENT } }),
-  run: async ({ transaction, intent, network }, ctx) => {
+  example: async (ctx) => ({ tx: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer"), expected: { token: "SOL", amount: "0.01", to: EXAMPLE_RECIPIENT } }),
+  run: async ({ tx, expected, network }, ctx) => {
     const conn = ctx.connection(network);
-    const loaded = await loadTransaction(conn, transaction);
-    const isSol = intent.token.trim().toUpperCase() === "SOL";
-    const assetMint = isSol ? NATIVE_MINT : assertAddress(intent.token, "intent.token");
-    const recipient = assertAddress(intent.recipient, "intent.recipient");
-    const sender = intent.sender ? assertAddress(intent.sender, "intent.sender") : loaded.feePayer;
+    const loaded = await loadTransaction(conn, tx);
+    const isSol = expected.token.trim().toUpperCase() === "SOL";
+    const assetMint = isSol ? NATIVE_MINT : assertAddress(expected.token, "expected.token");
+    const recipient = assertAddress(expected.to, "expected.to");
+    const sender = expected.from ? assertAddress(expected.from, "expected.from") : loaded.feePayer;
     let decimals = 9;
     if (!isSol) {
       const mintInfo = await conn.getParsedAccountInfo(new PublicKey(assetMint), "confirmed");
       const parsed: any = (mintInfo.value?.data as any)?.parsed;
-      if (parsed?.type !== "mint") throw new ToolError(422, `${assetMint} is not a token mint.`, "intent.token must be \"SOL\" or a mint address (resolve_token).");
+      if (parsed?.type !== "mint") throw new ToolError(422, `${assetMint} is not a token address.`, "expected.token must be \"SOL\" or a token address (find_token).");
       decimals = Number(parsed.info.decimals);
     }
-    const amountBase = parseUnits(intent.amount, decimals);
+    const amountBase = parseUnits(expected.amount, decimals);
 
     const tokenIxs = loaded.instructions.filter((i) => i.type === "token_transfer");
     const owners = await tokenAccountOwners(conn, loaded, tokenIxs.flatMap((i) => [String(i.info.source), String(i.info.destination)]));
@@ -192,12 +205,12 @@ export const checkTransactionIntent: ToolDef = {
     const match = candidates.find((t) => t.to === recipient && BigInt(t.amountRaw) === amountBase) ?? candidates.find((t) => t.to === recipient) ?? candidates[0] ?? null;
     const sim = await simulateWithChanges(conn, loaded, symbolsFor(ctx));
     const simError = sim.error;
-    const fieldChecks = [
-      { field: "asset", expected: isSol ? "SOL" : assetMint, actual: match ? (match.asset === NATIVE_MINT ? "SOL" : match.asset) : `no ${isSol ? "SOL" : "token"} transfer found`, ok: Boolean(match) },
-      { field: "amount", expected: `${intent.amount} (${amountBase} base units)`, actual: match ? `${match.amount} (${match.amountRaw} base units)` : "none", ok: Boolean(match) && BigInt(match!.amountRaw) === amountBase },
-      { field: "recipient", expected: recipient, actual: match?.to ?? "none", ok: match?.to === recipient },
-      { field: "sender", expected: sender, actual: match?.from ?? "none", ok: match?.from === sender },
-      { field: "simulation", expected: "succeeds", actual: simError ? `fails: ${explainError(simError).matches[0]?.name ?? JSON.stringify(simError)}` : "succeeds", ok: !simError },
+    const compared = [
+      { what: "token", expected: isSol ? "SOL" : assetMint, actual: match ? (match.asset === NATIVE_MINT ? "SOL" : match.asset) : `no ${isSol ? "SOL" : "token"} transfer found`, ok: Boolean(match) },
+      { what: "amount", expected: `${expected.amount} (${amountBase} raw)`, actual: match ? `${match.amount} (${match.amountRaw} raw)` : "none", ok: Boolean(match) && BigInt(match!.amountRaw) === amountBase },
+      { what: "to", expected: recipient, actual: match?.to ?? "none", ok: match?.to === recipient },
+      { what: "from", expected: sender, actual: match?.from ?? "none", ok: match?.from === sender },
+      { what: "simulation", expected: "succeeds", actual: simError ? `fails: ${explainError(simError).matches[0]?.name ?? JSON.stringify(simError)}` : "succeeds", ok: !simError },
     ];
 
     // Besides the matched transfer, only setup steps are expected: compute budget, a memo, and creating the recipient's
@@ -207,8 +220,8 @@ export const checkTransactionIntent: ToolDef = {
     const signers = new Set(loaded.signers);
     const unexpectedEffects = loaded.instructions.filter((ix) => ix.index !== match?.index && !isSetup(ix)).map((ix) => {
       const t = transfers.find((x) => x.index === ix.index);
-      if (t) return `Extra transfer at instruction ${t.index}: ${t.amount} ${t.asset === NATIVE_MINT ? "SOL" : t.asset} from ${t.from} to ${t.to}.`;
-      return permissionCheck(ix, signers)?.detail ?? `Instruction ${ix.index} (${ix.program ?? ix.programId}: ${ix.type}) is not part of this transfer. It can move funds or change permissions.`;
+      if (t) return `Extra transfer at step ${t.index}: ${t.amount} ${t.asset === NATIVE_MINT ? "SOL" : t.asset} from ${t.from} to ${t.to}.`;
+      return permissionCheck(ix, signers)?.detail ?? `Step ${ix.index} (${ix.program ?? ix.programId}: ${ix.type}) is not part of this transfer. It can move money or change permissions.`;
     });
 
     // Ground truth from the simulation: the sender may lose only the amount, the fees (when it pays them) and the
@@ -222,47 +235,53 @@ export const checkTransactionIntent: ToolDef = {
     for (const c of sim.changes) {
       if (c.wallet !== sender || !c.changeRaw.startsWith("-")) continue;
       const allowed = allowedLoss(c.asset);
-      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(`Simulation: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`);
+      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(`Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`);
     }
-    const verdict = fieldChecks.every((c) => c.ok) && !unexpectedEffects.length ? "MATCH" : "MISMATCH";
-    const firstBad = fieldChecks.find((c) => !c.ok);
-    const explanation = verdict === "MATCH"
-      ? `The transaction sends exactly ${intent.amount} ${isSol ? "SOL" : assetMint} from ${sender} to ${recipient} and does nothing else unexpected.`
-      : firstBad ? `Mismatch on ${firstBad.field}: expected ${firstBad.expected}, transaction has ${firstBad.actual}.` : `Unexpected effect: ${unexpectedEffects[0]}`;
-    return { network, verdict, explanation, expected: { assetMint, amountBaseUnits: amountBase.toString(), decimals, recipient, sender }, fieldChecks, transfers, unexpectedEffects };
+    const verdict = compared.every((c) => c.ok) && !unexpectedEffects.length ? "MATCH" : "MISMATCH";
+    const firstBad = compared.find((c) => !c.ok);
+    const summary = verdict === "MATCH"
+      ? `The transaction sends exactly ${expected.amount} ${isSol ? "SOL" : assetMint} from ${sender} to ${recipient} and nothing else.`
+      : firstBad ? `Wrong ${firstBad.what}: expected ${firstBad.expected}, transaction has ${firstBad.actual}.` : `Unexpected: ${unexpectedEffects[0]}`;
+    return {
+      network, verdict, summary, expected: { token_address: assetMint, raw_amount: amountBase.toString(), decimals, to: recipient, from: sender }, compared,
+      transfers: transfers.map((t) => ({ step: t.index, from: t.from, to: t.to, token: t.asset === NATIVE_MINT ? "SOL" : t.asset, amount: t.amount, raw_amount: t.amountRaw, decimals: t.decimals })),
+      unexpected: unexpectedEffects,
+    };
   },
 };
 
 export const explainTransaction: ToolDef = {
-  name: "explain_transaction",
-  title: "What happened in this transaction?",
+  name: "explain_tx",
+  oldName: "explain_transaction",
+  oldInputs: { signature: "tx_id" },
+  title: "What did this transaction do?",
   category: "transactions",
-  benefit: { kind: "accuracy", text: "Reports real balance changes from chain data instead of a model's reading of raw logs, and names the program and reason when a transaction failed." },
-  useWhen: "Use after a transaction lands (or fails) to report what actually happened, instead of guessing from logs. For failures it names the failing program and the fix.",
-  description: "Reads a confirmed transaction and returns status, fee, every SOL and token balance change by wallet, the programs used, and a decoded failure reason.",
-  inputs: { signature: z.string().min(64).max(100), network: NETWORK },
-  inputDocs: [{ name: "signature", type: "string (base58)", required: true, description: "The transaction signature (its id).", howToGet: "Returned when you send a transaction, or from get_recent_transactions. Never invent one." }, NETWORK_DOC],
+  benefit: { kind: "accuracy", text: "Reports the real balance changes from chain data, not a model's guess from raw logs. For failures it names the program and the reason." },
+  useWhen: "Run after a transaction lands (or fails) to report what really happened, instead of guessing from logs. For failures it names the program that failed and the fix.",
+  description: "Reads a confirmed transaction and returns whether it worked, the fee, every SOL and token balance change by wallet, the programs used, and why it failed.",
+  inputs: { tx_id: z.string().min(64).max(100), network: NETWORK },
+  inputDocs: [{ name: "tx_id", type: "string (base58)", required: true, lookingFor: "The transaction's ID (its signature).", whereToGet: "You get it back when you send a transaction, or from history. Never make one up." }, NETWORK_DOC],
   outputs: [
-    { field: "status", type: '"success" | "failed"', meaning: "Whether the transaction succeeded. Failed transactions still pay fees.", howComputed: "meta.err is null for success." },
-    { field: "summary", type: "string", meaning: "One-paragraph plain-language account of what happened.", howComputed: "Built from the status, fee and the largest balance changes." },
-    { field: "time / slot", type: "string | number", meaning: "When and where it landed.", howComputed: "blockTime as ISO 8601, and slot." },
-    { field: "feePayer / signers", type: "string / string[]", meaning: "Who paid the fee and who signed.", howComputed: "First account key, and keys flagged as signers." },
-    { field: "fee.lamports / fee.sol", type: "string", meaning: "Fee charged.", howComputed: "meta.fee." },
-    { field: "programs[]", type: "{ programId, label }[]", meaning: "Programs the transaction called at the top level.", howComputed: "Unique program ids of the instructions, with known labels." },
-    { field: "solChanges[]", type: "{ account, before, after, change }[]", meaning: "Every account whose SOL changed, including the fee.", howComputed: "meta.preBalances vs meta.postBalances, exact decimals." },
-    { field: "tokenChanges[]", type: "{ owner, mint, symbol, before, after, change }[]", meaning: "Every token balance that changed, grouped by owner wallet and mint.", howComputed: "meta.preTokenBalances vs meta.postTokenBalances (amounts in base units, formatted with each token's decimals); tickers from Jupiter." },
-    { field: "computeUnitsConsumed", type: "number | null", meaning: "Compute used.", howComputed: "meta.computeUnitsConsumed." },
-    { field: "failure", type: "object | null", meaning: "For failed transactions: the raw error, the failing instruction index and program, a plain-language explanation and the last log lines.", howComputed: "meta.err parsed; failing program is the program of the instruction index in InstructionError; explanation from explain_error with that program." },
+    { field: "result", type: '"success" | "failed"', is: "Whether it worked. Failed transactions still pay fees.", howWorkedOut: "meta.err is empty for success." },
+    { field: "summary", type: "string", is: "What happened, in a few plain sentences.", howWorkedOut: "Built from the result, the fee and the biggest balance changes." },
+    { field: "time / slot", type: "string | number", is: "When and where it landed.", howWorkedOut: "Block time in ISO 8601, and the slot." },
+    { field: "fee_payer / signers", type: "string / string[]", is: "Who paid the fee and who signed.", howWorkedOut: "The first account, and the accounts marked as signers." },
+    { field: "fee.lamports / fee.sol", type: "string", is: "The fee charged.", howWorkedOut: "meta.fee." },
+    { field: "programs[]", type: "{ address, name }[]", is: "The programs the transaction called.", howWorkedOut: "Each top-level step's program, with its name when we know it." },
+    { field: "sol_changes[]", type: "{ account, before, after, change, raw_change }[]", is: "Every account whose SOL changed, fee included.", howWorkedOut: "Balances before vs after, exact decimals." },
+    { field: "token_changes[]", type: "{ owner, token, symbol, before, after, change, raw_change }[]", is: "Every token balance that changed, by owner wallet and token.", howWorkedOut: "Token balances before vs after, with each token's decimals. Tickers from Jupiter." },
+    { field: "compute_used", type: "number | null", is: "Compute units used.", howWorkedOut: "meta.computeUnitsConsumed." },
+    { field: "failure", type: "object | null", is: "For failed transactions: the raw error, the step and program that failed, what it means, and the last log lines.", howWorkedOut: "meta.err decoded. The failing program is the program of the failing step. The meaning comes from why_failed." },
   ],
   example: async (ctx) => {
     const sigs = await ctx.connection("mainnet-beta").getSignaturesForAddress(new PublicKey(EXAMPLE_WALLET), { limit: 10 }, "confirmed");
     const ok = sigs.find((s) => !s.err) ?? sigs[0];
     if (!ok) throw new ToolError(503, "Could not load a recent example signature.", "Retry in a moment.");
-    return { signature: ok.signature };
+    return { tx_id: ok.signature };
   },
-  run: async ({ signature, network }, ctx) => {
-    const tx = await ctx.connection(network).getParsedTransaction(String(signature).trim(), { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
-    if (!tx) throw new ToolError(404, "Transaction not found.", "Check the signature and network. Very new transactions can take a few seconds to appear; very old ones may be pruned by this RPC.");
+  run: async ({ tx_id, network }, ctx) => {
+    const tx = await ctx.connection(network).getParsedTransaction(String(tx_id).trim(), { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
+    if (!tx) throw new ToolError(404, "Transaction not found.", "Check the tx_id and network. Very new transactions can take a few seconds to appear; very old ones may be pruned by this RPC.");
     const meta = tx.meta!;
     const keys = tx.transaction.message.accountKeys.map((k) => k.pubkey.toBase58());
     const signers = tx.transaction.message.accountKeys.filter((k) => k.signer).map((k) => k.pubkey.toBase58());
@@ -289,14 +308,18 @@ export const explainTransaction: ToolDef = {
       const failingIndex = parsed.instructionIndex;
       const failingProgram = failingIndex !== null && instructions[failingIndex] ? instructions[failingIndex].programId.toBase58() : null;
       const withProgram = explainError(meta.err, failingProgram ?? undefined);
-      failure = { error: meta.err, failingInstruction: failingIndex, failingProgram, failingProgramLabel: failingProgram ? labelFor(failingProgram) : null, explanation: withProgram.matches[0] ?? null, logsTail: (meta.logMessages ?? []).slice(-12) };
+      failure = { error: meta.err, failed_step: failingIndex, failed_program: failingProgram, failed_program_name: failingProgram ? labelFor(failingProgram) : null, explanation: withProgram.matches[0] ?? null, last_logs: (meta.logMessages ?? []).slice(-12) };
     }
     const biggest = [...tokenChanges.map((t) => `${t.owner.slice(0, 4)}…${t.owner.slice(-4)} ${t.change.startsWith("-") ? "" : "+"}${t.change} ${t.symbol ?? t.mint.slice(0, 6)}`),
       ...solChanges.filter((c) => c.account !== keys[0] || BigInt(c.changeRaw) !== -BigInt(meta.fee)).slice(0, 3).map((c) => `${c.account.slice(0, 4)}…${c.account.slice(-4)} ${c.change.startsWith("-") ? "" : "+"}${c.change} SOL`)].slice(0, 5);
-    const summary = `${meta.err ? "Failed" : "Succeeded"}${programs.length ? ` (${programs.map((p) => p.label ?? p.programId.slice(0, 8)).join(", ")})` : ""}. Fee payer ${keys[0]} paid ${lamportsToSol(meta.fee)} SOL in fees.${biggest.length ? ` Balance changes: ${biggest.join("; ")}.` : " No balance changes besides the fee."}${failure?.explanation ? ` Failure: ${failure.explanation.name}. ${failure.explanation.fix}` : ""}`;
+    const summary = `${meta.err ? "Failed" : "Succeeded"}${programs.length ? ` (${programs.map((p) => p.label ?? p.programId.slice(0, 8)).join(", ")})` : ""}. Fee payer ${keys[0]} paid ${lamportsToSol(meta.fee)} SOL in fees.${biggest.length ? ` Balance changes: ${biggest.join("; ")}.` : " No balance changes besides the fee."}${failure?.explanation ? ` Failed: ${failure.explanation.name}. ${failure.explanation.fix}` : ""}`;
     return {
-      signature, network, status: meta.err ? "failed" : "success", summary, time: isoTime(tx.blockTime), slot: tx.slot, feePayer: keys[0], signers,
-      fee: { lamports: String(meta.fee), sol: lamportsToSol(meta.fee) }, programs, solChanges, tokenChanges, computeUnitsConsumed: meta.computeUnitsConsumed ?? null, failure,
+      tx_id, network, result: meta.err ? "failed" : "success", summary, time: isoTime(tx.blockTime), slot: tx.slot, fee_payer: keys[0], signers,
+      fee: { lamports: String(meta.fee), sol: lamportsToSol(meta.fee) },
+      programs: programs.map((p) => ({ address: p.programId, name: p.label })),
+      sol_changes: solChanges.map((c) => ({ account: c.account, before: c.before, after: c.after, change: c.change, raw_change: c.changeRaw })),
+      token_changes: tokenChanges.map((t) => ({ owner: t.owner, token: t.mint, symbol: t.symbol, before: t.before, after: t.after, change: t.change, raw_change: t.changeRaw })),
+      compute_used: meta.computeUnitsConsumed ?? null, failure: snakeKeys(failure),
     };
   },
 };
@@ -304,36 +327,38 @@ export const explainTransaction: ToolDef = {
 const percentile = (sorted: number[], p: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] : 0);
 
 export const feeAdvice: ToolDef = {
-  name: "fee_advice",
-  title: "Priority fee advice",
+  name: "fee",
+  oldName: "fee_advice",
+  oldInputs: { transaction: "tx" },
+  title: "What fee to pay",
   category: "network",
-  benefit: { kind: "money", text: "Prices are in micro-lamports per compute unit, the unit setComputeUnitPrice takes. Mistaking that for lamports overpays a million times." },
-  useWhen: "Use before setting a priority fee. Gives prices in the exact unit Compute Budget expects (micro-lamports per compute unit) and the total cost in SOL, so you never overpay by a unit mistake.",
-  description: "Turns recent on-chain priority fees into three price tiers and, when you pass your transaction, a compute limit and exact cost for each tier.",
-  inputs: { transaction: z.string().min(20).optional(), network: NETWORK },
+  benefit: { kind: "money", text: "Prices are in micro-lamports per compute unit, the unit setComputeUnitPrice takes. Mixing that up with lamports overpays a million times." },
+  useWhen: "Run before setting a priority fee. Gives the price in the exact unit Compute Budget expects (micro-lamports per compute unit) and the total cost in SOL, so a unit mix-up never overpays.",
+  description: "Turns recent on-chain priority fees into three prices: cheap, normal and fast. Pass your transaction to get its compute limit and exact cost at each price.",
+  inputs: { tx: z.string().min(20).optional(), network: NETWORK },
   inputDocs: [
-    { ...TX_DOC, required: false, description: "Optional. Your transaction, so fees are measured on the accounts it writes to and compute is measured by simulation." },
+    { ...TX_DOC, required: false, lookingFor: "Optional. Your transaction, so fees are measured on the accounts it writes to and compute is measured by a dry run." },
     NETWORK_DOC,
   ],
   outputs: [
-    { field: "unit", type: "string", meaning: 'Always "micro-lamports per compute unit". 1,000,000 micro-lamports = 1 lamport. This is the unit setComputeUnitPrice takes.', howComputed: "Fixed." },
-    { field: "basedOn", type: "string", meaning: "Which fees were sampled: the accounts your transaction writes to, or network-wide.", howComputed: "Writable accounts of the transaction when given, else none (global)." },
-    { field: "samples / nonZeroShare", type: "number", meaning: "How many recent slots were sampled, and the share that paid any priority fee.", howComputed: "getRecentPrioritizationFees (about the last 150 slots)." },
-    { field: "tiers.economy / standard / fast .microLamportsPerComputeUnit", type: "number", meaning: "Price to set with setComputeUnitPrice. economy usually lands within a few slots in calm conditions; fast is for urgent trades.", howComputed: "The 50th, 75th and 90th percentile of sampled fees (at least 1 for standard and fast when everything sampled is zero)." },
-    { field: "tiers.*.priorityLamports / totalLamports / totalSol", type: "string", meaning: "What the transaction would pay at that tier.", howComputed: "priority = ceil(price x computeUnits / 1,000,000); total = priority + 5000 lamports x signatures." },
-    { field: "computeUnits", type: "number", meaning: "Compute units the costs are calculated for.", howComputed: "With a transaction: simulated units consumed + 10% headroom. Without: 200,000 (a typical single-instruction default)." },
-    { field: "computeUnitsSource", type: "string", meaning: "Whether computeUnits came from simulation or the default.", howComputed: '"simulation" or "default".' },
-    { field: "howToApply", type: "string", meaning: "The two Compute Budget instructions to add.", howComputed: "Built from the standard tier and computeUnits." },
+    { field: "unit", type: "string", is: 'Always "micro-lamports per compute unit". 1,000,000 micro-lamports = 1 lamport. It is the unit setComputeUnitPrice takes.', howWorkedOut: "Fixed." },
+    { field: "based_on", type: "string", is: "Which fees were sampled: the accounts your transaction writes to, or the whole network.", howWorkedOut: "Your transaction's writable accounts when given, otherwise network-wide." },
+    { field: "samples / share_paying", type: "number", is: "How many recent slots were sampled, and the share that paid any priority fee.", howWorkedOut: "getRecentPrioritizationFees (about the last 150 slots)." },
+    { field: "prices.cheap / normal / fast .compute_unit_price", type: "number", is: "The price to set with setComputeUnitPrice. cheap usually lands within a few slots when it's quiet. fast is for urgent trades.", howWorkedOut: "The 50th, 75th and 90th percentile of sampled fees (at least 1 for normal and fast when everything sampled is zero)." },
+    { field: "prices.*.priority_lamports / total_lamports / total_sol", type: "string", is: "What the transaction would pay at that price.", howWorkedOut: "priority = price x compute units / 1,000,000, rounded up. total = priority + 5000 lamports per signature." },
+    { field: "compute_units", type: "number", is: "The compute units the costs are worked out for.", howWorkedOut: "With a transaction: dry-run units used + 10%. Without: 200,000 (a typical one-step default)." },
+    { field: "compute_units_from", type: "string", is: "Whether compute_units came from a dry run or the default.", howWorkedOut: '"simulation" or "default".' },
+    { field: "how_to_use", type: "string", is: "The two Compute Budget steps to add.", howWorkedOut: "Built from the normal price and compute_units." },
   ],
-  example: async (ctx) => ({ transaction: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer") }),
-  run: async ({ transaction, network }, ctx) => {
+  example: async (ctx) => ({ tx: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer") }),
+  run: async ({ tx, network }, ctx) => {
     const conn = ctx.connection(network);
     let accounts: PublicKey[] = [];
     let computeUnits = 200_000;
     let computeUnitsSource = "default";
     let signatures = 1;
-    if (transaction) {
-      const loaded = await loadTransaction(conn, transaction);
+    if (tx) {
+      const loaded = await loadTransaction(conn, tx);
       accounts = loaded.writable.slice(0, 128).map((a) => new PublicKey(a));
       signatures = loaded.signers.length;
       const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed" });
@@ -343,15 +368,15 @@ export const feeAdvice: ToolDef = {
     const tier = (price: number) => {
       const priority = (BigInt(price) * BigInt(computeUnits) + 999_999n) / 1_000_000n;
       const total = priority + BigInt(BASE_FEE_LAMPORTS_PER_SIGNATURE * signatures);
-      return { microLamportsPerComputeUnit: price, priorityLamports: priority.toString(), totalLamports: total.toString(), totalSol: lamportsToSol(total) };
+      return { compute_unit_price: price, priority_lamports: priority.toString(), total_lamports: total.toString(), total_sol: lamportsToSol(total) };
     };
     const p50 = percentile(fees, 50), p75 = Math.max(percentile(fees, 75), 1), p90 = Math.max(percentile(fees, 90), p75, 1);
-    const tiers = { economy: tier(p50), standard: tier(p75), fast: tier(p90) };
+    const prices = { cheap: tier(p50), normal: tier(p75), fast: tier(p90) };
     return {
-      network, unit: "micro-lamports per compute unit", basedOn: accounts.length ? `${accounts.length} writable account(s) in your transaction` : "network-wide",
-      samples: fees.length, nonZeroShare: fees.length ? Math.round((fees.filter((f) => f > 0).length / fees.length) * 100) / 100 : 0,
-      tiers, computeUnits, computeUnitsSource,
-      howToApply: `Add ComputeBudgetProgram.setComputeUnitLimit({ units: ${computeUnits} }) and ComputeBudgetProgram.setComputeUnitPrice({ microLamports: ${tiers.standard.microLamportsPerComputeUnit} }) as the first instructions.`,
+      network, unit: "micro-lamports per compute unit", based_on: accounts.length ? `${accounts.length} writable account(s) in your transaction` : "network-wide",
+      samples: fees.length, share_paying: fees.length ? Math.round((fees.filter((f) => f > 0).length / fees.length) * 100) / 100 : 0,
+      prices, compute_units: computeUnits, compute_units_from: computeUnitsSource,
+      how_to_use: `Add ComputeBudgetProgram.setComputeUnitLimit({ units: ${computeUnits} }) and ComputeBudgetProgram.setComputeUnitPrice({ microLamports: ${prices.normal.compute_unit_price} }) as the first instructions.`,
     };
   },
 };

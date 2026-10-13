@@ -30,32 +30,32 @@ const sendUsdc = (to: PublicKey, owner: PublicKey, baseUnits: bigint) => [
   createAssociatedTokenAccountIdempotentInstruction(payer, to, owner, usdc),
   createTransferCheckedInstruction(fromUsdc, usdc, to, payer, baseUnits, 6),
 ];
-const intent = (token: string, amount: string) => ({ action: "transfer", token, amount, recipient: EXAMPLE_RECIPIENT });
+const intent = (token: string, amount: string) => ({ token, amount, to: EXAMPLE_RECIPIENT });
 
 const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Promise<Record<string, unknown>> }[] = [
-  { name: "preflight-drainer-approval", tool: preflightTransaction, args: async (c) => ({ transaction: await exampleTransaction(c, "drainer_approve") }) },
-  { name: "preflight-sol-transfer", tool: preflightTransaction, args: async (c) => ({ transaction: await exampleTransaction(c, "sol_transfer") }) },
-  { name: "intent-sol-match", tool: checkTransactionIntent, args: async (c) => ({ transaction: await build(c, [sendSol(10_000_000)]), intent: intent("SOL", "0.01") }) },
+  { name: "preflight-drainer-approval", tool: preflightTransaction, args: async (c) => ({ tx: await exampleTransaction(c, "drainer_approve") }) },
+  { name: "preflight-sol-transfer", tool: preflightTransaction, args: async (c) => ({ tx: await exampleTransaction(c, "sol_transfer") }) },
+  { name: "intent-sol-match", tool: checkTransactionIntent, args: async (c) => ({ tx: await build(c, [sendSol(10_000_000)]), expected: intent("SOL", "0.01") }) },
   {
     name: "intent-hidden-outflow", tool: checkTransactionIntent,
     args: async (c) => ({
-      transaction: await build(c, [sendSol(10_000_000), SystemProgram.createAccount({ fromPubkey: payer, newAccountPubkey: stranger, lamports: 5_000_000_000, space: 0, programId: SystemProgram.programId })]),
-      intent: intent("SOL", "0.01"),
+      tx: await build(c, [sendSol(10_000_000), SystemProgram.createAccount({ fromPubkey: payer, newAccountPubkey: stranger, lamports: 5_000_000_000, space: 0, programId: SystemProgram.programId })]),
+      expected: intent("SOL", "0.01"),
     }),
   },
   {
     name: "intent-usdc-new-account", tool: checkTransactionIntent,
     args: async (c) => ({
-      transaction: await build(c, [ComputeBudgetProgram.setComputeUnitLimit({ units: 60_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5_000 }), ...sendUsdc(toUsdc, recipient, 1_000_000n)]),
-      intent: intent(USDC_MINT, "1"),
+      tx: await build(c, [ComputeBudgetProgram.setComputeUnitLimit({ units: 60_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5_000 }), ...sendUsdc(toUsdc, recipient, 1_000_000n)]),
+      expected: intent(USDC_MINT, "1"),
     }),
   },
-  { name: "intent-usdc-wrong-amount", tool: checkTransactionIntent, args: async (c) => ({ transaction: await build(c, sendUsdc(toUsdc, recipient, 10_000_000n)), intent: intent(USDC_MINT, "1") }) },
+  { name: "intent-usdc-wrong-amount", tool: checkTransactionIntent, args: async (c) => ({ tx: await build(c, sendUsdc(toUsdc, recipient, 10_000_000n)), expected: intent(USDC_MINT, "1") }) },
   {
     name: "intent-usdc-extra-transfer", tool: checkTransactionIntent,
-    args: async (c) => ({ transaction: await build(c, [...sendUsdc(toUsdc, recipient, 1_000_000n), ...sendUsdc(strangerUsdc, stranger, 5_000_000n)]), intent: intent(USDC_MINT, "1") }),
+    args: async (c) => ({ tx: await build(c, [...sendUsdc(toUsdc, recipient, 1_000_000n), ...sendUsdc(strangerUsdc, stranger, 5_000_000n)]), expected: intent(USDC_MINT, "1") }),
   },
-  { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ mint: USDC_MINT }) },
+  { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ token: USDC_MINT }) },
 ];
 
 for (const scenario of SCENARIOS) {

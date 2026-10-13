@@ -49,7 +49,7 @@ export const labelFor = (programId: string) => PROGRAM_LABELS[programId] ?? null
 export function assertAddress(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) throw new ToolError(400, `${field} is required.`, `Pass a base58 Solana address in "${field}".`);
   try { return new PublicKey(value.trim()).toBase58(); }
-  catch { throw new ToolError(400, `"${value}" is not a valid Solana address.`, "Addresses are 32-44 base58 characters. Tickers and .sol names are not accepted here; use resolve_token for tickers."); }
+  catch { throw new ToolError(400, `"${value}" is not a valid Solana address.`, "Addresses are 32-44 base58 characters. Tickers and .sol names are not accepted here; use find_token for tickers."); }
 }
 
 // Exact conversion between base units (integer strings) and human amounts; no floating point.
@@ -116,6 +116,13 @@ export const isoTime = (unixSeconds: number | null | undefined) => (unixSeconds 
 
 export const NETWORK_DOC = {
   name: "network", type: '"mainnet-beta" | "devnet"', required: false,
-  description: 'Solana cluster to read. Defaults to "mainnet-beta" (real funds).',
-  howToGet: 'Leave it out for mainnet. Use "devnet" only for test wallets and test transactions.',
+  lookingFor: 'Which Solana network to read. Default "mainnet-beta" (real money).',
+  whereToGet: 'Leave it out for mainnet. Use "devnet" only for test wallets.',
+};
+
+// camelCase keys to snake_case, all the way down, so every output field reads the same way ("amountRaw" -> "amount_raw").
+export const snakeKeys = (value: unknown): any => {
+  if (Array.isArray(value)) return value.map(snakeKeys);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([k, v]) => [k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`), snakeKeys(v)]));
 };

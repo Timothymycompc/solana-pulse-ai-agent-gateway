@@ -11,27 +11,27 @@ export type ErrorExplanation = {
 };
 
 const TX: Record<string, Omit<ErrorExplanation, "code" | "name" | "scope">> = {
-  BlockhashNotFound: { meaning: "The transaction's recent blockhash is unknown to the validator or has expired.", likelyCause: "The transaction was built more than about 60-90 seconds (150 blocks) before it was sent, or the RPC that supplied the blockhash is behind.", fix: "Fetch a fresh blockhash (get_solana_blockhash), rebuild, re-sign and send promptly." },
+  BlockhashNotFound: { meaning: "The transaction's recent blockhash is unknown to the validator or has expired.", likelyCause: "The transaction was built more than about 60-90 seconds (150 blocks) before it was sent, or the RPC that supplied the blockhash is behind.", fix: "Fetch a fresh blockhash (the blockhash tool), rebuild, re-sign and send promptly." },
   InsufficientFundsForFee: { meaning: "The fee payer does not have enough SOL to pay the transaction fee.", likelyCause: "Fee payer balance is below the base fee (5000 lamports per signature) plus any priority fee.", fix: "Fund the fee payer with SOL, or lower the priority fee." },
   InsufficientFundsForRent: { meaning: "An account would be left with less SOL than the rent-exempt minimum.", likelyCause: "A transfer or account creation would drop an account below its rent-exempt balance (about 0.00089 SOL for a plain wallet, about 0.00204 SOL for a token account).", fix: "Send more SOL to the account in question (account_index points to it) or transfer a smaller amount." },
   AccountNotFound: { meaning: "An account the transaction needs (usually the fee payer) does not exist on chain.", likelyCause: "The fee payer has never received SOL, or the wrong network is being used.", fix: "Fund the account first, and check you are on the intended network." },
-  AlreadyProcessed: { meaning: "This exact transaction has already been processed.", likelyCause: "A retry resent the same signed transaction.", fix: "Check the first submission's status with explain_transaction instead of resending." },
+  AlreadyProcessed: { meaning: "This exact transaction has already been processed.", likelyCause: "A retry resent the same signed transaction.", fix: "Check the first submission's status with explain_tx instead of resending." },
   AccountInUse: { meaning: "An account is locked by another transaction in the same block.", likelyCause: "High contention on a popular account.", fix: "Retry shortly; a priority fee helps under contention." },
   SignatureFailure: { meaning: "A required signature is missing or invalid.", likelyCause: "The transaction was modified after signing, or a required signer did not sign.", fix: "Sign after all edits are final, with every required signer." },
   InvalidAccountForFee: { meaning: "The fee payer cannot pay fees.", likelyCause: "The fee payer is not a system-owned account (for example a token account or program account).", fix: "Use a normal wallet as fee payer." },
-  WouldExceedMaxBlockCostLimit: { meaning: "The block is full for this kind of transaction.", likelyCause: "Network congestion.", fix: "Retry with a higher priority fee (fee_advice)." },
+  WouldExceedMaxBlockCostLimit: { meaning: "The block is full for this kind of transaction.", likelyCause: "Network congestion.", fix: "Retry with a higher priority fee (the fee tool)." },
   WouldExceedMaxAccountCostLimit: { meaning: "Too much activity on one of the accounts in this block.", likelyCause: "Heavy contention on a hot account, such as a popular pool.", fix: "Retry later or raise the priority fee." },
 };
 
 const INSTRUCTION: Record<string, Omit<ErrorExplanation, "code" | "name" | "scope">> = {
-  InsufficientFunds: { meaning: "An account does not hold enough lamports or tokens for the operation.", likelyCause: "The amount exceeds the source balance.", fix: "Check the real balance first (get_solana_balance / get_token_accounts) and lower the amount." },
-  ComputationalBudgetExceeded: { meaning: "The transaction ran out of compute units.", likelyCause: "The compute unit limit is too low for what the instructions do.", fix: "Simulate (preflight_transaction) to see units consumed, then set a higher SetComputeUnitLimit." },
+  InsufficientFunds: { meaning: "An account does not hold enough lamports or tokens for the operation.", likelyCause: "The amount exceeds the source balance.", fix: "Check the real balance first (balance / tokens) and lower the amount." },
+  ComputationalBudgetExceeded: { meaning: "The transaction ran out of compute units.", likelyCause: "The compute unit limit is too low for what the instructions do.", fix: "Simulate (check_tx) to see units consumed, then set a higher SetComputeUnitLimit." },
   ProgramFailedToComplete: { meaning: "The program aborted, often from running out of compute or hitting a panic.", likelyCause: "Too little compute, or a program bug triggered by the inputs.", fix: "Raise the compute limit; if it persists, read the program logs." },
-  AccountAlreadyInitialized: { meaning: "The program tried to create or initialize an account that already exists.", likelyCause: "Creating an account (often a token account) that was already created.", fix: "Use the idempotent create instruction, or skip creation when find_ata shows exists=true." },
+  AccountAlreadyInitialized: { meaning: "The program tried to create or initialize an account that already exists.", likelyCause: "Creating an account (often a token account) that was already created.", fix: "Use the idempotent create instruction, or skip creation when token_account shows exists=true." },
   UninitializedAccount: { meaning: "An account the program expects to be set up has not been initialized.", likelyCause: "A token account or program account was never created.", fix: "Create the account first (for token accounts: create the associated token account)." },
-  IncorrectProgramId: { meaning: "An account is owned by a different program than expected.", likelyCause: "Mixing SPL Token and Token-2022 accounts, or passing the wrong account.", fix: "Check the account owner with inspect_address and use the matching token program." },
+  IncorrectProgramId: { meaning: "An account is owned by a different program than expected.", likelyCause: "Mixing SPL Token and Token-2022 accounts, or passing the wrong account.", fix: "Check the account owner with whats_this and use the matching token program." },
   MissingRequiredSignature: { meaning: "An account that must sign did not.", likelyCause: "The authority or owner was not included as a signer.", fix: "Add the required signer." },
-  InvalidAccountData: { meaning: "An account's data is not what the program expects.", likelyCause: "Wrong account passed, or a token account for a different mint.", fix: "Verify each account with inspect_address." },
+  InvalidAccountData: { meaning: "An account's data is not what the program expects.", likelyCause: "Wrong account passed, or a token account for a different mint.", fix: "Verify each account with whats_this." },
   AccountNotRentExempt: { meaning: "An account would not keep the rent-exempt minimum.", likelyCause: "Too little SOL deposited when creating the account.", fix: "Deposit at least the rent-exempt minimum." },
 };
 
@@ -46,24 +46,24 @@ const SYSTEM: Record<number, [string, string, string, string]> = {
 
 const TOKEN: Record<number, [string, string, string]> = {
   0: ["NotRentExempt", "Account would not be rent-exempt.", "Deposit at least the rent-exempt minimum when creating the token account."],
-  1: ["InsufficientFunds", "The source token account does not hold enough tokens.", "Check the balance with get_token_accounts and lower the amount (remember decimals: use convert_amount)."],
-  2: ["InvalidMint", "The mint is not a valid mint account.", "Pass the token's mint address (resolve_token), not a token account or wallet."],
-  3: ["MintMismatch", "The token account belongs to a different mint than the instruction expects.", "Use token accounts for the same mint on both sides (find_ata derives the right one)."],
+  1: ["InsufficientFunds", "The source token account does not hold enough tokens.", "Check the balance with the tokens tool and lower the amount (remember decimals: use the convert tool)."],
+  2: ["InvalidMint", "The mint is not a valid mint account.", "Pass the token's mint address (find_token), not a token account or wallet."],
+  3: ["MintMismatch", "The token account belongs to a different mint than the instruction expects.", "Use token accounts for the same mint on both sides (token_account derives the right one)."],
   4: ["OwnerMismatch", "The signer is not the owner or delegate of the token account.", "Sign with the account owner, or use the owner's own associated token account."],
   5: ["FixedSupply", "This token's supply is fixed; minting is disabled.", "Minting is not possible for this token."],
   6: ["AlreadyInUse", "The account is already initialized.", "Skip initialization or use the idempotent create."],
   7: ["InvalidNumberOfProvidedSigners", "Wrong number of multisig signers provided.", "Provide the signers the multisig requires."],
   8: ["InvalidNumberOfRequiredSigners", "Invalid multisig configuration.", "Fix the multisig signer count."],
-  9: ["UninitializedState", "The token account or mint is not initialized.", "Create the token account first (find_ata shows whether it exists)."],
+  9: ["UninitializedState", "The token account or mint is not initialized.", "Create the token account first (token_account shows whether it exists)."],
   10: ["NativeNotSupported", "This instruction does not support native SOL (wrapped SOL) accounts.", "Use a regular SPL token account."],
   11: ["NonNativeHasBalance", "Cannot close a non-native token account that still holds tokens.", "Transfer or burn the remaining tokens before closing."],
   12: ["InvalidInstruction", "The token instruction is malformed.", "Rebuild the instruction with an up-to-date SDK."],
-  13: ["InvalidState", "The account is in an invalid state for this operation.", "Check the account with inspect_address."],
-  14: ["Overflow", "An amount calculation overflowed.", "Check for a decimals mistake: amounts are in base units (convert_amount)."],
+  13: ["InvalidState", "The account is in an invalid state for this operation.", "Check the account with whats_this."],
+  14: ["Overflow", "An amount calculation overflowed.", "Check for a decimals mistake: amounts are in base units (the convert tool)."],
   15: ["AuthorityTypeNotSupported", "This account does not support that authority type.", "Use a valid authority type for the account."],
   16: ["MintCannotFreeze", "This mint has no freeze authority.", "Freezing is not possible for this token."],
-  17: ["AccountFrozen", "The token account is frozen by the token's freeze authority.", "Frozen tokens cannot move until the issuer thaws them. Treat tokens with an active freeze authority as risky (token_verdict)."],
-  18: ["MintDecimalsMismatch", "The decimals passed to TransferChecked do not match the mint.", "Read the mint's real decimals (convert_amount) and rebuild."],
+  17: ["AccountFrozen", "The token account is frozen by the token's freeze authority.", "Frozen tokens cannot move until the issuer thaws them. Treat tokens with an active freeze authority as risky (token_safety)."],
+  18: ["MintDecimalsMismatch", "The decimals passed to TransferChecked do not match the mint.", "Read the mint's real decimals (the convert tool) and rebuild."],
   19: ["NonNativeNotSupported", "This instruction only supports native SOL accounts.", "Use a wrapped SOL account."],
 };
 
@@ -88,7 +88,7 @@ const ANCHOR: Record<number, [string, string]> = {
 const JUPITER_V6 = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4";
 const PROGRAM_SPECIFIC: Record<string, Record<number, [string, string, string, string]>> = {
   [JUPITER_V6]: {
-    6001: ["SlippageToleranceExceeded", "The swap would return less than the minimum you allowed.", "The price moved between quoting and execution, common on thin or volatile tokens.", "Get a fresh quote and retry, or raise slippage carefully. Check liquidity first (token_verdict)."],
+    6001: ["SlippageToleranceExceeded", "The swap would return less than the minimum you allowed.", "The price moved between quoting and execution, common on thin or volatile tokens.", "Get a fresh quote and retry, or raise slippage carefully. Check liquidity first (token_safety)."],
   },
 };
 
@@ -140,7 +140,7 @@ export function explainError(raw: unknown, programId?: string): { matches: Error
       const [name, meaning, fix] = TOKEN[code];
       matches.push({ code: hex, name, scope: "token_program", meaning: `${meaning} (Assumes the failing program is SPL Token; pass programId to confirm.)`, likelyCause: meaning, fix });
     } else if (code >= 6000) {
-      matches.push({ code: hex, name: `Custom program error ${code}`, scope: "program_specific", meaning: `Program-defined error ${code} (${hex}). Codes 6000 and up are defined by each program, so the meaning depends on which program failed.`, likelyCause: "A program-specific check failed.", fix: "Find the failing program (explain_transaction shows it) and look up this code in that program's IDL or docs." });
+      matches.push({ code: hex, name: `Custom program error ${code}`, scope: "program_specific", meaning: `Program-defined error ${code} (${hex}). Codes 6000 and up are defined by each program, so the meaning depends on which program failed.`, likelyCause: "A program-specific check failed.", fix: "Find the failing program (explain_tx shows it) and look up this code in that program's IDL or docs." });
     }
   }
   return { matches, instructionIndex, normalized: text.slice(0, 500) };

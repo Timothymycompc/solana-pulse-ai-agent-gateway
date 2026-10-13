@@ -100,15 +100,15 @@ check_all() {
   local B=$1 FAILS=0
   c() { if eval "$2" >/dev/null 2>&1; then ok "$1"; else fail "$1"; FAILS=$((FAILS+1)); fi; }
   c "All tools live"         "curl -s -m 20 $B/api/debug/build | grep -q '\"tools\":$TOOL_COUNT'"
-  c "MCP lists tools"        "curl -s -m 20 -X POST $B/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}' | grep -q preflight_transaction"
-  c "A free tool runs"       "curl -s -m 30 -X POST $B/api/tools/convert_amount -H 'content-type: application/json' -d '{\"mint\":\"$USDC_MINT\",\"amount\":\"5\"}' | grep -q '\"baseUnits\":\"5000000\"'"
-  c "Live examples load"     "curl -s -m 30 $B/api/tools/token_verdict/example | grep -q '\"arguments\"'"
+  c "MCP lists tools"        "curl -s -m 20 -X POST $B/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}' | grep -q check_tx"
+  c "A free tool runs"       "curl -s -m 30 -X POST $B/api/tools/convert -H 'content-type: application/json' -d '{\"token\":\"$USDC_MINT\",\"amount\":\"5\"}' | grep -q '\"raw_amount\":\"5000000\"'"
+  c "Live examples load"     "curl -s -m 30 $B/api/tools/token_safety/example | grep -q '\"arguments\"'"
   c "Tool docs"              "curl -s -m 20 $B/api/tools | grep -q '\"howComputed\"'"
   c "mcp.json lists x402"    "curl -s -m 20 $B/.well-known/mcp.json | grep -q '\"protocol\":\"x402\"'"
   c "glama.json"             "curl -s -m 20 $B/.well-known/glama.json | grep -q maintainers"
-  c "llms.txt"               "curl -s -m 20 $B/llms.txt | grep -q check_transaction_intent"
+  c "llms.txt"               "curl -s -m 20 $B/llms.txt | grep -q tx_matches"
   c "Free-call status"       "curl -s -m 20 $B/api/trial/status | grep -q '\"freeCallsPerTool\":[0-9]'"
-  c "Web page loads"         "curl -s -m 20 $B/docs/tools/token_verdict | grep -q '<div id=\"root\">'"
+  c "Web page loads"         "curl -s -m 20 $B/docs/tools/token_safety | grep -q '<div id=\"root\">'"
   return $FAILS
 }
 bold "5/6  Checking the new version before anyone sees it"

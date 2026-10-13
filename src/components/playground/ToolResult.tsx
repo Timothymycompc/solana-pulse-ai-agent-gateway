@@ -12,13 +12,13 @@ function VerdictReport({ body }: { body: any }) {
   const verdict = typeof body?.verdict === 'string' ? body.verdict : null;
   if (!verdict) return null;
   const text = body.summary ?? body.explanation ?? '';
-  const checks = Array.isArray(body.checks) ? body.checks.filter((c: any) => isCheckStatus(c?.status) && typeof c?.detail === 'string') : [];
+  const checks = Array.isArray(body.checks) ? body.checks.filter((c: any) => isCheckStatus(c?.result) && typeof c?.detail === 'string') : [];
   return (
     <div className="animate-scale-in rounded-xl border border-line bg-panel p-4">
       <Stamp verdict={verdict} />
       {text && <p className="mt-3 text-[13.5px] leading-[1.6] text-ink-200">{text}</p>}
       {checks.length > 0 && <ul className="mt-3 space-y-2 border-t border-line pt-3 text-[13px] leading-[1.55] text-ink-300">
-        {checks.map((c: any, i: number) => <CheckLine key={`${c.id}-${i}`} status={c.status} title={c.id ? checkTitle(String(c.id)) : undefined}>{c.detail}</CheckLine>)}
+        {checks.map((c: any, i: number) => <CheckLine key={`${c.name}-${i}`} status={c.result} title={c.name ? checkTitle(String(c.name)) : undefined}>{c.detail}</CheckLine>)}
       </ul>}
     </div>
   );
@@ -84,18 +84,18 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
       {ok && showFieldGuide && (
         <details className="group rounded-xl border border-line surface">
           <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[13px] font-semibold text-ink-200 [&::-webkit-details-marker]:hidden">
-            <BookOpen className="h-4 w-4 text-accent-300" /> What every returned field means
+            <BookOpen className="h-4 w-4 text-accent-300" /> What every returned field is
             <span className="ml-auto text-[12px] font-normal text-ink-400 group-open:hidden">Show</span><span className="ml-auto hidden text-[12px] font-normal text-ink-400 group-open:inline">Hide</span>
           </summary>
           <div className="max-h-96 overflow-auto border-t border-line">
             <table className="w-full text-left text-[12px]">
-              <thead className="sticky top-0 bg-panel text-[12px] text-ink-400"><tr><th className="px-3 py-2 font-medium">Field</th><th className="px-3 py-2 font-medium">What it means</th><th className="px-3 py-2 font-medium">How it's computed</th></tr></thead>
+              <thead className="sticky top-0 bg-panel text-[12px] text-ink-400"><tr><th className="px-3 py-2 font-medium">Field</th><th className="px-3 py-2 font-medium">What it is</th><th className="px-3 py-2 font-medium">How it's worked out</th></tr></thead>
               <tbody>
                 {tool.outputs.map((o) => (
                   <tr key={o.field} className={`border-t border-white/5 align-top ${present.has(o.field.split(/[.[ ]/)[0]) ? '' : 'opacity-60'}`}>
                     <td className="px-3 py-2"><code className="font-mono text-accent-200">{o.field}</code><div className="text-[11.5px] text-ink-500">{o.type}</div></td>
-                    <td className="px-3 py-2 text-ink-200">{o.meaning}</td>
-                    <td className="px-3 py-2 text-ink-400">{o.howComputed}</td>
+                    <td className="px-3 py-2 text-ink-200">{o.is}</td>
+                    <td className="px-3 py-2 text-ink-400">{o.howWorkedOut}</td>
                   </tr>
                 ))}
               </tbody>

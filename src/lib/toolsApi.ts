@@ -1,13 +1,13 @@
 // Client for the gateway's tool registry API. Everything the playground and docs show comes from here.
 
-export type InputDoc = { name: string; type: string; required: boolean; description: string; howToGet: string };
-export type OutputDoc = { field: string; type: string; meaning: string; howComputed: string };
+export type InputDoc = { name: string; type: string; required: boolean; lookingFor: string; whereToGet: string };
+export type OutputDoc = { field: string; type: string; is: string; howWorkedOut: string };
 export type JsonSchema = {
   type?: string; enum?: unknown[]; default?: unknown; minimum?: number; maximum?: number; minLength?: number; maxLength?: number;
   properties?: Record<string, JsonSchema>; required?: string[]; anyOf?: JsonSchema[]; const?: unknown;
 };
 export type ToolDoc = {
-  name: string; title: string; category: "transactions" | "tokens" | "wallets" | "network" | "reference";
+  name: string; oldName: string; title: string; category: "transactions" | "tokens" | "wallets" | "network" | "reference";
   useWhen: string; description: string; benefit: { kind: "money" | "accuracy"; text: string };
   price: string | null; priceText: string;
   http: { method: string; path: string }; inputs: InputDoc[]; outputs: OutputDoc[]; notes: string[]; inputSchema: JsonSchema;
