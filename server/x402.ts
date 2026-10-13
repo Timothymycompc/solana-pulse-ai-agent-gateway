@@ -9,13 +9,14 @@ import { z } from "zod";
 import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
 import { recordPayment } from "./db";
 import { TOOLS_BY_NAME } from "./tools";
+import { cdpFacilitator } from "./cdp";
 import { BONK_MINT, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "./tools/lib";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
-const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator.payai.network";
+const PAYAI_FACILITATOR_URL = "https://facilitator.payai.network";
 
-// Discovery listing (the x402 Bazaar extension). Facilitators that keep a directory of paid tools, such as PayAI's
-// (which Coinbase AgentKit searches), list a tool after its first settled payment, with this name, description,
+// Discovery listing (the x402 Bazaar extension). Facilitators that keep a directory of paid tools, Coinbase's Bazaar
+// and PayAI's (which Coinbase AgentKit searches), list a tool after its first payment settled through them, with this name, description,
 // tags and input schema. Limits from @x402/extensions: description 500 characters, at most 5 tags of 32 characters.
 const SERVICE_NAME = "Solana Pulse";
 const DESCRIPTION_LIMIT = 500;
@@ -62,8 +63,23 @@ export function discoveryFor(name: string) {
   };
 }
 
+// Coinbase's facilitator first, so payments settle there and tools are listed in Coinbase's Bazaar; PayAI's takes
+// over if Coinbase can't be reached when the server starts (the first facilitator that supports Solana is used).
+// Without a CDP key, PayAI alone, as before. X402_FACILITATOR_URL forces a single facilitator.
+function facilitators() {
+  if (process.env.X402_FACILITATOR_URL) return [new HTTPFacilitatorClient({ url: process.env.X402_FACILITATOR_URL })];
+  const payai = new HTTPFacilitatorClient({ url: PAYAI_FACILITATOR_URL });
+  try {
+    const cdp = cdpFacilitator();
+    return cdp ? [cdp, payai] : [payai];
+  } catch (error) {
+    console.error("Coinbase facilitator not configured, using PayAI:", error);
+    return [payai];
+  }
+}
+
 export function createX402(payTo: string) {
-  const resourceServer = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR_URL }))
+  const resourceServer = new x402ResourceServer(facilitators())
     .register(X402_NETWORK, new ExactSvmScheme())
     .registerExtension(bazaarResourceServerExtension);
 
