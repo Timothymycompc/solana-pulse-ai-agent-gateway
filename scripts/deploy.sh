@@ -103,7 +103,7 @@ check_all() {
   c "MCP lists tools"        "curl -s -m 20 -X POST $B/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}' | grep -q check_tx"
   c "A free tool runs"       "curl -s -m 30 -X POST $B/api/tools/convert -H 'content-type: application/json' -d '{\"token\":\"$USDC_MINT\",\"amount\":\"5\"}' | grep -q '\"raw_amount\":\"5000000\"'"
   c "Live examples load"     "curl -s -m 30 $B/api/tools/token_safety/example | grep -q '\"arguments\"'"
-  c "Tool docs"              "curl -s -m 20 $B/api/tools | grep -q '\"howComputed\"'"
+  c "Tool docs"              "curl -s -m 20 $B/api/tools | grep -q '\"howWorkedOut\"'"
   c "mcp.json lists x402"    "curl -s -m 20 $B/.well-known/mcp.json | grep -q '\"protocol\":\"x402\"'"
   c "glama.json"             "curl -s -m 20 $B/.well-known/glama.json | grep -q maintainers"
   c "llms.txt"               "curl -s -m 20 $B/llms.txt | grep -q tx_matches"
