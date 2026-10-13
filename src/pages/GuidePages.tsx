@@ -73,7 +73,38 @@ export const ConnectPage: React.FC = () => (
     <P>Antigravity CLI replaced Gemini CLI for free and Google One accounts. Type <Code>/mcp</Code> to open its MCP manager, or add the server to <Code>~/.gemini/config/mcp_config.json</Code> (or <Code>.agents/mcp_config.json</Code> for one project). Antigravity uses <Code>serverUrl</Code>; it ignores <Code>url</Code> and <Code>httpUrl</Code>. In the Antigravity editor, open the agent panel's menu, then MCP Servers, Manage MCP Servers and View raw config.</P>
     <CodeBlock title="mcp_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp` } } }, null, 2)} />
 
-    <H2>Cursor and other clients that accept a URL</H2>
+    <H2>Cursor</H2>
+    <P>Add the server to <Code>~/.cursor/mcp.json</Code> (or <Code>.cursor/mcp.json</Code> for one project), then turn it on under Cursor Settings, MCP.</P>
+    <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>VS Code (GitHub Copilot)</H2>
+    <P>Run the command below, or add the server to <Code>.vscode/mcp.json</Code> in your project. VS Code uses <Code>servers</Code>, not <Code>mcpServers</Code>, and needs <Code>"type": "http"</Code>. The tools show up in Copilot Chat's agent mode.</P>
+    <CodeBlock title="Terminal" code={`code --add-mcp '${JSON.stringify({ name: 'solana-pulse', type: 'http', url: `${origin()}/mcp` })}'`} />
+    <CodeBlock title=".vscode/mcp.json" code={JSON.stringify({ servers: { 'solana-pulse': { type: 'http', url: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>Windsurf</H2>
+    <P>Open Cascade's MCP settings and choose View raw config, or edit <Code>~/.codeium/windsurf/mcp_config.json</Code>. Windsurf uses <Code>serverUrl</Code>. Restart Windsurf after saving.</P>
+    <CodeBlock title="mcp_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>Cline</H2>
+    <P>Open Cline's MCP Servers panel, go to Configure and edit <Code>cline_mcp_settings.json</Code>. Without <Code>"type": "streamableHttp"</Code>, Cline treats the entry as a local command and fails to connect.</P>
+    <CodeBlock title="cline_mcp_settings.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { type: 'streamableHttp', url: `${origin()}/mcp`, disabled: false } } }, null, 2)} />
+
+    <H2>OpenAI Codex CLI</H2>
+    <P>Add the server from the terminal, or put it in <Code>~/.codex/config.toml</Code>. Inside Codex, <Code>/mcp</Code> lists its tools.</P>
+    <CodeBlock title="Terminal" code={`codex mcp add solana-pulse --url ${origin()}/mcp\ncodex mcp list`} />
+    <CodeBlock title="config.toml" code={`[mcp_servers.solana-pulse]\nurl = "${origin()}/mcp"`} />
+
+    <H2>Zed</H2>
+    <P>Open your settings with <Code>zed: open settings file</Code>. Zed uses <Code>context_servers</Code>, not <Code>mcpServers</Code>; an entry with a <Code>url</Code> is a remote server.</P>
+    <CodeBlock title="settings.json" code={JSON.stringify({ context_servers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>OpenCode</H2>
+    <P>Add the server to <Code>opencode.json</Code> in your project, or <Code>~/.config/opencode/opencode.json</Code> for every project.</P>
+    <CodeBlock title="opencode.json" code={JSON.stringify({ $schema: 'https://opencode.ai/config.json', mcp: { 'solana-pulse': { type: 'remote', url: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>Other clients that accept a URL</H2>
+    <P>Most other MCP clients take the same shape. If a client only runs local commands, bridge it with <Code>npx mcp-remote {`${origin()}/mcp`}</Code>.</P>
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
 
     <H2>ElizaOS</H2>
