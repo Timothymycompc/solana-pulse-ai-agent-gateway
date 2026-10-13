@@ -37,7 +37,7 @@ export type OwnerOverview = {
   tools: ToolStats[];
   kinds: Record<Kind, { label: string; callers: number; runs: number; requests: number }>;
   callers: CallerStats[]; callerCount: number;
-  recentRuns: { at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; caller: CallerRef }[];
+  recentRuns: { at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; caller: CallerRef; input: unknown; output: unknown }[];
   payers: { payer: string; mine: boolean; payments: number; usdc: number; tools: number; firstAt: string; lastAt: string }[];
   recentPayments: { at: string; tool: string; amountUsdc: number; payer: string; mine: boolean; txSignature: string; caller: CallerRef | null }[];
   visitors: Visitors;

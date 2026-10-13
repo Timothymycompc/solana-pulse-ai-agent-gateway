@@ -3,7 +3,7 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
-import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordPayment, recordServiceUsage } from "../server/db";
+import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordPayment, recordServiceUsage, clearOldToolIo } from "../server/db";
 import { hashIp } from "../server/meter";
 import { ownerOverview } from "../server/owner";
 
@@ -36,7 +36,7 @@ before(async () => {
   await run("/api/tools/fee", OWNER_IP, "curl/8.5.0", { via: "owner" });
   await noteOwnerNetwork(hashIp(OWNER_IP));
   // Someone trying the playground in a browser, and an unknown tool name from an old client.
-  await run("/api/tools/find_token", BROWSER_IP, BROWSER_UA, { via: "free_call" });
+  await run("/api/tools/find_token", BROWSER_IP, BROWSER_UA, { via: "free_call", input: { query: "BONK" }, output: { found: true, symbol: "BONK" } });
   await run("/api/tools/get_price", BROWSER_IP, "SentinelOracle/0.1 (+https://glimind.com)", { status: 404 });
 
   // Visits: one real visitor on two pages, a crawler, and the owner.
@@ -101,4 +101,24 @@ test("visitors leave out bots and the owner", async () => {
   assert.deepEqual(v.referrers.map((r) => r.host).sort(), ["Direct or unknown", "x.com"]);
   assert.deepEqual(v.devices, [{ name: "Chrome on Android", visitors: 1 }]);
   assert.equal((await ownerOverview({ days: 1 })).visitors.series.length, 24);
+});
+
+test("tool inputs and results are kept, capped, and cleared after 30 days", async () => {
+  const o = await ownerOverview({ days: 7 });
+  const run = o.recentRuns.find((r) => r.tool === "find_token")!;
+  assert.deepEqual(run.input, { query: "BONK" });
+  assert.deepEqual(run.output, { found: true, symbol: "BONK" });
+  assert.equal(o.recentRuns.find((r) => r.tool === "fee")!.input, null);
+
+  await recordServiceUsage({ endpoint: "/api/tools/explain_tx", method: "POST", status: 200, callerHash: null, client: "curl/8.5.0",
+    input: { tx: "x".repeat(40_000) }, output: { note: "nul\u0000here" } });
+  const big = (await pool.query(`SELECT input, output FROM service_usage WHERE endpoint = '/api/tools/explain_tx'`)).rows[0];
+  assert.equal(big.input.truncated, true);
+  assert.deepEqual(big.output, { note: "nulhere" });
+
+  await pool.query(`UPDATE service_usage SET created_at = NOW() - INTERVAL '31 days' WHERE endpoint = '/api/tools/explain_tx'`);
+  await clearOldToolIo();
+  const cleared = (await pool.query(`SELECT input, output FROM service_usage WHERE endpoint = '/api/tools/explain_tx'`)).rows[0];
+  assert.deepEqual([cleared.input, cleared.output], [null, null]);
+  assert.ok((await pool.query(`SELECT 1 FROM service_usage WHERE endpoint = '/api/tools/find_token' AND input IS NOT NULL`)).rows.length);
 });

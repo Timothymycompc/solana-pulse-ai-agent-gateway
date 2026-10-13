@@ -339,16 +339,40 @@ const VisitorsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
 // ---------- Recent runs ----------
 
 const OUTCOME: Record<string, string> = { paid: 'Paid', payment_asked: 'Asked to pay', error: 'Error', free_call: 'Free call', owner_key: 'Owner key', ok: 'Ran' };
-const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => (
-  <Card title="Latest tool runs">
-    {data.recentRuns.length ? <TableShell head={['When', 'Tool', 'Via', 'Result', 'Caller']} minWidth={560}>
-      {data.recentRuns.slice(0, 25).map((r, i) => <tr key={i}>
-        <td className={`${td} whitespace-nowrap`} title={new Date(r.at).toLocaleString()}>{ago(r.at)}</td>
+type Run = OwnerOverview['recentRuns'][number];
+const pretty = (v: unknown) => (v === null || v === undefined ? 'Not saved' : JSON.stringify(v, null, 2));
+const RunRow: React.FC<{ r: Run }> = ({ r }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <tr className={`row-button ${open ? 'row-open' : ''}`} onClick={() => setOpen((o) => !o)}>
+        <td className={`${td} whitespace-nowrap`} title={new Date(r.at).toLocaleString()}>
+          <button aria-expanded={open} className="flex items-center gap-1.5 text-left">
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-ink-500 transition ${open ? '' : '-rotate-90'}`} />{ago(r.at)}
+          </button>
+        </td>
         <td className={`${td} font-mono text-ink-100`}>{r.tool}</td>
         <td className={`${td} text-[12px]`}>{r.transport.toUpperCase()}</td>
         <td className={td}>{OUTCOME[r.outcome] ?? r.outcome}{r.outcome === 'error' ? <span className="font-mono text-ink-500"> {r.status}</span> : null}</td>
         <td className={td}><span className="flex items-center gap-1.5"><Swatch kind={shown(r.caller.kind)} /><span className="truncate text-ink-100">{r.caller.name}</span></span></td>
-      </tr>)}
+      </tr>
+      {open && <tr className="row-detail">
+        <td colSpan={5} className="px-3 py-3">
+          <div className="grid gap-4 md:grid-cols-2">
+            {([['Input', r.input], ['Output', r.output]] as const).map(([label, value]) => <div key={label} className="min-w-0">
+              <p className="mb-1.5 text-[12.5px] font-semibold text-ink-300">{label}</p>
+              <pre className="max-h-80 overflow-auto rounded-lg bg-black/30 p-3 font-mono text-[11.5px] leading-5 text-ink-100">{pretty(value)}</pre>
+            </div>)}
+          </div>
+        </td>
+      </tr>}
+    </>
+  );
+};
+const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => (
+  <Card title="Latest tool runs">
+    {data.recentRuns.length ? <TableShell head={['When', 'Tool', 'Via', 'Result', 'Caller']} minWidth={560}>
+      {data.recentRuns.slice(0, 25).map((r, i) => <RunRow key={`${r.at}-${i}`} r={r} />)}
     </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">No tool runs in this period.</p>}
   </Card>
 );

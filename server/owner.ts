@@ -45,7 +45,7 @@ export async function ownerOverview(o: { days: number }) {
   const [owners, runRows, trafficRows, payTools, payers, recentPays, viewRows] = await Promise.all([
     pool.query(`SELECT caller_hash FROM owner_networks`),
     pool.query(`
-      SELECT s.endpoint, s.caller_hash, s.client, s.via, s.status, s.payment_tx, s.created_at, p.amount_base_units AS paid
+      SELECT s.id, s.endpoint, s.caller_hash, s.client, s.via, s.status, s.payment_tx, s.created_at, p.amount_base_units AS paid
       FROM service_usage s LEFT JOIN x402_payments p ON p.tx_signature = s.payment_tx
       WHERE ${TOOL_RUN_SQL} AND s.created_at >= NOW() - make_interval(days => $1::int)
       ORDER BY s.created_at DESC LIMIT 50000`, [days]),
@@ -177,11 +177,16 @@ export async function ownerOverview(o: { days: number }) {
       tools: Object.entries(c.tools).sort((a, b) => b[1] - a[1]).map(([tool, n]) => ({ tool, runs: n })),
     }));
 
-  const recentRuns = runs.slice(0, 40).map(({ r, caller, tool, failed }) => ({
+  // Inputs and outputs only for the runs shown, so the 50,000-row scan above stays small.
+  const latest = runs.slice(0, 40);
+  const ioRows = await pool.query(`SELECT id, input, output FROM service_usage WHERE id = ANY($1::bigint[])`, [latest.map(({ r }) => r.id)]);
+  const ioById = new Map(ioRows.rows.map((row: any) => [String(row.id), row]));
+  const recentRuns = latest.map(({ r, caller, tool, failed }) => ({
     at: iso(r.created_at), tool, transport: r.endpoint.startsWith("/mcp") ? "mcp" : "http", status: r.status,
     outcome: r.payment_tx ? "paid" : r.status === 402 || r.via === "x402" ? "payment_asked" : failed ? "error"
       : r.via === "free_call" ? "free_call" : r.via === "owner" ? "owner_key" : "ok",
     caller: { id: caller.id, kind: caller.kind, name: caller.name, network: caller.network },
+    input: ioById.get(String(r.id))?.input ?? null, output: ioById.get(String(r.id))?.output ?? null,
   }));
 
   const payCaller = (hash: string | null, client: string | null) => {

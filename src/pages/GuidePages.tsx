@@ -168,7 +168,7 @@ export const PricingPage: React.FC = () => <PricingView />;
 
 export const StatusPage: React.FC = () => (
   <article>
-    <PageHeader title="Live usage" lead="Real tool runs, callers and uptime pings, counted without storing IP addresses or request contents." />
+    <PageHeader title="Live usage" lead="Real tool runs, callers and uptime pings, counted without storing IP addresses. Tool inputs and results are kept for 30 days to improve the tools." />
     <ServiceUsagePanel />
   </article>
 );

@@ -24,9 +24,10 @@ export async function ensureSchema() {
     );
   `);
 
-  // One row per /api and /mcp request: route, status, caller network hash and client name. No query values or bodies.
+  // One row per /api and /mcp request: route, status, caller network hash and client name. No query strings.
   // via is how a tool call was admitted (free_call, owner, x402); payment_tx links a paid call to x402_payments;
-  // mcp_client is the clientInfo name an MCP client sends on initialize.
+  // mcp_client is the clientInfo name an MCP client sends on initialize. For tool calls only, input is the tool's
+  // arguments and output its result (capped by capJson, cleared after IO_RETENTION_DAYS by clearOldToolIo).
   await pool.query(`
     CREATE TABLE IF NOT EXISTS service_usage (
       id BIGSERIAL PRIMARY KEY,
@@ -39,7 +40,8 @@ export async function ensureSchema() {
     );
   `);
   await pool.query(`ALTER TABLE service_usage ADD COLUMN IF NOT EXISTS caller_hash TEXT, ADD COLUMN IF NOT EXISTS client TEXT,
-    ADD COLUMN IF NOT EXISTS mcp_client TEXT, ADD COLUMN IF NOT EXISTS via TEXT, ADD COLUMN IF NOT EXISTS payment_tx TEXT;`);
+    ADD COLUMN IF NOT EXISTS mcp_client TEXT, ADD COLUMN IF NOT EXISTS via TEXT, ADD COLUMN IF NOT EXISTS payment_tx TEXT,
+    ADD COLUMN IF NOT EXISTS input JSONB, ADD COLUMN IF NOT EXISTS output JSONB;`);
   try {
     await pool.query(`DROP INDEX IF EXISTS service_usage_wallet_idx;`);
     await pool.query(`ALTER TABLE service_usage DROP COLUMN IF EXISTS wallet_address;`);
@@ -92,14 +94,39 @@ export async function ensureSchema() {
   }
 }
 
+// Tool inputs and outputs are kept this long, then cleared; the rest of the row stays for the stats.
+export const IO_RETENTION_DAYS = 30;
+const MAX_IO_CHARS = 32_000;
+
+// A JSON value small enough to keep: anything larger is replaced by a note with its size.
+export function capJson(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  let text: string;
+  // Postgres JSONB rejects NUL characters inside strings.
+  try { text = JSON.stringify(value, (_key, v) => (typeof v === "string" ? v.replace(/\0/g, "") : v)); } catch { return null; }
+  if (text === undefined) return null;
+  return text.length > MAX_IO_CHARS ? JSON.stringify({ truncated: true, chars: text.length }) : text;
+}
+
+export async function clearOldToolIo() {
+  try {
+    await pool.query(`UPDATE service_usage SET input = NULL, output = NULL
+      WHERE created_at < NOW() - make_interval(days => $1::int) AND (input IS NOT NULL OR output IS NOT NULL)`, [IO_RETENTION_DAYS]);
+  } catch (e) {
+    console.error("clearing old tool inputs and outputs failed:", e);
+  }
+}
+
 export async function recordServiceUsage(params: {
   endpoint: string; method: string; status: number; callerHash: string | null; client: string | null;
-  mcpClient?: string | null; via?: string | null; paymentTx?: string | null;
+  mcpClient?: string | null; via?: string | null; paymentTx?: string | null; input?: unknown; output?: unknown;
 }) {
   try {
     await pool.query(
-      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [params.endpoint, params.method, params.status, params.callerHash, params.client, params.mcpClient ?? null, params.via ?? null, params.paymentTx ?? null]
+      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx, input, output)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb)`,
+      [params.endpoint, params.method, params.status, params.callerHash, params.client, params.mcpClient ?? null, params.via ?? null,
+        params.paymentTx ?? null, capJson(params.input), capJson(params.output)]
     );
   } catch (e) {
     console.error("service_usage insert failed:", e);

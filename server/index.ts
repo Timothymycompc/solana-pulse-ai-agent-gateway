@@ -11,7 +11,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { decodePaymentResponseHeader } from "@x402/core/http";
-import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, TOOL_RUN_SQL } from "./db";
+import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
 import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
@@ -26,6 +26,8 @@ const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.a
 async function startServer() {
   await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET"]);
   await ensureSchema();
+  void clearOldToolIo();
+  setInterval(() => void clearOldToolIo(), 6 * 60 * 60 * 1000).unref();
 
   const app = express();
   app.set("trust proxy", 1);
@@ -72,8 +74,9 @@ async function startServer() {
     catch { return null; }
   };
 
-  // Record route-level usage without query values, bodies or raw IPs: a keyed hash of the caller network and the client
-  // name, plus the MCP client's own name on initialize and, for tool calls, how the call was admitted and paid.
+  // Record route-level usage without query strings or raw IPs: a keyed hash of the caller network and the client name,
+  // plus the MCP client's own name on initialize and, for tool calls, how the call was admitted and paid, the tool's
+  // arguments (never the MCP _meta, which carries the payment) and its result (res.locals.output, set where it runs).
   const trackServiceUsage = (req: any, res: any, next: any) => {
     const pathOnly = String(req.originalUrl || req.url).split("?")[0];
     if (pathOnly.startsWith("/api/analytics/") || pathOnly.startsWith("/api/owner/")) return next();
@@ -86,7 +89,10 @@ async function startServer() {
       const isMcpMessage = pathOnly === "/mcp" || pathOnly === "/mcp/messages";
       const endpoint = isMcpMessage && typeof toolName === "string" ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}` : pathOnly;
       const paymentTx = res.locals.paymentTx ?? settledTx(res.getHeader("payment-response"));
-      void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client, mcpClient, via: res.locals.via ?? null, paymentTx });
+      const isToolCall = req.method === "POST" && (pathOnly.startsWith("/api/tools/") || endpoint.startsWith("/mcp/tools/"));
+      const input = !isToolCall ? null : endpoint.startsWith("/mcp/tools/") ? req.body?.params?.arguments : req.body;
+      void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client, mcpClient, via: res.locals.via ?? null, paymentTx,
+        input, output: isToolCall ? res.locals.output : null });
     });
     next();
   };
@@ -173,6 +179,7 @@ async function startServer() {
 
   app.post("/api/tools/:name", noCache, requireTool, paidRoute, async (req: any, res) => {
     const outcome = await runTool(req.tool, req.body);
+    res.locals.output = outcome.body;
     res.status(outcome.status).json(outcome.body);
   });
 
@@ -293,13 +300,18 @@ async function startServer() {
 
   // Every tool goes through the same admission as HTTP: free tools run, the owner key and free calls run unpaid,
   // and everything else follows the x402 MCP transport (PaymentRequired result, then _meta["x402/payment"]).
-  // note() tells the request's usage record how a tool call was admitted and, when paid, its settlement transaction.
-  type CallNote = { via: string; paymentTx?: string };
+  // note() tells the request's usage record how a tool call was admitted, when paid its settlement transaction, and
+  // the tool's result.
+  type CallNote = { via?: string; paymentTx?: string; output?: unknown };
   const createMcpServer = (caller: { apiKey?: string; ip: string; note?: (n: CallNote) => void }) => {
     const server = new McpServer({ name: "solana-pulse-gateway", version: "2.0.0" });
     for (const tool of TOOLS) {
       const price = priceOf(tool.name);
-      const handler = async (args: any) => asResult(await runTool(tool, args));
+      const handler = async (args: any) => {
+        const outcome = await runTool(tool, args);
+        caller.note?.({ output: outcome.body });
+        return asResult(outcome);
+      };
       server.tool(tool.name, mcpDescription(tool), tool.inputs, READ_ONLY, async (args: any, extra: any) => {
         if (!price) return handler(args);
         let admission;
