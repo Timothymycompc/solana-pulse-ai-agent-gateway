@@ -77,6 +77,13 @@ export async function runTool(tool: string, args: Record<string, unknown>, trans
   };
 }
 
+// The same request as a cURL command (HTTP) or a JSON-RPC body (MCP), for copying.
+export function snippetFor(origin: string, tool: string, args: Record<string, unknown>, transport: 'http' | 'mcp'): string {
+  return transport === 'http'
+    ? `curl -X POST '${origin}/api/tools/${tool}' \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify(args)}'`
+    : JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } }, null, 2);
+}
+
 export async function loadFreeCallsUsed(): Promise<Record<string, number>> {
   const r = await fetch('/api/trial/status', { cache: 'no-store' });
   if (!r.ok) return {};

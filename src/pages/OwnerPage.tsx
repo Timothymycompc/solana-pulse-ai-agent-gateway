@@ -103,13 +103,13 @@ const Solscan: React.FC<{ kind: 'tx' | 'account'; id: string; label?: string }> 
   </a>
 );
 
-const th = 'px-3 py-2 font-medium';
+const th = 'px-3 py-2';
 const td = 'px-3 py-2.5 align-top';
 const TableShell: React.FC<{ head: string[]; children: React.ReactNode; minWidth?: number }> = ({ head, children, minWidth = 640 }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full text-left text-[12px] text-ink-300" style={{ minWidth }}>
-      <thead className="text-[12px] text-ink-400"><tr>{head.map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
-      <tbody className="divide-y divide-white/[0.06]">{children}</tbody>
+  <div className="table-scroll">
+    <table className="data-table text-[12px] text-ink-300" style={{ minWidth }}>
+      <thead className="text-[12px]"><tr>{head.map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+      <tbody>{children}</tbody>
     </table>
   </div>
 );
@@ -123,7 +123,7 @@ const ToolRow: React.FC<{ tool: ToolStats; max: number; callers: CallerStats[]; 
     .filter((x) => x.runs > 0).sort((a, b) => b.runs - a.runs), [callers, tool.tool]);
   return (
     <>
-      <tr className={`cursor-pointer hover:bg-white/[0.02] ${tool.known ? '' : 'opacity-70'}`} onClick={() => setOpen((o) => !o)}>
+      <tr className={`row-button ${open ? 'row-open' : ''} ${tool.known ? '' : 'opacity-70'}`} onClick={() => setOpen((o) => !o)}>
         <td className={td}>
           <button aria-expanded={open} className="flex items-center gap-1.5 text-left font-mono text-[12px] text-ink-100">
             <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-ink-500 transition ${open ? '' : '-rotate-90'}`} />{tool.tool}
@@ -144,7 +144,7 @@ const ToolRow: React.FC<{ tool: ToolStats; max: number; callers: CallerStats[]; 
           <div className="text-ink-500">{num.format(tool.freeCalls)} free · {num.format(tool.paymentAsked)} asked to pay{tool.errors ? ` · ${num.format(tool.errors)} errors` : ''}</div>
         </td>
       </tr>
-      {open && <tr className="bg-black/20">
+      {open && <tr className="row-detail">
         <td colSpan={5} className="px-3 py-3">
           <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
             <dl className="space-y-1 text-[11px]">
@@ -206,7 +206,7 @@ const CallersSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
       </div>
       <TableShell head={['Caller', 'Kind', 'Tool runs', 'Other requests', 'Paid', 'Most used', 'Last seen']} minWidth={860}>
         {rows.slice(0, 80).map((c) => <React.Fragment key={c.id}>
-          <tr className="cursor-pointer hover:bg-white/[0.02]" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
+          <tr className={`row-button ${openId === c.id ? 'row-open' : ''}`} onClick={() => setOpenId(openId === c.id ? null : c.id)}>
             <td className={td}>
               <div className="flex items-center gap-1.5 text-ink-100">
                 <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-ink-500 transition ${openId === c.id ? '' : '-rotate-90'}`} />
@@ -222,7 +222,7 @@ const CallersSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
             <td className={`${td} font-mono text-[11px]`}>{c.tools.slice(0, 2).map((t) => `${t.tool} ${t.runs}`).join(', ') || '—'}</td>
             <td className={`${td} whitespace-nowrap`}>{ago(c.lastSeen)}</td>
           </tr>
-          {openId === c.id && <tr className="bg-black/20"><td colSpan={7} className="space-y-1 px-3 py-3 text-[11px]">
+          {openId === c.id && <tr className="row-detail"><td colSpan={7} className="space-y-1 px-3 py-3 text-[11px]">
             <div><span className="text-ink-500">User agent: </span><code className="break-all font-mono text-ink-200">{c.userAgent || 'none sent'}</code></div>
             {c.mcpClient && <div><span className="text-ink-500">MCP client name: </span><code className="font-mono text-ink-200">{c.mcpClient}</code></div>}
             <div><span className="text-ink-500">First seen </span>{new Date(c.firstSeen).toLocaleString()} · <span className="text-ink-500">MCP pings </span>{num.format(c.pings)} · <span className="text-ink-500">other reads </span>{num.format(c.reads)}</div>

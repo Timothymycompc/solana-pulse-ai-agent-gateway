@@ -88,11 +88,11 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
             <span className="ml-auto text-[12px] font-normal text-ink-400 group-open:hidden">Show</span><span className="ml-auto hidden text-[12px] font-normal text-ink-400 group-open:inline">Hide</span>
           </summary>
           <div className="max-h-96 overflow-auto border-t border-line">
-            <table className="w-full text-left text-[12px]">
-              <thead className="sticky top-0 bg-panel text-[12px] text-ink-400"><tr><th className="px-3 py-2 font-medium">Field</th><th className="px-3 py-2 font-medium">What it is</th><th className="px-3 py-2 font-medium">How it's worked out</th></tr></thead>
+            <table className="data-table striped text-[12px]">
+              <thead className="sticky top-0 z-10 text-[12px]"><tr><th className="px-3 py-2">Field</th><th className="px-3 py-2">What it is</th><th className="px-3 py-2">How it's worked out</th></tr></thead>
               <tbody>
                 {tool.outputs.map((o) => (
-                  <tr key={o.field} className={`border-t border-white/5 align-top ${present.has(o.field.split(/[.[ ]/)[0]) ? '' : 'opacity-60'}`}>
+                  <tr key={o.field} className={`align-top ${present.has(o.field.split(/[.[ ]/)[0]) ? '' : 'opacity-60'}`}>
                     <td className="px-3 py-2"><code className="font-mono text-accent-200">{o.field}</code><div className="text-[11.5px] text-ink-500">{o.type}</div></td>
                     <td className="px-3 py-2 text-ink-200">{o.is}</td>
                     <td className="px-3 py-2 text-ink-400">{o.howWorkedOut}</td>

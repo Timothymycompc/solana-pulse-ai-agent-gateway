@@ -6,6 +6,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { ToolPage } from './pages/ToolPage';
 import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, StatusPage } from './pages/GuidePages';
 import { OwnerPage } from './pages/OwnerPage';
+import { ToolboxPage } from './pages/ToolboxPage';
 import { recordPageView } from './lib/ownerApi';
 
 function App() {
@@ -22,8 +23,8 @@ function App() {
   else if (path === '/docs/pricing') page = <PricingPage />;
   else if (path === '/status') page = <StatusPage />;
   else if (path === '/owner') page = <OwnerPage />;
-  else if (toolMatch) {
-    page = index ? <ToolPage name={toolMatch[1]} index={index} />
+  else if (toolMatch || path === '/toolbox') {
+    page = index ? (toolMatch ? <ToolPage name={toolMatch[1]} index={index} /> : <ToolboxPage index={index} />)
       : error ? <p className="rounded-lg border border-danger-400/30 bg-danger-500/10 p-4 text-sm text-danger-100">Could not load the tools: {error}</p>
       : <div className="space-y-4"><div className="skeleton h-10 w-72 rounded-lg" /><div className="skeleton h-4 w-full max-w-2xl rounded" /><div className="skeleton h-64 rounded-xl" /></div>;
   } else page = <NotFoundPage />;

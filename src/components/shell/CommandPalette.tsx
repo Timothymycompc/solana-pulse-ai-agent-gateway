@@ -42,21 +42,22 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; sect
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 pt-[12vh] backdrop-blur-sm animate-fade-in" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => e.stopPropagation()} className="glass-strong animate-scale-in w-full max-w-xl overflow-hidden rounded-xl border">
-        <div className="flex items-center gap-2 border-b border-white/10 px-4">
-          <Search className="h-4 w-4 text-ink-400" />
+    <div className="popup-scrim fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh] animate-fade-in" onMouseDown={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => e.stopPropagation()} className="popup animate-scale-in w-full max-w-xl overflow-hidden rounded-xl">
+        <div className="wood-head flex items-center gap-2 px-4">
+          <Search className="h-4 w-4 text-gold-400" />
           <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} placeholder="Search tools and docs" aria-label="Search tools and docs"
-            className="h-12 flex-1 bg-transparent text-sm text-white placeholder:text-ink-500 outline-none" />
-          <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-ink-400">Esc</kbd>
+            className="h-12 flex-1 bg-transparent text-[15px] text-ink-50 placeholder:text-tan-500 outline-none" />
+          <kbd className="rounded border border-tan-500/40 px-1.5 py-0.5 text-[11px] text-tan-400">Esc</kbd>
         </div>
         <ul role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
-          {items.length === 0 && <li className="px-3 py-6 text-center text-xs text-ink-400">No results for “{query}”.</li>}
+          {items.length === 0 && <li className="px-3 py-6 text-center text-[13px] text-ink-400">Nothing matches “{query}”. Try a tool name such as check_tx, or a word like wallet.</li>}
           {items.map((item, i) => (
             <li key={item.path} role="option" aria-selected={i === cursor}>
               <button onMouseEnter={() => setCursor(i)} onClick={() => go(item)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${i === cursor ? 'bg-white/[0.07] text-white' : 'text-ink-300'}`}>
-                <span className="w-28 shrink-0 truncate text-[12px] text-ink-500">{item.section}</span>
+                className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${i === cursor ? 'bg-ink-800/70 text-ink-50' : 'text-ink-300'}`}>
+                {i === cursor && <span aria-hidden className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gold-400" />}
+                <span className={`w-28 shrink-0 truncate text-[12px] ${i === cursor ? 'text-tan-300' : 'text-ink-500'}`}>{item.section}</span>
                 <span className="flex-1 truncate">{item.title}</span>
                 {item.badge && <span className="text-[12px] tabular-nums text-ink-500">{item.badge}</span>}
                 {item.external ? <ArrowUpRight className="h-3.5 w-3.5 text-ink-500" /> : i === cursor && <CornerDownLeft className="h-3.5 w-3.5 text-ink-500" />}
@@ -64,6 +65,11 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; sect
             </li>
           ))}
         </ul>
+        <div className="flex items-center gap-4 border-t border-line px-4 py-2 text-[12px] text-ink-500 max-sm:hidden">
+          <span><kbd className="font-sans text-ink-300">↑ ↓</kbd> move</span>
+          <span><kbd className="font-sans text-ink-300">Enter</kbd> open</span>
+          <span><kbd className="font-sans text-ink-300">Esc</kbd> close</span>
+        </div>
       </div>
     </div>
   );

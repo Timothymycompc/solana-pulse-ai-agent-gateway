@@ -5,7 +5,7 @@ import { withViewTransition } from './hooks/motion';
 // The server returns index.html for unknown paths, so deep links load directly.
 
 const LEGACY: Record<string, string> = {
-  '#playground': '/docs/tools/check_tx',
+  '#playground': '/toolbox',
   '#mcp': '/docs/connect',
   '#pricing': '/docs/pricing',
 };

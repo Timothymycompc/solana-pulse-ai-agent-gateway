@@ -42,14 +42,14 @@ export const CodeBlock: React.FC<{ code: string; title?: string }> = ({ code, ti
 };
 
 export const Table: React.FC<{ head: string[]; rows: React.ReactNode[][]; minWidth?: number }> = ({ head, rows, minWidth = 560 }) => (
-  <div className="mb-8 overflow-x-auto rounded-xl border border-line surface">
-    <table className="w-full text-left text-[14px]" style={{ minWidth }}>
-      <thead className="text-[12.5px] text-ink-400">
-        <tr>{head.map((h) => <th key={h} className="px-4 pb-2 pt-3 font-medium">{h}</th>)}</tr>
+  <div className="table-scroll mb-8 rounded-xl border border-line">
+    <table className="data-table striped text-[14px]" style={{ minWidth }}>
+      <thead className="text-[13px]">
+        <tr>{head.map((h) => <th key={h} className="px-4 py-2.5">{h}</th>)}</tr>
       </thead>
       <tbody>
         {rows.map((cells, i) => (
-          <tr key={i} className="border-t border-line align-top">{cells.map((c, j) => <td key={j} className="px-4 py-3 leading-[1.6] text-ink-300">{c}</td>)}</tr>
+          <tr key={i} className="align-top">{cells.map((c, j) => <td key={j} className="px-4 py-3 leading-[1.6] text-ink-300">{c}</td>)}</tr>
         ))}
       </tbody>
     </table>

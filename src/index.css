@@ -7,27 +7,48 @@
 @theme {
   /* ============================================================
      COLORS: change the site's look here, nowhere else.
-     ink      neutral greys for backgrounds, borders and text
+     ink      blue-greys for backgrounds, borders and text
      accent   steel blue: links, the primary button, tool names
+     gold / tan / wood   warm accents for selection, table heads and pop-ups (see below)
      success / warning / danger   verdicts only (pass, caution, block)
      Use them in markup as e.g. bg-ink-950, text-accent-300, border-danger-400.
      ============================================================ */
-  --color-ink-50: #fafafa;
-  --color-ink-100: #f4f4f5;
-  --color-ink-200: #e4e4e7;
-  --color-ink-300: #d4d4d8;
-  --color-ink-400: #a1a1aa;
-  --color-ink-500: #71717a;
-  --color-ink-600: #52525b;
-  --color-ink-700: #3f3f46;
-  --color-ink-800: #27272a;
-  --color-ink-900: #161618;
-  --color-ink-950: #0b0b0d;
+  --color-ink-50: #f8f9fb;
+  --color-ink-100: #eef0f4;
+  --color-ink-200: #dde1e8;
+  --color-ink-300: #c3c9d3;
+  --color-ink-400: #969eac;
+  --color-ink-500: #6b7484;
+  --color-ink-600: #4c5464;
+  --color-ink-700: #363d4a;
+  --color-ink-800: #252b36;
+  --color-ink-900: #161a22;
+  --color-ink-950: #0a0d12;
 
   /* Video panel and code-box fills. */
-  --color-panel: #161618;
-  --color-code: #101013;
-  --color-line: #27272a;
+  --color-panel: #161a22;
+  --color-code: #0f1218;
+  --color-line: #252b36;
+
+  /* Warm accents, set against the navy like brass and walnut on a ship's instrument case.
+     gold   the selected tool, an open row, the edge of a pop-up. Never a verdict: caution is warning.
+     tan    table headings and quiet labels on wood
+     wood   the header strip of tables and pop-ups */
+  --color-gold-200: #ecdcb0;
+  --color-gold-300: #dcc17f;
+  --color-gold-400: #c9a55c;
+  --color-gold-500: #a8853f;
+  --color-gold-600: #7d6331;
+
+  --color-tan-200: #e6d8c0;
+  --color-tan-300: #d0bc9b;
+  --color-tan-400: #b39c79;
+  --color-tan-500: #8d7a5c;
+
+  --color-wood-700: #4b3628;
+  --color-wood-800: #34261d;
+  --color-wood-900: #241b15;
+  --color-wood-950: #17120e;
 
   --color-accent-50: #eff4fc;
   --color-accent-100: #dde8f8;
@@ -192,9 +213,57 @@
     font-weight: 650;
   }
 
+  /* Walnut strip with a brass rule under it: the head of every table, pop-up and the toolbox bench. */
+  .wood-head {
+    background: color-mix(in srgb, var(--color-wood-900) 78%, var(--color-panel));
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-gold-500) 55%, transparent);
+    color: var(--color-tan-300);
+  }
+
+  /* Tables. Wrap in .table-scroll so wide tables scroll sideways on phones, with a shadow on the side that has more. */
+  .table-scroll {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, var(--color-panel) 40%, transparent) left / 28px 100% no-repeat local,
+      linear-gradient(to left, var(--color-panel) 40%, transparent) right / 28px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.55), transparent) left / 14px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.55), transparent) right / 14px 100% no-repeat scroll,
+      var(--color-panel);
+  }
+  .data-table { width: 100%; text-align: left; border-collapse: collapse; }
+  .data-table thead th {
+    background: color-mix(in srgb, var(--color-wood-900) 78%, var(--color-panel));
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-gold-500) 55%, transparent);
+    color: var(--color-tan-300);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .data-table tbody tr + tr { border-top: 1px solid var(--color-line); }
+  .data-table.striped tbody tr:nth-child(even) { background: color-mix(in srgb, var(--color-ink-800) 30%, transparent); }
+  .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-ink-700) 26%, transparent); }
+  /* A row you can open, and the details under it once open: a brass edge ties the two together. */
+  .data-table tr.row-button { cursor: pointer; }
+  .data-table tr.row-button:hover > td:first-child,
+  .data-table tr.row-open > td:first-child,
+  .data-table tr.row-detail > td:first-child { box-shadow: inset 2px 0 0 var(--color-gold-400); }
+  .data-table tr.row-open, .data-table tr.row-detail { background: color-mix(in srgb, var(--color-wood-950) 70%, transparent); }
+  .data-table tr.row-detail { border-top-color: color-mix(in srgb, var(--color-wood-700) 60%, transparent); }
+
+  /* Pop-ups (search, the phone menu): a navy-dimmed page behind a solid panel with a brass hairline. */
+  .popup-scrim {
+    background: color-mix(in srgb, var(--color-ink-950) 72%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .popup {
+    background: color-mix(in srgb, var(--color-ink-900) 96%, transparent);
+    border: 1px solid var(--color-ink-700);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-gold-500) 14%, transparent), 0 28px 70px -16px rgb(0 0 0 / 0.75);
+  }
+
   /* Loading placeholder sweep. */
   .skeleton {
-    background: linear-gradient(90deg, rgb(39 39 42 / 0.5) 25%, rgb(63 63 70 / 0.55) 50%, rgb(39 39 42 / 0.5) 75%);
+    background: linear-gradient(90deg, rgb(37 43 54 / 0.5) 25%, rgb(54 61 74 / 0.55) 50%, rgb(37 43 54 / 0.5) 75%);
     background-size: 200% 100%;
     animation: var(--animate-shimmer);
   }

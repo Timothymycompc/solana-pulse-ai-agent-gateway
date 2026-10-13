@@ -65,13 +65,13 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; children
       {/* Mobile navigation drawer */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
-          <div className="absolute inset-0 animate-fade-in bg-black/60" onClick={() => setDrawerOpen(false)} />
-          <div className="glass-strong absolute inset-y-0 left-0 w-72 max-w-[85vw] animate-[slide-in_280ms_cubic-bezier(0.22,1,0.36,1)] overflow-y-auto border-r p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-semibold text-white">Solana Pulse</span>
-              <button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-md p-1.5 text-ink-300 hover:bg-white/5"><X className="h-5 w-5" /></button>
+          <div className="popup-scrim absolute inset-0 animate-fade-in" onClick={() => setDrawerOpen(false)} />
+          <div className="popup absolute inset-y-0 left-0 w-72 max-w-[85vw] animate-[slide-in_280ms_cubic-bezier(0.22,1,0.36,1)] overflow-y-auto border-y-0 border-l-0">
+            <div className="wood-head sticky top-0 z-10 flex items-center justify-between px-4 py-3">
+              <span className="text-[15px] font-semibold text-tan-200">Solana Pulse</span>
+              <button onClick={() => setDrawerOpen(false)} aria-label="Close navigation" className="rounded-md p-1.5 text-tan-300 hover:bg-white/5 hover:text-tan-200"><X className="h-5 w-5" /></button>
             </div>
-            <Sidebar sections={sections} path={path} onNavigate={() => setDrawerOpen(false)} />
+            <div className="p-4"><Sidebar sections={sections} path={path} onNavigate={() => setDrawerOpen(false)} /></div>
           </div>
         </div>
       )}

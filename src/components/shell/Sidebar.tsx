@@ -14,7 +14,7 @@ export const Sidebar: React.FC<{ sections: NavSection[]; path: string; onNavigat
             const className = `group relative flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[14px] transition-colors ${active ? 'bg-panel text-white' : 'text-ink-400 hover:text-ink-100'}`;
             const content = (
               <>
-                {active && <span aria-hidden className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent-400" />}
+                {active && <span aria-hidden className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gold-400" />}
                 <span className="truncate">{item.title}</span>
                 {item.badge && <span className="shrink-0 text-[12px] tabular-nums text-ink-500 group-hover:text-ink-400">{item.badge}</span>}
                 {item.external && <ArrowUpRight className="h-3 w-3 shrink-0 opacity-50" />}

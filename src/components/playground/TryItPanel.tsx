@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, Check, Copy, Play, RefreshCw } from 'lucide-react';
-import { loadExample, loadFreeCallsUsed, runTool, type RunResult, type ToolDoc } from '../../lib/toolsApi';
+import { loadExample, loadFreeCallsUsed, runTool, snippetFor, type RunResult, type ToolDoc } from '../../lib/toolsApi';
+import { Link } from '../../router';
 import { ToolForm, toArguments } from './ToolForm';
 import { button } from '../ui/button';
 import { ToolResult } from './ToolResult';
@@ -43,16 +44,17 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   }, [run]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const snippet = transport === 'http'
-    ? `curl -X POST '${origin}/api/tools/${tool.name}' \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify(args)}'`
-    : JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool.name, arguments: args } }, null, 2);
+  const snippet = snippetFor(origin, tool.name, args, transport);
   const copySnippet = async () => { try { await navigator.clipboard.writeText(snippet); setCopied(true); window.setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ } };
   const freeLeft = tool.price ? Math.max(freeCallsPerTool - (freeUsed[tool.name] ?? 0), 0) : null;
 
   return (
     <section aria-label={`Try ${tool.name}`} className="surface rounded-2xl border">
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
-        <h2 className="text-[15px] font-semibold text-ink-50">Try it on mainnet</h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-[15px] font-semibold text-ink-50">Try it on mainnet</h2>
+          <Link to={`/toolbox?tool=${tool.name}`} className="text-[12.5px] text-gold-300 hover:text-gold-200">Open in the toolbox</Link>
+        </div>
         <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-md border border-line bg-code p-0.5 text-[12px]">
           {(['http', 'mcp'] as const).map((t) => (
             <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded px-2 py-1 font-medium transition ${transport === t ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>

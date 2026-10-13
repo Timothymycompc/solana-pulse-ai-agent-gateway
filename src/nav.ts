@@ -9,6 +9,7 @@ export const REPO_URL = 'https://github.com/Timothymycompc/solana-pulse-ai-agent
 const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
   { title: 'Quickstart', path: '/docs/quickstart', keywords: 'curl http first request example' },
+  { title: 'Toolbox', path: '/toolbox', keywords: 'playground try run every tool edit inputs json history calls' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
   { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude claude-code chatgpt openai gemini antigravity cursor elizaos agentkit coinbase config agent' },
 ];
@@ -24,7 +25,7 @@ const RESOURCE_LINKS: NavItem[] = [
 ];
 
 export const toolPath = (name: string) => `/docs/tools/${name}`;
-const CATEGORY_ORDER: ToolDoc['category'][] = ['transactions', 'tokens', 'wallets', 'network', 'reference'];
+export const CATEGORY_ORDER: ToolDoc['category'][] = ['transactions', 'tokens', 'wallets', 'network', 'reference'];
 
 export function buildSections(tools: ToolDoc[] | null): NavSection[] {
   const toolSections: NavSection[] = CATEGORY_ORDER.map((category) => ({
