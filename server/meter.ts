@@ -79,6 +79,11 @@ export async function admitCall(o: { tool: string; ip: string; apiKey?: string; 
   return { via: "x402" };
 }
 
+// Directory checkers must see "402 Payment Required" to list a paid tool. Coinbase's Bazaar validator and indexer call
+// with Go's default user agent and nothing else, so a bare Go client gets no free calls over HTTP; it pays from the
+// first call. Real apps and people send their own user agent.
+export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$/;
+
 // HTTP gate for data routes: free tools, the owner key and free calls pass straight through; everything else goes to x402.
 export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -87,7 +92,7 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     const name = typeof req.params.name === "string" ? req.params.name : toolForRoute(req.path);
     const tool = TOOLS_BY_NAME.get(name)?.name ?? name;
     const ip = req.ip || "unknown";
-    const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]);
+    const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "");
     let admission: Admission;
     try {
       admission = await admitCall({ tool, ip, apiKey: keyFromReq(req), hasPayment });

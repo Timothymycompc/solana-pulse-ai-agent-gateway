@@ -74,3 +74,20 @@ test("percent-encoded and old tool names share the real tool's allowance", async
     server.close();
   }
 });
+
+test("a bare Go client (Coinbase's Bazaar checker) is asked to pay, not given a free call", async () => {
+  const app = express();
+  app.set("trust proxy", true);
+  const payWall = (_req: any, res: any) => res.status(402).json({ x402Version: 2 });
+  app.post("/api/tools/:name", paidRouteMiddleware(payWall as any), (_req, res) => res.json({ ran: true }));
+  const server = app.listen(0);
+  const port = (server.address() as any).port;
+  const call = async (ua: string) => (await fetch(`http://127.0.0.1:${port}/api/tools/fee`, { method: "POST", headers: { "x-forwarded-for": "192.0.2.55", "user-agent": ua } })).status;
+  try {
+    assert.equal(await call("Go-http-client/1.1"), 402);
+    assert.equal(await call("Go-http-client/2.0"), 402);
+    assert.equal(await call("my-agent/1.0 Go-http-client/1.1"), 200, "a Go app that names itself still gets free calls");
+  } finally {
+    server.close();
+  }
+});
