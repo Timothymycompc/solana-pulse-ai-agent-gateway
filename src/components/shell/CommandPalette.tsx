@@ -46,7 +46,7 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; sect
       <div role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => e.stopPropagation()} className="glass-strong animate-scale-in w-full max-w-xl overflow-hidden rounded-xl border">
         <div className="flex items-center gap-2 border-b border-white/10 px-4">
           <Search className="h-4 w-4 text-ink-400" />
-          <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} placeholder="Search tools and docs…" aria-label="Search tools and docs"
+          <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} placeholder="Search tools and docs" aria-label="Search tools and docs"
             className="h-12 flex-1 bg-transparent text-sm text-white placeholder:text-ink-500 outline-none" />
           <kbd className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-ink-400">Esc</kbd>
         </div>
@@ -56,9 +56,9 @@ export const CommandPalette: React.FC<{ open: boolean; onClose: () => void; sect
             <li key={item.path} role="option" aria-selected={i === cursor}>
               <button onMouseEnter={() => setCursor(i)} onClick={() => go(item)}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${i === cursor ? 'bg-white/[0.07] text-white' : 'text-ink-300'}`}>
-                <span className="w-24 shrink-0 truncate text-[10px] uppercase tracking-wider text-ink-500">{item.section}</span>
+                <span className="w-28 shrink-0 truncate text-[12px] text-ink-500">{item.section}</span>
                 <span className="flex-1 truncate">{item.title}</span>
-                {item.badge && <span className="font-mono text-[10px] text-ink-500">{item.badge}</span>}
+                {item.badge && <span className="text-[12px] tabular-nums text-ink-500">{item.badge}</span>}
                 {item.external ? <ArrowUpRight className="h-3.5 w-3.5 text-ink-500" /> : i === cursor && <CornerDownLeft className="h-3.5 w-3.5 text-ink-500" />}
               </button>
             </li>

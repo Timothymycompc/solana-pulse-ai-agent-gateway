@@ -5,6 +5,8 @@ import { AppShell } from './components/shell/AppShell';
 import { OverviewPage } from './pages/OverviewPage';
 import { ToolPage } from './pages/ToolPage';
 import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, StatusPage } from './pages/GuidePages';
+import { OwnerPage } from './pages/OwnerPage';
+import { recordPageView } from './lib/ownerApi';
 
 function App() {
   const path = usePath();
@@ -19,6 +21,7 @@ function App() {
   else if (path === '/docs/connect') page = <ConnectPage />;
   else if (path === '/docs/pricing') page = <PricingPage />;
   else if (path === '/status') page = <StatusPage />;
+  else if (path === '/owner') page = <OwnerPage />;
   else if (toolMatch) {
     page = index ? <ToolPage name={toolMatch[1]} index={index} />
       : error ? <p className="rounded-lg border border-danger-400/30 bg-danger-500/10 p-4 text-sm text-danger-100">Could not load the tools: {error}</p>
@@ -28,8 +31,12 @@ function App() {
   // Per-page tab title, from the same navigation data the sidebar uses.
   useEffect(() => {
     const item = sections.flatMap((s) => s.items).find((i) => i.path === path);
-    document.title = path === '/' ? 'Solana Pulse · Safety layer for AI agents on Solana' : `${item?.title ?? 'Not found'} · Solana Pulse`;
+    const title = path === '/owner' ? 'Owner dashboard' : item?.title ?? 'Not found';
+    document.title = path === '/' ? 'Solana Pulse · Safety layer for AI agents on Solana' : `${title} · Solana Pulse`;
   }, [path, sections]);
+
+  // Count the visit for the owner dashboard (not the dashboard itself).
+  useEffect(() => { if (path !== '/owner') recordPageView(path); }, [path]);
 
   return <AppShell sections={sections} path={path}>{page}</AppShell>;
 }

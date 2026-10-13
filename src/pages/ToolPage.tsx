@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, ArrowRight, PiggyBank, ShieldCheck } from 'lucide-react';
 import { Link } from '../router';
 import { toolPath } from '../nav';
-import { CATEGORY_LABELS, type ToolsIndex } from '../lib/toolsApi';
+import type { ToolsIndex } from '../lib/toolsApi';
 import { Code, H2, PageHeader, P, Table } from '../components/docs/DocParts';
 import { TryItPanel } from '../components/playground/TryItPanel';
 
@@ -17,17 +17,17 @@ export const ToolPage: React.FC<{ name: string; index: ToolsIndex }> = ({ name, 
     <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <article className="min-w-0">
         <PageHeader
-          eyebrow={CATEGORY_LABELS[tool.category]}
+          kicker={tool.name}
           title={tool.title}
-          aside={<span className={`rounded-full border px-3 py-1 text-xs font-medium ${tool.price ? 'border-white/15 text-ink-200' : 'border-success-500/30 text-success-300'}`}>{tool.priceText}</span>}
+          aside={<span className="pb-2 text-[14px] text-ink-400">{tool.priceText}</span>}
           lead={tool.description}
         />
 
-        <div className="mb-8 space-y-3">
-          <p className="text-sm leading-7 text-ink-200"><span className="font-semibold text-white">Use when:</span> {tool.useWhen}</p>
-          <div className={`flex gap-3 rounded-lg border p-3.5 text-sm leading-6 ${tool.benefit.kind === 'money' ? 'border-success-500/20 bg-success-500/[0.06] text-success-50' : 'border-info-500/20 bg-info-500/[0.06] text-info-50'}`}>
-            {tool.benefit.kind === 'money' ? <PiggyBank className="mt-0.5 h-4 w-4 shrink-0 text-success-400" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-info-400" />}
-            <span><strong className="font-semibold">{tool.benefit.kind === 'money' ? 'Saves money. ' : 'Prevents hallucination. '}</strong>{tool.benefit.text}</span>
+        <div className="mb-10 grid max-w-[72ch] gap-4">
+          <p className="text-[16px] leading-[1.65] text-ink-100">{tool.useWhen}</p>
+          <div className="flex gap-3 rounded-xl border border-line surface p-4 text-[15px] leading-[1.6] text-ink-300">
+            {tool.benefit.kind === 'money' ? <PiggyBank className="mt-0.5 h-5 w-5 shrink-0 text-accent-300" /> : <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-accent-300" />}
+            <span><strong className="font-semibold text-ink-50">{tool.benefit.kind === 'money' ? 'Saves money. ' : 'Keeps the model from guessing. '}</strong>{tool.benefit.text}</span>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export const ToolPage: React.FC<{ name: string; index: ToolsIndex }> = ({ name, 
 
         <H2 id="inputs">Inputs</H2>
         <Table head={['Name', 'What it is', 'How to get it']} rows={tool.inputs.map((input) => [
-          <><Code>{input.name}</Code>{input.required && <span className="ml-0.5 text-danger-300" title="required">*</span>}<div className="mt-1 text-[11px] text-ink-500">{input.type}{input.required ? '' : ' · optional'}</div></>,
+          <><Code>{input.name}</Code><div className="mt-1 text-[12.5px] text-ink-500">{input.type}, {input.required ? 'required' : 'optional'}</div></>,
           input.description,
           input.howToGet,
         ])} />
@@ -47,19 +47,19 @@ export const ToolPage: React.FC<{ name: string; index: ToolsIndex }> = ({ name, 
         <H2 id="returns">Returned fields</H2>
         <P>Every field the tool returns, what it means, and exactly how the gateway computes it.</P>
         <Table head={['Field', 'What it means', "How it's computed"]} minWidth={640} rows={tool.outputs.map((o) => [
-          <><Code>{o.field}</Code><div className="mt-1 text-[11px] text-ink-500">{o.type}</div></>,
+          <><Code>{o.field}</Code><div className="mt-1 text-[12.5px] text-ink-500">{o.type}</div></>,
           <span className="text-ink-200">{o.meaning}</span>,
           o.howComputed,
         ])} />
 
         {tool.notes.length > 0 && (<>
           <H2 id="notes">Limits</H2>
-          <ul className="mb-6 list-disc space-y-1.5 pl-5 text-sm leading-6 text-ink-300">{tool.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+          <ul className="mb-6 max-w-[72ch] list-disc space-y-2 pl-5 text-[15px] leading-[1.65] text-ink-300 marker:text-ink-600">{tool.notes.map((n) => <li key={n}>{n}</li>)}</ul>
         </>)}
 
-        <nav aria-label="More tools" className="mt-12 grid gap-3 sm:grid-cols-2">
-          {prev ? <Link to={toolPath(prev.name)} className="group rounded-lg border border-white/10 p-4 transition hover:border-white/20 hover:bg-white/[0.02]"><span className="flex items-center gap-1 text-[11px] text-ink-500"><ArrowLeft className="h-3 w-3" />Previous</span><span className="mt-1 block text-sm font-medium text-ink-100 group-hover:text-white">{prev.title}</span></Link> : <span />}
-          {next && <Link to={toolPath(next.name)} className="group rounded-lg border border-white/10 p-4 text-right transition hover:border-white/20 hover:bg-white/[0.02]"><span className="flex items-center justify-end gap-1 text-[11px] text-ink-500">Next<ArrowRight className="h-3 w-3" /></span><span className="mt-1 block text-sm font-medium text-ink-100 group-hover:text-white">{next.title}</span></Link>}
+        <nav aria-label="More tools" className="mt-16 grid gap-3 sm:grid-cols-2">
+          {prev ? <Link to={toolPath(prev.name)} className="group rounded-xl border border-line p-4 transition hover:border-ink-600"><span className="flex items-center gap-1 text-[12.5px] text-ink-500"><ArrowLeft className="h-3 w-3" />Previous tool</span><span className="mt-1 block text-[15px] font-medium text-ink-100 group-hover:text-white">{prev.title}</span></Link> : <span />}
+          {next && <Link to={toolPath(next.name)} className="group rounded-xl border border-line p-4 text-right transition hover:border-ink-600"><span className="flex items-center justify-end gap-1 text-[12.5px] text-ink-500">Next tool<ArrowRight className="h-3 w-3" /></span><span className="mt-1 block text-[15px] font-medium text-ink-100 group-hover:text-white">{next.title}</span></Link>}
         </nav>
       </article>
 

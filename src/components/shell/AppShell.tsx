@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, Search, Shield, X, Zap } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import { Link } from '../../router';
+import { button } from '../ui/button';
 import { REPO_URL, type NavSection } from '../../nav';
 import { Sidebar } from './Sidebar';
 import { CommandPalette } from './CommandPalette';
@@ -28,22 +29,20 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; children
 
   return (
     <div className="relative isolate min-h-screen bg-ink-950 text-ink-100">
+      <div aria-hidden className="video-backdrop pointer-events-none fixed inset-0 -z-10" />
 
-      <header className={`sticky top-0 z-40 border-b transition-colors duration-300 ${scrolled ? 'glass-strong' : 'border-white/[0.06] bg-ink-950/70 backdrop-blur-md'}`}>
+      <header className={`sticky top-0 z-40 border-b transition-colors duration-300 ${scrolled ? 'glass-strong' : 'border-transparent'}`}>
         <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-3 px-4 lg:px-6">
           <button onClick={() => setDrawerOpen(true)} aria-label="Open navigation" className="rounded-md p-1.5 text-ink-300 hover:bg-white/5 lg:hidden"><Menu className="h-5 w-5" /></button>
-          <Link to="/" className="flex items-center gap-2" aria-label="Solana Pulse home">
-            <span className="bg-accent-600 grid h-7 w-7 place-items-center rounded-md"><Shield className="h-3.5 w-3.5 text-white" /></span>
-            <span className="text-sm font-semibold tracking-tight text-white">Solana Pulse</span>
-            <span className="hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-ink-400 sm:inline">Docs</span>
+          <Link to="/" className="flex items-center gap-2.5" aria-label="Solana Pulse home">
+            <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-accent-400" />
+            <span className="whitespace-nowrap text-[15px] font-semibold tracking-[-0.01em] text-white">Solana Pulse</span>
           </Link>
-          <button onClick={() => setPaletteOpen(true)} className="ml-auto flex h-9 w-full max-w-xs items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-left text-xs text-ink-400 transition hover:border-white/20 hover:text-ink-200 md:ml-8">
-            <Search className="h-3.5 w-3.5" /><span className="flex-1">Search tools and docs…</span>
-            <kbd className="hidden rounded border border-white/15 px-1.5 py-0.5 font-sans text-[10px] sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
+          <button onClick={() => setPaletteOpen(true)} className="ml-auto flex h-9 w-full min-w-0 max-w-xs items-center gap-2 rounded-lg border border-line bg-code/70 px-3 text-left text-[13px] text-ink-400 transition hover:border-ink-600 hover:text-ink-200 md:ml-10">
+            <Search className="h-3.5 w-3.5 shrink-0" /><span className="flex-1 truncate">Search tools and docs</span>
+            <kbd className="hidden rounded border border-line px-1.5 py-0.5 font-sans text-[11px] text-ink-500 sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          <Link to="/docs/pricing" className="hidden items-center gap-1.5 rounded-lg border border-success-500/25 bg-success-500/10 px-3 py-2 text-xs font-medium text-success-200 transition hover:bg-success-500/15 sm:inline-flex">
-            <Zap className="h-3.5 w-3.5" />No API key · x402
-          </Link>
+          <Link to="/docs/connect" className={button('secondary', 'sm', 'shrink-0 max-sm:hidden md:ml-auto')}>Connect an agent</Link>
         </div>
       </header>
 
@@ -53,9 +52,12 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; children
         </aside>
         <main key={path} style={{ viewTransitionName: 'page' }} className="min-w-0 flex-1 animate-fade-in py-8 lg:py-10">
           {children}
-          <footer className="mt-16 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-6 text-xs text-ink-500">
-            <span>Solana Pulse · an intelligence layer between Solana and AI agents</span>
-            <a href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer" className="hover:text-ink-300">Request a tool or report an issue ↗</a>
+          <footer className="mt-20 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 text-[13px] text-ink-500">
+            <span>Solana Pulse is open source under the MIT license.</span>
+            <span className="flex gap-5">
+              <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-ink-200">Source on GitHub</a>
+              <a href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer" className="hover:text-ink-200">Request a tool or report an issue</a>
+            </span>
           </footer>
         </main>
       </div>

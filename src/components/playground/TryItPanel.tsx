@@ -50,13 +50,10 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   const freeLeft = tool.price ? Math.max(freeCallsPerTool - (freeUsed[tool.name] ?? 0), 0) : null;
 
   return (
-    <section aria-label={`Try ${tool.name}`} className="surface rounded-xl border">
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2"><span className="relative inline-flex h-2 w-2 rounded-full bg-success-400" /></span>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-200">Try it</h2>
-        </div>
-        <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-md border border-white/10 bg-white/[0.03] p-0.5 text-[11px]">
+    <section aria-label={`Try ${tool.name}`} className="surface rounded-2xl border">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <h2 className="text-[15px] font-semibold text-ink-50">Try it on mainnet</h2>
+        <div role="radiogroup" aria-label="Transport" className="inline-flex rounded-md border border-line bg-code p-0.5 text-[12px]">
           {(['http', 'mcp'] as const).map((t) => (
             <button key={t} role="radio" aria-checked={transport === t} onClick={() => setTransport(t)} className={`rounded px-2 py-1 font-medium transition ${transport === t ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white'}`}>{t === 'http' ? 'HTTP' : 'MCP'}</button>
           ))}
@@ -64,11 +61,11 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
       </div>
 
       <div className="space-y-4 p-4">
-        <div className="flex items-center justify-between gap-2 text-[11px]">
+        <div className="flex items-center justify-between gap-2 text-[12.5px]">
           <span className={exampleState === 'error' ? 'text-warning-200' : 'text-ink-400'}>
-            {exampleState === 'loading' ? 'Loading live mainnet example…' : exampleState === 'ready' ? 'Live mainnet example loaded; edit anything.' : `Example unavailable (${exampleError}).`}
+            {exampleState === 'loading' ? 'Loading a live mainnet example…' : exampleState === 'ready' ? 'Filled with a live mainnet example. Edit anything.' : `No example right now (${exampleError}). Fill the inputs yourself.`}
           </span>
-          <button onClick={() => void fillExample()} disabled={exampleState === 'loading'} aria-label="Reload live example" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-ink-300 transition hover:border-white/25 hover:text-white disabled:opacity-50">
+          <button onClick={() => void fillExample()} disabled={exampleState === 'loading'} aria-label="Load a new example" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-line px-2 py-1 text-ink-300 transition hover:border-ink-600 hover:text-white disabled:opacity-50">
             <RefreshCw className={`h-3 w-3 ${exampleState === 'loading' ? 'animate-spin' : ''}`} />Reload
           </button>
         </div>
@@ -79,11 +76,11 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
             {running ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}{running ? 'Running…' : 'Run request'}
             {!running && <kbd className="ml-1 hidden rounded border border-white/25 bg-white/10 px-1 font-sans text-[9px] font-medium sm:inline">{isMac ? '⌘' : 'Ctrl'}↵</kbd>}
           </button>
-          <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy cURL' : 'Copy MCP request'} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2.5 text-[11px] text-ink-300 transition hover:border-white/25 hover:text-white">
+          <button onClick={() => void copySnippet()} aria-label={transport === 'http' ? 'Copy cURL' : 'Copy MCP request'} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2.5 text-[13px] text-ink-300 transition hover:border-ink-600 hover:text-white">
             {copied ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{transport === 'http' ? 'cURL' : 'MCP'}
           </button>
         </div>
-        <p className="text-[11px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left today, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
+        <p className="text-[12.5px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left today, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
 
         <ToolResult tool={tool} result={result} running={running} showFieldGuide={false} />
       </div>

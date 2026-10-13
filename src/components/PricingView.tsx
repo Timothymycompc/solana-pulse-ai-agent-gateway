@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Copy, Coins } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { FREE_CALLS_TEXT, TOOL_PRICES } from '../../server/pricing';
-import { PageHeader } from './docs/DocParts';
+import { H2, PageHeader } from './docs/DocParts';
 
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
@@ -16,7 +16,8 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 });
 
 const res = await fetchWithPayment(
-  "${typeof window !== 'undefined' ? window.location.origin : ''}/api/solana/token-profile?mint=<mint>"
+  "${typeof window !== 'undefined' ? window.location.origin : ''}/api/tools/token_verdict",
+  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mint: "<mint>" }) }
 );
 console.log(await res.json());`;
 
@@ -36,19 +37,19 @@ await client.connect(new StreamableHTTPClientTransport(
 const result = await client.callTool("preflight_transaction", { transaction: "<base64>" });`;
 
 const tiers = [
-  { price: '$0.01', label: '$0.01 per call', note: `After ${FREE_CALLS_TEXT}.` },
-  { price: '$0.02', label: '$0.02 per call', note: `After ${FREE_CALLS_TEXT}. Checks that protect funds.` },
+  { price: '$0.01', note: 'Reads, lookups, helpers and transaction forensics.' },
+  { price: '$0.02', note: 'The three checks that protect funds.' },
 ] as const;
 
 const CodeBlock: React.FC<{ id: string; title: string; code: string; copied: string | null; onCopy: (id: string, code: string) => void }> = ({ id, title, code, copied, onCopy }) => (
-  <div className="min-w-0 rounded-xl border border-white/10 surface-inset">
-    <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-      <span className="text-xs font-semibold text-ink-300">{title}</span>
-      <button onClick={() => onCopy(id, code)} className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2 py-1 text-[11px] text-ink-300 hover:border-ink-500 hover:text-white">
+  <div className="min-w-0 rounded-xl border border-line surface-inset">
+    <div className="flex items-center justify-between px-4 pt-2.5">
+      <span className="text-[12.5px] text-ink-400">{title}</span>
+      <button onClick={() => onCopy(id, code)} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-ink-400 hover:bg-white/5 hover:text-white">
         {copied === id ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{copied === id ? 'Copied' : 'Copy'}
       </button>
     </div>
-    <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-5 text-ink-300">{code}</pre>
+    <pre className="overflow-x-auto px-4 pb-4 pt-2 font-mono text-[12px] leading-[1.7] text-ink-200">{code}</pre>
   </div>
 );
 
@@ -64,19 +65,19 @@ export const PricingView: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Payments" title="Pricing & x402" lead={<>Every tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then one or two cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
+      <PageHeader title="Pricing & x402" lead={<>Every tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then one or two cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white"><Coins className="h-5 w-5 text-accent-400" />Prices</h3>
+        <H2>Prices after the free calls</H2>
         <div className="grid gap-4 md:grid-cols-2">
           {tiers.map((tier) => {
             const tools = Object.keys(TOOL_PRICES).filter((tool) => TOOL_PRICES[tool] === tier.price);
             return (
-              <div key={tier.label} className="rounded-xl border border-white/10 surface p-4">
-                <p className={`text-xl font-extrabold ${tier.price ? 'text-white' : 'text-success-400'}`}>{tier.label}</p>
-                <p className="mt-1 text-[11px] text-ink-400">{tier.note}</p>
-                <ul className="mt-3 space-y-1">
-                  {tools.map((tool) => <li key={tool} className="truncate font-mono text-[11px] text-accent-300">{tool}</li>)}
+              <div key={tier.price} className="rounded-2xl border border-line surface p-5">
+                <p className="display text-[2.4rem] font-extrabold tabular-nums">{tier.price}<span className="ml-2 text-[15px] font-medium tracking-normal text-ink-400">a call</span></p>
+                <p className="mt-1 text-[14px] text-ink-400">{tier.note}</p>
+                <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
+                  {tools.map((tool) => <li key={tool} className="font-mono text-[12.5px] text-accent-300">{tool}</li>)}
                 </ul>
               </div>
             );
@@ -84,30 +85,30 @@ export const PricingView: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 surface p-6">
-        <h3 className="text-base font-bold text-white">How a paid call works</h3>
-        <ol className="mt-4 grid gap-3 md:grid-cols-3">
+      <section>
+        <H2>How a paid call works</H2>
+        <ol className="grid gap-3 md:grid-cols-3">
           {[
             ['Call the tool', 'Once that day\'s free calls are used, the gateway answers 402 Payment Required (over MCP: a tool result with the payment details). It lists the exact USDC amount and where to pay.'],
             ['Your client pays', 'An x402 client signs a USDC transfer for that amount and retries the same call with it attached. No sign-up and no prepaid balance.'],
             ['Get the answer and a receipt', 'The payment is checked, the tool runs, and the transfer settles on Solana only if the call succeeded. The receipt includes the transaction signature.'],
           ].map(([title, detail], i) => (
-            <li key={title} className="rounded-xl border border-white/10 surface-inset p-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-300">Step {i + 1}</span>
-              <p className="mt-1 text-sm font-semibold text-white">{title}</p>
-              <p className="mt-1 text-xs leading-5 text-ink-400">{detail}</p>
+            <li key={title} className="rounded-2xl border border-line surface p-5">
+              <span className="display text-[1.6rem] font-bold text-accent-300">{i + 1}</span>
+              <p className="mt-1 text-[16px] font-semibold text-ink-50">{title}</p>
+              <p className="mt-1.5 text-[14px] leading-[1.6] text-ink-400">{detail}</p>
             </li>
           ))}
         </ol>
       </section>
 
       <section className="space-y-4">
-        <h3 className="text-base font-bold text-white">Add payments to your client</h3>
+        <H2>Add payments to your client</H2>
         <div className="grid gap-4 lg:grid-cols-2">
-          <CodeBlock id="http" title="HTTP · @x402/fetch" code={httpExample} copied={copied} onCopy={copy} />
-          <CodeBlock id="mcp" title="MCP · @x402/mcp" code={mcpExample} copied={copied} onCopy={copy} />
+          <CodeBlock id="http" title="HTTP, with @x402/fetch" code={httpExample} copied={copied} onCopy={copy} />
+          <CodeBlock id="mcp" title="MCP, with @x402/mcp" code={mcpExample} copied={copied} onCopy={copy} />
         </div>
-        <p className="text-xs text-ink-400">Network <code className="text-ink-300">{NETWORK}</code> (Solana mainnet), asset USDC, scheme <code className="text-ink-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-accent-300 hover:text-accent-200">mcp.json</a>, <a href="/llms.txt" className="text-accent-300 hover:text-accent-200">llms.txt</a> and <a href="/api/trial/status" className="text-accent-300 hover:text-accent-200">/api/trial/status</a>.</p>
+        <p className="text-[13px] leading-[1.6] text-ink-400">Network <code className="text-ink-300">{NETWORK}</code> (Solana mainnet), asset USDC, scheme <code className="text-ink-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-accent-300 hover:text-accent-200">mcp.json</a>, <a href="/llms.txt" className="text-accent-300 hover:text-accent-200">llms.txt</a> and <a href="/api/trial/status" className="text-accent-300 hover:text-accent-200">/api/trial/status</a>.</p>
       </section>
     </div>
   );

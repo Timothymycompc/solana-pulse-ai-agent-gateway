@@ -10,12 +10,14 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
   x402.ts          x402 payment setup (facilitator, payout wallet, settle hook)
   meter.ts         who may call: free tool, owner key, free call, or payment
   db.ts            database tables and inserts
+  callers.ts       sorts callers into bots, AI apps, scripts and browsers by user agent
+  owner.ts         owner dashboard data: revenue per tool, callers, visitors
   auth.ts          reads the owner key from a request
   secrets.ts       loads secrets from Google Secret Manager
 src/               the website (React + Tailwind)
   index.css        colors and shared styles
-  components/ui/   shared UI helpers (button styles)
-  pages/           one file per page type
+  components/ui/   shared UI helpers (button styles, verdict stamps and check lines)
+  pages/           one file per page type (OwnerPage.tsx is the dashboard at /owner)
   nav.ts           sidebar sections and links
 scripts/           deploy, RPC key setup, tool check
 tests/             safety, metering and unit tests; fixtures/ holds recorded mainnet data

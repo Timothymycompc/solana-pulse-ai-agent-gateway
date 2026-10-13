@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, Bot, Clock3, RefreshCw, Users, UserCheck } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCountUp } from '../hooks/motion';
 
 interface ServiceUsage {
@@ -45,44 +45,39 @@ export const ServiceUsagePanel: React.FC = () => {
   }, [refresh]);
 
   const stats = [
-    { label: 'Tool runs · 24h', value: usage ? <CountUp value={usage.toolRuns24h} /> : '—', icon: Activity, accent: 'text-accent-300' },
-    { label: 'Callers besides you · 24h', value: usage ? <CountUp value={usage.otherCallers24h} /> : '—', icon: Users, accent: 'text-success-300' },
-    { label: 'Runs by others · 7 days', value: usage ? <><CountUp value={usage.otherToolRuns7d} /> · <CountUp value={usage.otherCallers7d} /> callers</> : '—', icon: UserCheck, accent: 'text-accent-200' },
-    { label: 'Uptime pings · 24h', value: usage ? <CountUp value={usage.pings24h} /> : '—', icon: Bot, accent: 'text-accent-300' },
+    { label: 'Tool runs in the last 24 hours', value: usage ? <CountUp value={usage.toolRuns24h} /> : '—' },
+    { label: 'Callers besides you, 24 hours', value: usage ? <CountUp value={usage.otherCallers24h} /> : '—' },
+    { label: `Runs by others this week, from ${usage ? number.format(usage.otherCallers7d) : '—'} callers`, value: usage ? <CountUp value={usage.otherToolRuns7d} /> : '—' },
+    { label: 'Uptime pings, 24 hours', value: usage ? <CountUp value={usage.pings24h} /> : '—' },
   ];
 
   return (
-    <section aria-labelledby="usage-heading" className="overflow-hidden rounded-2xl border border-white/10 surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+    <section aria-labelledby="usage-heading" className="overflow-hidden rounded-2xl border border-line surface">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pb-2 pt-5 sm:px-6">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-success-400" /></span>
-            <h2 id="usage-heading" className="text-sm font-semibold text-white">Live service usage</h2>
-            
-          </div>
-          <p className="mt-1 text-[11px] text-ink-400">Refreshes every 15 seconds · caller counts begin when caller tracking is enabled</p>
+          <h2 id="usage-heading" className="display text-[1.6rem] font-bold">Live usage</h2>
+          <p className="mt-1 text-[13px] text-ink-500">Counted from real requests and refreshed every 15 seconds.</p>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-ink-400">
-          {updatedAt && <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />Updated {updatedAt.toLocaleTimeString()}</span>}
-          <button onClick={() => void refresh()} aria-label="Refresh service usage" className="rounded-md border border-white/10 p-1.5 hover:border-ink-600 hover:text-white"><RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /></button>
-        </div>
+        <button onClick={() => void refresh()} aria-label="Refresh live usage" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-ink-500 transition hover:bg-white/5 hover:text-ink-200">
+          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />{updatedAt ? `Updated ${updatedAt.toLocaleTimeString()}` : 'Refresh'}
+        </button>
       </div>
-      {failed && !usage ? <p role="status" className="px-5 py-6 text-sm text-ink-400">Live usage is temporarily unavailable. Counts will appear when the analytics service responds.</p> : <>
-        <div className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-4 sm:divide-y-0">
-          {stats.map(({ label, value, icon: Icon, accent }) => <div key={label} className="px-4 py-4 sm:px-5">
-            <div className="flex items-center gap-2 text-[10px] font-medium text-ink-400"><Icon className={`h-3.5 w-3.5 ${accent}`} />{label}</div>
-            <div className="mt-2 font-mono text-2xl font-semibold tracking-tight text-white">{value}</div>
+      {failed && !usage ? <p role="status" className="px-6 py-6 text-[14px] text-ink-400">Live usage can't be loaded right now. It will appear once the usage service responds; refresh to try again.</p> : <>
+        <dl className="grid grid-cols-2 gap-px bg-line sm:grid-cols-4">
+          {stats.map(({ label, value }) => <div key={label} className="flex flex-col-reverse justify-end bg-panel px-5 py-5 sm:px-6">
+            <dt className="mt-1 text-[13px] leading-[1.45] text-ink-400">{label}</dt>
+            <dd className="display text-[2rem] font-bold tabular-nums">{value}</dd>
           </div>)}
-        </div>
-        <div className="border-t border-white/10 px-5 py-4">
-          <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-400"><span>Most used tools · 7 days</span><span>Runs · other callers</span></div>
-          {usage?.tools.length ? <div className="grid gap-x-8 sm:grid-cols-2">
-            {usage.tools.slice(0, 6).map((tool) => <div key={tool.endpoint} className="flex min-w-0 items-center justify-between gap-3 border-t border-white/10 py-2">
-              <code className="truncate font-mono text-[11px] text-ink-300">{tool.endpoint}</code>
-              <span className="shrink-0 font-mono text-[10px] text-ink-400">{number.format(tool.runs)} · {number.format(tool.otherCallers)}</span>
-            </div>)}
-          </div> : <p className="py-3 text-xs text-ink-400">{loading ? 'Loading tool counts…' : 'No tool runs recorded in the last 7 days.'}</p>}
-          <p className="mt-3 max-w-4xl text-[10px] leading-4 text-ink-400">{usage?.note}</p>
+        </dl>
+        <div className="px-5 py-5 sm:px-6">
+          <h3 className="mb-2 flex items-baseline justify-between gap-3 text-[14px] font-semibold text-ink-200"><span>Most used tools this week</span><span className="text-[12px] font-normal text-ink-500">runs, and callers besides you</span></h3>
+          {usage?.tools.length ? <ul className="grid gap-x-10 sm:grid-cols-2">
+            {usage.tools.slice(0, 6).map((tool) => <li key={tool.endpoint} className="flex min-w-0 items-baseline justify-between gap-3 border-t border-line py-2">
+              <code className="truncate font-mono text-[12.5px] text-ink-300">{tool.endpoint}</code>
+              <span className="shrink-0 text-[13px] tabular-nums text-ink-400">{number.format(tool.runs)} <span className="text-ink-600">/</span> {number.format(tool.otherCallers)}</span>
+            </li>)}
+          </ul> : <p className="py-3 text-[13px] text-ink-500">{loading ? 'Loading tool counts…' : 'No tool runs recorded in the last 7 days.'}</p>}
+          {usage?.note && <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.55] text-ink-500">{usage.note}</p>}
         </div>
       </>}
     </section>

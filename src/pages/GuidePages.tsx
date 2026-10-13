@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
 import { Link } from '../router';
 import { toolPath } from '../nav';
 import { Code, CodeBlock, H2, P, PageHeader, Table } from '../components/docs/DocParts';
@@ -10,12 +9,12 @@ const origin = () => (typeof window !== 'undefined' ? window.location.origin : '
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
 const NextLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
-  <Link to={to} className="inline-flex items-center gap-1 text-sm text-accent-300 transition hover:gap-2 hover:text-accent-200">{children}<ArrowRight className="h-3.5 w-3.5" /></Link>
+  <Link to={to} className="inline-block text-[15px] text-accent-300 underline decoration-accent-300/30 underline-offset-4 transition hover:decoration-accent-300">{children}</Link>
 );
 
 export const QuickstartPage: React.FC = () => (
   <article className="max-w-3xl">
-    <PageHeader eyebrow="Get started" title="Quickstart" lead="Make a real call in under a minute. No account, no API key; every tool gives you 25 free calls a day." />
+    <PageHeader title="Quickstart" lead="Make a real call in under a minute. No account, no API key; every tool gives you 25 free calls a day." />
 
     <H2>1. Make your first call</H2>
     <P>Every tool is a <Code>POST</Code> to <Code>/api/tools/&lt;name&gt;</Code> with a JSON body. This one converts 5 USDC into the exact base units a transfer needs:</P>
@@ -39,7 +38,7 @@ export const QuickstartPage: React.FC = () => (
 
 export const ConnectPage: React.FC = () => (
   <article className="max-w-3xl">
-    <PageHeader eyebrow="Get started" title="Connect an agent" lead="Solana Pulse is a Model Context Protocol (MCP) server. Connect once and every tool, with its documentation, is available to the model." />
+    <PageHeader title="Connect an agent" lead="Solana Pulse is a Model Context Protocol (MCP) server. Connect once and every tool, with its documentation, is available to the model." />
 
     <H2>Endpoints</H2>
     <Table head={['Transport', 'URL']} minWidth={420} rows={[
@@ -70,16 +69,16 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Discovery files</H2>
     <Table head={['File', 'What it is']} minWidth={420} rows={[
-      [<a className="text-accent-300 hover:text-accent-200" href="/.well-known/mcp.json">/.well-known/mcp.json</a>, 'Machine-readable manifest: tools, prices and payment details.'],
-      [<a className="text-accent-300 hover:text-accent-200" href="/llms.txt">/llms.txt</a>, 'Plain-text guide for language models.'],
-      [<a className="text-accent-300 hover:text-accent-200" href="/api/tools">/api/tools</a>, 'Every tool with full input and output documentation, as JSON.'],
+      [<a className="font-mono text-[13px] text-accent-300 hover:text-accent-200" href="/.well-known/mcp.json">/.well-known/mcp.json</a>, 'Machine-readable manifest: tools, prices and payment details.'],
+      [<a className="font-mono text-[13px] text-accent-300 hover:text-accent-200" href="/llms.txt">/llms.txt</a>, 'Plain-text guide for language models.'],
+      [<a className="font-mono text-[13px] text-accent-300 hover:text-accent-200" href="/api/tools">/api/tools</a>, 'Every tool with full input and output documentation, as JSON.'],
     ]} />
   </article>
 );
 
 export const CallsPage: React.FC = () => (
   <article className="max-w-3xl">
-    <PageHeader eyebrow="Get started" title="What is a call?" lead="A call is one question you send to the gateway and the one answer you get back. Ask “how much SOL is in this wallet?” and you get the number. That round trip is one call." />
+    <PageHeader title="What is a call?" lead="A call is one question you send to the gateway and the one answer you get back. Ask “how much SOL is in this wallet?” and you get the number. That round trip is one call." />
 
     <H2>What one looks like</H2>
     <P>Each kind of question has its own tool. You send the details as JSON, and the answer comes back as structured data a program or AI agent can read.</P>
@@ -117,7 +116,7 @@ export const PricingPage: React.FC = () => <PricingView />;
 
 export const StatusPage: React.FC = () => (
   <article>
-    <PageHeader eyebrow="Payments" title="Live usage" lead="Real tool runs, callers and uptime pings, counted without storing IP addresses or request contents." />
+    <PageHeader title="Live usage" lead="Real tool runs, callers and uptime pings, counted without storing IP addresses or request contents." />
     <ServiceUsagePanel />
   </article>
 );

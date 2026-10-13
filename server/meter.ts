@@ -94,6 +94,7 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
       return res.status(503).json({ error: "Usage metering is temporarily unavailable. Retry shortly." });
     }
 
+    res.locals.via = admission.via;
     res.setHeader("Access-Control-Expose-Headers", "x-free-calls-remaining, payment-required, payment-response");
     if (admission.via === "free_call") res.setHeader("x-free-calls-remaining", String(admission.remaining));
 

@@ -54,6 +54,7 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 - Every tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.01 USDC per call ($0.02 for `preflight_transaction`, `check_transaction_intent` and `token_verdict`). Normal use stays free; payment covers heavy, automated use.
 - Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
+- Usage records hold the route, status, client name and a keyed hash of the caller's network, never request contents or IP addresses. Site visits are recorded the same way, with the page and referring site. The owner sees revenue per tool, callers and visitors at `/owner`, using the owner key.
 - Each paid tool publishes an x402 discovery listing (the Bazaar extension: description, input schema and a real example), so facilitator directories such as PayAI's, which Coinbase AgentKit can search, list it after its first paid call.
 
 ### How payments evolved

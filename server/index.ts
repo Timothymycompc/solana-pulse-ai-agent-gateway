@@ -10,12 +10,14 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { pool, ensureSchema, recordServiceUsage } from "./db";
+import { decodePaymentResponseHeader } from "@x402/core/http";
+import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
 import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
+import { ownerOverview } from "./owner";
 import { mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
@@ -34,16 +36,28 @@ async function startServer() {
   app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"], exposedHeaders: ["payment-required", "payment-response", "x-free-calls-remaining"] }));
   app.use(express.json({ limit: "256kb" }));
 
-  // Record route-level usage without query values, bodies or raw IPs: a keyed hash of the caller network and the client name.
+  // The transaction a paid HTTP call settled in, from the PAYMENT-RESPONSE header x402 adds to the response.
+  const settledTx = (header: unknown): string | null => {
+    if (typeof header !== "string" || !header) return null;
+    try { const r = decodePaymentResponseHeader(header); return r.success && r.transaction ? r.transaction : null; }
+    catch { return null; }
+  };
+
+  // Record route-level usage without query values, bodies or raw IPs: a keyed hash of the caller network and the client
+  // name, plus the MCP client's own name on initialize and, for tool calls, how the call was admitted and paid.
   const trackServiceUsage = (req: any, res: any, next: any) => {
     const pathOnly = String(req.originalUrl || req.url).split("?")[0];
-    if (pathOnly === "/api/analytics/usage") return next();
+    if (pathOnly.startsWith("/api/analytics/") || pathOnly.startsWith("/api/owner/")) return next();
     const callerHash = req.ip ? hashIp(req.ip) : null;
     const client = String(req.headers["user-agent"] || "").slice(0, 120) || null;
+    const info = req.body?.method === "initialize" ? req.body?.params?.clientInfo : null;
+    const mcpClient = typeof info?.name === "string" ? `${info.name} ${typeof info.version === "string" ? info.version : ""}`.trim().slice(0, 80) : null;
     res.once("finish", () => {
       const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
-      const endpoint = pathOnly === "/mcp" && typeof toolName === "string" ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}` : pathOnly;
-      void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client });
+      const isMcpMessage = pathOnly === "/mcp" || pathOnly === "/mcp/messages";
+      const endpoint = isMcpMessage && typeof toolName === "string" ? `/mcp/tools/${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}` : pathOnly;
+      const paymentTx = res.locals.paymentTx ?? settledTx(res.getHeader("payment-response"));
+      void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client, mcpClient, via: res.locals.via ?? null, paymentTx });
     });
     next();
   };
@@ -144,24 +158,22 @@ async function startServer() {
   });
 
   app.get("/api/analytics/usage", noCache, async (req, res) => {
-    // Tool runs are real tool calls; other /mcp traffic is connections, tool listings and uptime pings.
-    const TOOL_RUN = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%')`;
     const you = req.ip ? hashIp(req.ip) : "";
     try {
       const [totals, tools] = await Promise.all([
         pool.query(`
           SELECT
-            COUNT(*) FILTER (WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS tool_runs_24h,
-            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS callers_24h,
-            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1 AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS other_callers_24h,
-            COUNT(*) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1)::bigint AS other_tool_runs_7d,
-            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN} AND caller_hash <> $1)::bigint AS other_callers_7d,
-            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND NOT ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS pings_24h,
-            MAX(created_at) FILTER (WHERE ${TOOL_RUN}) AS last_tool_run_at
+            COUNT(*) FILTER (WHERE ${TOOL_RUN_SQL} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS tool_runs_24h,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN_SQL} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS callers_24h,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN_SQL} AND caller_hash <> $1 AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS other_callers_24h,
+            COUNT(*) FILTER (WHERE ${TOOL_RUN_SQL} AND caller_hash <> $1)::bigint AS other_tool_runs_7d,
+            COUNT(DISTINCT caller_hash) FILTER (WHERE ${TOOL_RUN_SQL} AND caller_hash <> $1)::bigint AS other_callers_7d,
+            COUNT(*) FILTER (WHERE endpoint LIKE '/mcp%' AND NOT ${TOOL_RUN_SQL} AND created_at >= NOW() - INTERVAL '24 hours')::bigint AS pings_24h,
+            MAX(created_at) FILTER (WHERE ${TOOL_RUN_SQL}) AS last_tool_run_at
           FROM service_usage WHERE created_at >= NOW() - INTERVAL '7 days'`, [you]),
         pool.query(`
           SELECT endpoint, COUNT(*)::bigint AS runs, COUNT(DISTINCT caller_hash) FILTER (WHERE caller_hash <> $1)::bigint AS other_callers, MAX(created_at) AS last_run_at
-          FROM service_usage WHERE ${TOOL_RUN} AND created_at >= NOW() - INTERVAL '7 days'
+          FROM service_usage WHERE ${TOOL_RUN_SQL} AND created_at >= NOW() - INTERVAL '7 days'
           GROUP BY endpoint ORDER BY COUNT(*) DESC, endpoint ASC LIMIT 12`, [you]),
       ]);
       const row = totals.rows[0] || {};
@@ -204,6 +216,45 @@ async function startServer() {
     }
   });
 
+  // Site visits, sent by the page on each load and navigation. Path and referring site only.
+  // At most VIEWS_PER_HOUR per network per hour (per server instance), so the endpoint cannot be used to fill the table.
+  const VIEWS_PER_HOUR = 300;
+  const viewCounts = new Map<string, { n: number; resetAt: number }>();
+  app.post("/api/analytics/view", (req, res) => {
+    const pagePath = typeof req.body?.path === "string" ? req.body.path.split(/[?#]/)[0].slice(0, 200) : "";
+    if (!pagePath.startsWith("/")) return res.status(400).json({ error: "path is required." });
+    const callerHash = req.ip ? hashIp(req.ip) : null;
+    const now = Date.now();
+    if (viewCounts.size > 50_000) for (const [k, v] of viewCounts) if (v.resetAt <= now) viewCounts.delete(k);
+    const count = viewCounts.get(callerHash ?? "") ?? { n: 0, resetAt: now + 3_600_000 };
+    if (count.resetAt <= now) { count.n = 0; count.resetAt = now + 3_600_000; }
+    count.n++;
+    viewCounts.set(callerHash ?? "", count);
+    if (count.n > VIEWS_PER_HOUR) return res.status(204).end();
+    let referrerHost: string | null = null;
+    try {
+      const host = new URL(String(req.body?.referrer || "")).hostname.slice(0, 120);
+      if (host && host !== req.hostname) referrerHost = host;
+    } catch { /* no referrer, or not a URL */ }
+    const client = String(req.headers["user-agent"] || "").slice(0, 200) || null;
+    void recordPageView({ path: pagePath, referrerHost, callerHash, client });
+    res.status(204).end();
+  });
+
+  // Owner dashboard (/owner on the site): revenue per tool, who calls each tool, and site visitors.
+  app.get("/api/owner/overview", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const days = [1, 7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
+    try {
+      // Calls and visits from a network the dashboard is opened from are counted as the owner's own.
+      if (req.ip) await noteOwnerNetwork(hashIp(req.ip));
+      res.json(await ownerOverview({ days }));
+    } catch (error) {
+      console.error("owner overview failed:", error);
+      res.status(503).json({ error: "The dashboard data is temporarily unavailable." });
+    }
+  });
+
   // ---------- MCP ----------
   const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
   const asResult = (outcome: ToolOutcome) => ({
@@ -213,7 +264,9 @@ async function startServer() {
 
   // Every tool goes through the same admission as HTTP: free tools run, the owner key and free calls run unpaid,
   // and everything else follows the x402 MCP transport (PaymentRequired result, then _meta["x402/payment"]).
-  const createMcpServer = (caller: { apiKey?: string; ip: string }) => {
+  // note() tells the request's usage record how a tool call was admitted and, when paid, its settlement transaction.
+  type CallNote = { via: string; paymentTx?: string };
+  const createMcpServer = (caller: { apiKey?: string; ip: string; note?: (n: CallNote) => void }) => {
     const server = new McpServer({ name: "solana-pulse-gateway", version: "2.0.0" });
     for (const tool of TOOLS) {
       const price = priceOf(tool.name);
@@ -227,8 +280,14 @@ async function startServer() {
           console.error("free call metering error:", error);
           return { content: [{ type: "text" as const, text: "Usage metering is temporarily unavailable. Retry shortly." }], isError: true };
         }
+        caller.note?.({ via: admission.via });
         if (admission.via === "x402") {
-          try { return await (await x402.wrapMcpTool(tool.name, price, handler))(args, extra); }
+          try {
+            const paid: any = await (await x402.wrapMcpTool(tool.name, price, handler))(args, extra);
+            const settled = paid?._meta?.["x402/payment-response"];
+            if (settled?.success && typeof settled.transaction === "string") caller.note?.({ via: "x402", paymentTx: settled.transaction });
+            return paid;
+          }
           catch (error) {
             console.error("x402 payment setup failed:", error);
             return { content: [{ type: "text" as const, text: "Payments are temporarily unavailable. Retry shortly." }], isError: true };
@@ -257,7 +316,7 @@ async function startServer() {
     else res.status(404).json({ error: "MCP SSE session not found." });
   });
   app.post("/mcp", async (req, res) => {
-    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" });
+    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", note: (n) => Object.assign(res.locals, n) });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {

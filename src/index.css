@@ -1,13 +1,15 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter/opsz.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
 
-/* Motion system: one easing family and three durations, used by every animation on the site. */
+/* The site wears the look of the Solana Pulse videos (~/pulse-video/render.py): Inter Display headlines,
+   JetBrains Mono for code and tool names, panels on a near-black field with navy glows. */
 @theme {
   /* ============================================================
      COLORS: change the site's look here, nowhere else.
      ink      neutral greys for backgrounds, borders and text
-     accent   the brand color (links, highlights, primary buttons)
-     success / warning / danger   status: safe, caution, blocked
-     info     secondary highlight (hallucination-prevention notes)
+     accent   steel blue: links, the primary button, tool names
+     success / warning / danger   verdicts only (pass, caution, block)
      Use them in markup as e.g. bg-ink-950, text-accent-300, border-danger-400.
      ============================================================ */
   --color-ink-50: #fafafa;
@@ -21,6 +23,11 @@
   --color-ink-800: #27272a;
   --color-ink-900: #161618;
   --color-ink-950: #0b0b0d;
+
+  /* Video panel and code-box fills. */
+  --color-panel: #161618;
+  --color-code: #101013;
+  --color-line: #27272a;
 
   --color-accent-50: #eff4fc;
   --color-accent-100: #dde8f8;
@@ -58,33 +65,44 @@
   --color-info-400: #7fa3c9;
   --color-info-500: #5f88b5;
 
+  /* Page backdrop: the same navy glows as the videos, over ink-950. */
+  --color-glow-top: #1e2a42;
+  --color-glow-bottom: #141b2a;
+
+  /* Owner dashboard: who made a tool call. Checked with the dataviz palette validator on the dark surface. */
+  --color-kind-you: #71717a;
+  --color-kind-bot: #3987e5;
+  --color-kind-ai-app: #d95926;
+  --color-kind-script: #199e70;
+  --color-kind-browser: #c98500;
+  --color-kind-other: #d55181;
+
+  /* Type: Inter switches to its Display cut at headline sizes by itself (optical sizing). */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion: one easing family and two durations. */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 160ms;
   --duration-base: 280ms;
   --duration-slow: 520ms;
 
-  --animate-fade-up: fade-up var(--duration-slow) var(--ease-out-soft) both;
   --animate-fade-in: fade-in var(--duration-base) var(--ease-out-soft) both;
+  --animate-fade-up: fade-up var(--duration-slow) var(--ease-out-soft) both;
   --animate-scale-in: scale-in var(--duration-base) var(--ease-out-soft) both;
-  --animate-slide-down: slide-down var(--duration-base) var(--ease-out-soft) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
-  --animate-pulse-ring: pulse-ring 1.8s var(--ease-out-soft) infinite;
 
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: none; }
-  }
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
   }
-  @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.97); }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: none; }
   }
-  @keyframes slide-down {
-    from { opacity: 0; transform: translateY(-8px); }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97); }
     to { opacity: 1; transform: none; }
   }
   @keyframes shimmer {
@@ -95,20 +113,24 @@
     from { opacity: 0; transform: translateX(-16px); }
     to { opacity: 1; transform: none; }
   }
-  @keyframes drift {
-    0% { transform: translate3d(0, 0, 0) scale(1); }
-    100% { transform: translate3d(40px, 30px, 0) scale(1.08); }
-  }
-  @keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgb(108 145 210 / 0.4); }
-    100% { box-shadow: 0 0 0 10px rgb(108 145 210 / 0); }
+  /* The verdict stamp landing at the end of the home page's check. */
+  @keyframes stamp {
+    0% { opacity: 0; transform: scale(1.35) rotate(-4deg); }
+    60% { opacity: 1; transform: scale(0.96) rotate(0deg); }
+    100% { opacity: 1; transform: none; }
   }
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Dark scrollbars, form controls and selection, so nothing renders in the browser's light defaults. */
+    color-scheme: dark;
+    scrollbar-color: var(--color-ink-700) transparent;
+  }
   body {
-    @apply bg-ink-950 text-ink-100 antialiased selection:bg-accent-500 selection:text-white;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-ink-950 font-sans text-ink-200 antialiased selection:bg-accent-500 selection:text-white;
+    font-optical-sizing: auto;
   }
   :focus-visible {
     outline: 2px solid var(--color-accent-400);
@@ -117,36 +139,57 @@
 }
 
 @layer components {
-  /* Elements marked data-reveal fade up once when they scroll into view (see useReveal). */
-  [data-reveal] {
-    opacity: 0;
-    transform: translateY(14px);
-    transition: opacity var(--duration-slow) var(--ease-out-soft), transform var(--duration-slow) var(--ease-out-soft);
-    transition-delay: var(--reveal-delay, 0ms);
-  }
-  [data-reveal="shown"] {
-    opacity: 1;
-    transform: none;
+  /* Fixed behind every page: a navy glow top left and a fainter one bottom right, as in the videos. */
+  .video-backdrop {
+    background:
+      radial-gradient(ellipse 52% 72% at 15% -10%, color-mix(in srgb, var(--color-glow-top) 90%, transparent), transparent 75%),
+      radial-gradient(ellipse 40% 52% at 99% 100%, color-mix(in srgb, var(--color-glow-bottom) 90%, transparent), transparent 75%),
+      var(--color-ink-950);
   }
 
-  /* Hover lift for interactive cards. */
-  .lift {
-    transition: transform var(--duration-base) var(--ease-out-soft), border-color var(--duration-base) var(--ease-out-soft), background-color var(--duration-base) var(--ease-out-soft), box-shadow var(--duration-base) var(--ease-out-soft);
-  }
-  .lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 28px -14px rgb(0 0 0 / 0.7);
-  }
-  .lift:active {
-    transform: translateY(0);
+  /* Headlines: Inter Display, heavy and tight, like the video titles. */
+  .display {
+    font-weight: 800;
+    letter-spacing: -0.032em;
+    line-height: 1.04;
+    color: var(--color-ink-50);
+    text-wrap: balance;
   }
 
-  /* Large blurred color fields that drift slowly behind the content. */
-  .aurora-blob {
-    position: absolute;
+  /* Panels: the video's solid panel over the backdrop. Code and inputs sit in the darker code fill. */
+  .surface {
+    background: color-mix(in srgb, var(--color-panel) 88%, transparent);
+    border-color: var(--color-line);
+  }
+  .surface-inset {
+    background: var(--color-code);
+    border-color: var(--color-line);
+  }
+  .glass-strong {
+    background: color-mix(in srgb, var(--color-ink-950) 84%, transparent);
+    border-color: var(--color-line);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /* Verdict stamp: outlined pill in the verdict's own color, as in the videos (BLOCK, SAFE, MISMATCH). */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid currentColor;
     border-radius: 9999px;
-    filter: blur(110px);
-    animation: drift 22s var(--ease-in-out-soft) infinite alternate;
+    background: color-mix(in srgb, currentColor 14%, var(--color-panel));
+    font-weight: 750;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .stamp-quiet {
+    border-width: 1px;
+    border-color: color-mix(in srgb, currentColor 45%, transparent);
+    background: transparent;
+    font-weight: 650;
   }
 
   /* Loading placeholder sweep. */
@@ -154,49 +197,6 @@
     background: linear-gradient(90deg, rgb(39 39 42 / 0.5) 25%, rgb(63 63 70 / 0.55) 50%, rgb(39 39 42 / 0.5) 75%);
     background-size: 200% 100%;
     animation: var(--animate-shimmer);
-  }
-
-  /* Glass panels: translucent dark surface over the aurora background, with a faint top highlight. */
-  /* Plain card surface. */
-  .surface {
-    background: rgb(255 255 255 / 0.02);
-    border-color: rgb(255 255 255 / 0.09);
-  }
-  .glass-strong {
-    background: linear-gradient(180deg, rgb(22 22 24 / 0.86), rgb(11 11 13 / 0.82));
-    border-color: rgb(255 255 255 / 0.1);
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 18px 50px -24px rgb(0 0 0 / 0.8);
-  }
-  /* Inset surfaces (editors, code) stay darker than the panel around them for legibility. */
-  .surface-inset {
-    background: rgb(11 11 13 / 0.72);
-    border-color: rgb(255 255 255 / 0.08);
-  }
-
-  /* Highlighted headline words: solid steel blue, no gradient. */
-  .text-gradient {
-    color: var(--color-accent-300);
-  }
-  .bg-accent-gradient {
-    background: linear-gradient(180deg, #4f76bd 0%, #3f61a3 100%);
-  }
-  /* Gradient hairline border drawn with a mask, so the panel keeps its glass fill. */
-  .gradient-border {
-    position: relative;
-  }
-  .gradient-border::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: 1px;
-    border-radius: inherit;
-    background: linear-gradient(120deg, rgb(148 178 227 / 0.55), rgb(255 255 255 / 0.08) 45%, rgb(148 178 227 / 0.35));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
   }
 
   /* JSON syntax colors for the response viewer. */
@@ -209,24 +209,24 @@
 
 /* Page changes use the View Transitions API where the browser supports it. */
 ::view-transition-old(page) {
-  animation: var(--duration-base) var(--ease-in-out-soft) both page-out;
+  animation: var(--duration-fast) var(--ease-in-out-soft) both page-out;
 }
 ::view-transition-new(page) {
-  animation: var(--duration-slow) var(--ease-out-soft) both page-in;
+  animation: var(--duration-base) var(--ease-out-soft) both page-in;
 }
 @keyframes page-out {
-  to { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 0; }
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
-  [data-reveal] { opacity: 1; transform: none; }
 }

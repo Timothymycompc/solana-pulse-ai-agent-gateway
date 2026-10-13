@@ -1,52 +1,55 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
-export const PageHeader: React.FC<{ eyebrow?: string; title: React.ReactNode; lead?: React.ReactNode; aside?: React.ReactNode }> = ({ eyebrow, title, lead, aside }) => (
-  <header className="mb-8 space-y-3 border-b border-white/[0.06] pb-8">
-    {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.14em] text-accent-300">{eyebrow}</p>}
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-[2.1rem]">{title}</h1>
+// Shared pieces for every docs page. Headlines are Inter Display; code and tool names are JetBrains Mono.
+
+// kicker: a line above the title, used for the tool's own name (as the videos put it above the title).
+export const PageHeader: React.FC<{ kicker?: React.ReactNode; title: React.ReactNode; lead?: React.ReactNode; aside?: React.ReactNode }> = ({ kicker, title, lead, aside }) => (
+  <header className="mb-10 space-y-4">
+    {kicker && <p className="font-mono text-[15px] text-accent-300">{kicker}</p>}
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <h1 className="display text-[2.4rem] sm:text-[3.25rem]">{title}</h1>
       {aside}
     </div>
-    {lead && <p className="max-w-3xl text-[15px] leading-7 text-ink-300">{lead}</p>}
+    {lead && <p className="max-w-[62ch] text-[17px] leading-[1.65] text-ink-300">{lead}</p>}
   </header>
 );
 
 export const H2: React.FC<{ id?: string; children: React.ReactNode }> = ({ id, children }) => (
-  <h2 id={id} className="mb-3 mt-10 scroll-mt-20 text-lg font-semibold tracking-tight text-white first:mt-0">{children}</h2>
+  <h2 id={id} className="display mb-3 mt-14 scroll-mt-20 text-[1.6rem] font-bold first:mt-0">{children}</h2>
 );
 
-export const P: React.FC<{ children: React.ReactNode }> = ({ children }) => <p className="mb-4 max-w-3xl text-sm leading-7 text-ink-300">{children}</p>;
+export const P: React.FC<{ children: React.ReactNode }> = ({ children }) => <p className="mb-4 max-w-[68ch] text-[15px] leading-[1.7] text-ink-300">{children}</p>;
 
 export const Code: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <code className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[0.85em] text-ink-100">{children}</code>
+  <code className="rounded-md border border-line bg-code px-1.5 py-0.5 font-mono text-[0.86em] text-ink-100">{children}</code>
 );
 
 export const CodeBlock: React.FC<{ code: string; title?: string }> = ({ code, title }) => {
   const [copied, setCopied] = useState(false);
   const copy = async () => { try { await navigator.clipboard.writeText(code); setCopied(true); window.setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ } };
   return (
-    <div className="mb-5 overflow-hidden rounded-lg border border-white/10 bg-black/30">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-1.5">
-        <span className="text-[11px] text-ink-400">{title ?? ''}</span>
-        <button onClick={() => void copy()} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-400 transition hover:bg-white/5 hover:text-white" aria-label="Copy code">
-          {copied ? <Check className="h-3 w-3 text-success-400" /> : <Copy className="h-3 w-3" />}{copied ? 'Copied' : 'Copy'}
+    <div className="mb-6 overflow-hidden rounded-xl border border-line bg-code">
+      <div className="flex items-center justify-between gap-3 px-4 pt-2.5">
+        <span className="text-[12px] text-ink-500">{title ?? ''}</span>
+        <button onClick={() => void copy()} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-ink-400 transition hover:bg-white/5 hover:text-white" aria-label="Copy code">
+          {copied ? <Check className="h-3.5 w-3.5 text-success-400" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <pre className="overflow-x-auto p-3.5 font-mono text-[12px] leading-6 text-ink-200">{code}</pre>
+      <pre className="overflow-x-auto px-4 pb-4 pt-2 font-mono text-[12.5px] leading-[1.75] text-ink-200">{code}</pre>
     </div>
   );
 };
 
 export const Table: React.FC<{ head: string[]; rows: React.ReactNode[][]; minWidth?: number }> = ({ head, rows, minWidth = 560 }) => (
-  <div className="mb-6 overflow-x-auto rounded-lg border border-white/10">
-    <table className="w-full text-left text-[13px]" style={{ minWidth }}>
-      <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wider text-ink-400">
-        <tr>{head.map((h) => <th key={h} className="px-3.5 py-2.5 font-medium">{h}</th>)}</tr>
+  <div className="mb-8 overflow-x-auto rounded-xl border border-line surface">
+    <table className="w-full text-left text-[14px]" style={{ minWidth }}>
+      <thead className="text-[12.5px] text-ink-400">
+        <tr>{head.map((h) => <th key={h} className="px-4 pb-2 pt-3 font-medium">{h}</th>)}</tr>
       </thead>
       <tbody>
         {rows.map((cells, i) => (
-          <tr key={i} className="border-t border-white/[0.06] align-top">{cells.map((c, j) => <td key={j} className="px-3.5 py-3 leading-6 text-ink-300">{c}</td>)}</tr>
+          <tr key={i} className="border-t border-line align-top">{cells.map((c, j) => <td key={j} className="px-4 py-3 leading-[1.6] text-ink-300">{c}</td>)}</tr>
         ))}
       </tbody>
     </table>

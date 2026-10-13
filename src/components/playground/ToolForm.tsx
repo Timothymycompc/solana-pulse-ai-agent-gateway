@@ -4,7 +4,7 @@ import type { InputDoc, JsonSchema, ToolDoc } from '../../lib/toolsApi';
 
 type Values = Record<string, unknown>;
 
-const fieldClass = 'w-full rounded-lg border border-white/10 surface-inset px-3 py-2.5 font-mono text-xs text-ink-100 outline-none transition placeholder:text-ink-500 focus:border-accent-400/70 focus:ring-4 focus:ring-accent-500/15';
+const fieldClass = 'w-full rounded-lg border border-line surface-inset px-3 py-2.5 font-mono text-[12.5px] text-ink-100 outline-none transition placeholder:text-ink-500 focus:border-accent-400/70 focus:ring-4 focus:ring-accent-500/15';
 const LONG_TEXT = new Set(['transaction', 'error']);
 
 // One editable input, chosen from its JSON schema; documented with what it is and how to get it.
@@ -15,7 +15,7 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
   const label = (
     <label htmlFor={id} className="flex items-baseline justify-between gap-2">
       <span className="font-mono text-xs font-semibold text-ink-100">{path}{required && <span className="ml-0.5 text-danger-300" aria-label="required">*</span>}</span>
-      <span className="text-[10px] text-ink-400">{doc?.type ?? schema.type ?? 'value'}{!required && ' · optional'}</span>
+      <span className="text-[11.5px] text-ink-500">{doc?.type ?? schema.type ?? 'value'}{required ? '' : ', optional'}</span>
     </label>
   );
   const help = doc && !compact && (
