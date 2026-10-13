@@ -10,7 +10,7 @@ const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
   { title: 'Quickstart', path: '/docs/quickstart', keywords: 'curl http first request example' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
-  { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude claude-code cursor elizaos agentkit coinbase config agent' },
+  { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude claude-code chatgpt openai gemini antigravity cursor elizaos agentkit coinbase config agent' },
 ];
 const PAYMENT_PAGES: NavItem[] = [
   { title: 'Pricing & x402', path: '/docs/pricing', keywords: 'price usdc pay payment free calls x402' },

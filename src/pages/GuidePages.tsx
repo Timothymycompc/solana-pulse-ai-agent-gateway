@@ -52,6 +52,27 @@ export const ConnectPage: React.FC = () => (
     <P>In Claude Code, run:</P>
     <CodeBlock title="Terminal" code={`claude mcp add --transport http solana-pulse ${origin()}/mcp`} />
 
+    <H2>ChatGPT</H2>
+    <P>ChatGPT adds MCP servers as custom plugins, on the web only. It needs developer mode, which OpenAI offers on Business, Enterprise and Edu plans, and on Pro for read-only tools like these.</P>
+    <ol className="mb-5 max-w-[68ch] list-decimal space-y-1.5 pl-5 text-[15px] leading-[1.7] text-ink-300 marker:text-ink-500">
+      <li>Open ChatGPT Plugins, select the plus button and choose Add custom MCP server.</li>
+      <li>Name it Solana Pulse and paste the URL below as the Server URL.</li>
+      <li>Set Authentication to No authentication, confirm the warning and select Create as a plugin.</li>
+      <li>Install it from your plugins, then start a Work chat and type <Code>@</Code> to pick it.</li>
+    </ol>
+    <CodeBlock title="Server URL" code={`${origin()}/mcp`} />
+    <P>ChatGPT calls tools from OpenAI's servers, so its users share the daily free calls, and it can't pay for calls beyond them itself.</P>
+
+    <H2>Gemini CLI</H2>
+    <P>Add the server for your user account, then check it shows as connected. Inside a session, <Code>/mcp</Code> lists its tools.</P>
+    <CodeBlock title="Terminal" code={`gemini mcp add -s user --transport http solana-pulse ${origin()}/mcp\ngemini mcp list`} />
+    <P>Or add it by hand to <Code>~/.gemini/settings.json</Code>. Streamable HTTP servers use <Code>httpUrl</Code>, not <Code>url</Code>.</P>
+    <CodeBlock title="settings.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { httpUrl: `${origin()}/mcp` } } }, null, 2)} />
+
+    <H2>Antigravity</H2>
+    <P>Antigravity CLI replaced Gemini CLI for free and Google One accounts. Type <Code>/mcp</Code> to open its MCP manager, or add the server to <Code>~/.gemini/config/mcp_config.json</Code> (or <Code>.agents/mcp_config.json</Code> for one project). Antigravity uses <Code>serverUrl</Code>; it ignores <Code>url</Code> and <Code>httpUrl</Code>. In the Antigravity editor, open the agent panel's menu, then MCP Servers, Manage MCP Servers and View raw config.</P>
+    <CodeBlock title="mcp_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp` } } }, null, 2)} />
+
     <H2>Cursor and other clients that accept a URL</H2>
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
 

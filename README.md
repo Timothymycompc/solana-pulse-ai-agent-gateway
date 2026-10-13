@@ -45,6 +45,9 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 
 - **Claude** (claude.ai and the Claude apps): Customize, Connectors, Add custom connector, paste the URL, choose No sign in.
 - **Claude Code**: `claude mcp add --transport http solana-pulse https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`
+- **ChatGPT** (web, developer mode on Business, Enterprise, Edu or Pro): ChatGPT Plugins, plus button, Add custom MCP server, paste the URL, Authentication: No authentication, Create as a plugin.
+- **Gemini CLI**: `gemini mcp add -s user --transport http solana-pulse https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`
+- **Antigravity** (replaced Gemini CLI for free and Google One accounts): in `~/.gemini/config/mcp_config.json`, `{ "mcpServers": { "solana-pulse": { "serverUrl": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
 - **Cursor and other clients that take a URL**: `{ "mcpServers": { "solana-pulse": { "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
 - **ElizaOS and Coinbase AgentKit**: setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
 
