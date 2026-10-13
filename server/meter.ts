@@ -79,10 +79,10 @@ export async function admitCall(o: { tool: string; ip: string; apiKey?: string; 
   return { via: "x402" };
 }
 
-// Directory checkers must see "402 Payment Required" to list a paid tool. Coinbase's Bazaar validator and indexer call
-// with Go's default user agent and nothing else, so a bare Go client gets no free calls over HTTP; it pays from the
-// first call. Real apps and people send their own user agent.
-export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$/;
+// Directory checkers must see "402 Payment Required" to list a paid tool, so they get no free calls over HTTP: Coinbase's
+// Bazaar validator (Go's default user agent and nothing else) and its indexer (CoinbaseBazaarDiscovery), which calls
+// each tool with its listed example after a payment. A Go app that names itself still gets free calls.
+export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$|^CoinbaseBazaarDiscovery\//;
 
 // HTTP gate for data routes: free tools, the owner key and free calls pass straight through; everything else goes to x402.
 export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHandler {
