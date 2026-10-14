@@ -12,7 +12,6 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 - Accept payments on Base as well as Solana.
 - Live usage page: leave bots out of the "callers besides you" counts.
 - Get the 8 renamed tools listed on PayAI's directory under their new names.
-- Outage alerts by email (Google Cloud uptime check).
 
 ## Next projects
 - EVM token safety (Base first, then Ethereum, BNB, Arbitrum, Polygon), its own repo, 8-15 tools.
