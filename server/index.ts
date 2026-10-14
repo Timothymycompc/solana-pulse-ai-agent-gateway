@@ -455,6 +455,9 @@ ${section("reference", "Reference")}`);
 
   app.get("/api/debug/build", noCache, (_req, res) => res.json({ build: "v2-intelligence-layer", status: "alive", tools: TOOLS.length }));
 
+  // Unknown discovery files get a plain 404, not the website, so crawlers don't mistake the page for a manifest.
+  app.use("/.well-known", (_req, res) => res.status(404).json({ error: "Not found" }));
+
   // ---------- Frontend ----------
   const distPath = path.join(process.cwd(), "dist");
   if (!fs.existsSync(path.join(distPath, "index.html"))) {
