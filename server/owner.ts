@@ -22,7 +22,7 @@ function toolOf(endpoint: string): string {
 // The owner's own wallets (test payments), comma-separated in OWNER_WALLETS; by default the wallet the 14 test
 // payments of October 2026 came from. Payments from a network the dashboard was opened from also count as the owner's.
 const TEST_PAYER = "HGKYVGfQGvWdd9Y7uEm7NyHHPjmf5KMFAkfeYMvk5nVV";
-const ownerWallets = () => (process.env.OWNER_WALLETS ?? TEST_PAYER).split(",").map((w) => w.trim()).filter(Boolean).join(",");
+export const ownerWallets = () => (process.env.OWNER_WALLETS ?? TEST_PAYER).split(",").map((w) => w.trim()).filter(Boolean).join(",");
 
 const PAYMENTS_CTE = `
   WITH p AS (

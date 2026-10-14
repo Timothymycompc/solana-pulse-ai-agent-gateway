@@ -37,7 +37,7 @@ export type OwnerOverview = {
   tools: ToolStats[];
   kinds: Record<Kind, { label: string; callers: number; runs: number; requests: number }>;
   callers: CallerStats[]; callerCount: number;
-  outreach: { name: string; userAgent: string; tools: string; runs: number; since: string; until: string }[];
+  outreach: { key: string; name: string; userAgent: string; tools: string; runs: number; since: string; until: string; active: boolean }[];
   recentRuns: { at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; caller: CallerRef; input: unknown; output: unknown }[];
   payers: { payer: string; mine: boolean; payments: number; usdc: number; tools: number; firstAt: string; lastAt: string }[];
   recentPayments: { at: string; tool: string; amountUsdc: number; payer: string; mine: boolean; txSignature: string; caller: CallerRef | null }[];
@@ -52,6 +52,12 @@ export async function loadOwnerOverview(key: string, days: number): Promise<Owne
   if (r.status === 401) throw new OwnerKeyError(body.error || 'That key was not accepted.');
   if (!r.ok) throw new Error(body.error || `The dashboard could not load (HTTP ${r.status}).`);
   return body;
+}
+
+// Ends a personal note to a caller (they replied, or it went to the wrong caller).
+export async function stopOutreach(key: string, outreachKey: string): Promise<void> {
+  const r = await fetch('/api/owner/outreach/stop', { method: 'POST', headers: { 'x-api-key': key, 'content-type': 'application/json' }, body: JSON.stringify({ key: outreachKey }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Could not stop the note (HTTP ${r.status}).`);
 }
 
 // The owner key is kept for this tab only, unless the owner asks to stay signed in on this device.

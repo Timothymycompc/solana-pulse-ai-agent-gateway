@@ -7,6 +7,7 @@ import { pool, TOOL_RUN_SQL } from "./db";
 import { classifyClient } from "./callers";
 import { hashIp } from "./meter";
 import { CALLER_NOTES } from "./notes";
+import { ownerWallets } from "./owner";
 
 export const CONTACT = "timothymycompc@gmail.com or https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/issues";
 const NOTE_DAYS = 14;
@@ -66,7 +67,10 @@ async function activity(): Promise<CallerActivity[]> {
     pool.query(`SELECT caller_hash, client, COUNT(DISTINCT date_trunc('hour', created_at))::int AS hours FROM service_usage WHERE ${recent} GROUP BY caller_hash, client`),
     pool.query(`SELECT caller_hash, client, MAX(mcp_client) AS mcp_client FROM service_usage
       WHERE mcp_client IS NOT NULL AND created_at >= NOW() - INTERVAL '7 days' GROUP BY caller_hash, client`),
-    pool.query(`SELECT caller_hash FROM owner_networks`),
+    // The owner's networks: where the dashboard was opened, and wherever the owner's own wallets paid for a call.
+    pool.query(`SELECT caller_hash FROM owner_networks
+      UNION SELECT s.caller_hash FROM service_usage s JOIN x402_payments p ON p.tx_signature = s.payment_tx
+      WHERE p.payer = ANY(string_to_array($1, ',')) AND s.caller_hash IS NOT NULL`, [ownerWallets()]),
   ]);
   const ownerNets = new Set(owners.rows.map((r: any) => r.caller_hash));
   const hoursOf = new Map(spread.rows.map((r: any) => [`${r.caller_hash}|${r.client}`, r.hours as number]));
@@ -125,6 +129,16 @@ export function outreachNotes(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function listOutreach() {
-  const r = await pool.query(`SELECT name, match_ua, tools, runs, created_at, expires_at FROM outreach ORDER BY created_at DESC LIMIT 50`);
-  return r.rows.map((x: any) => ({ name: x.name, userAgent: x.match_ua, tools: x.tools, runs: x.runs, since: new Date(x.created_at).toISOString(), until: new Date(x.expires_at).toISOString() }));
+  const r = await pool.query(`SELECT key, name, match_ua, tools, runs, created_at, expires_at FROM outreach ORDER BY created_at DESC LIMIT 50`);
+  return r.rows.map((x: any) => ({
+    key: x.key, name: x.name, userAgent: x.match_ua, tools: x.tools, runs: x.runs,
+    since: new Date(x.created_at).toISOString(), until: new Date(x.expires_at).toISOString(), active: new Date(x.expires_at).getTime() > Date.now(),
+  }));
+}
+
+// The owner ends a note (they replied, or it went to the wrong caller). The row stays, so the caller isn't greeted again.
+export async function stopOutreach(key: string) {
+  const r = await pool.query(`UPDATE outreach SET expires_at = NOW() WHERE key = $1 RETURNING key`, [key]);
+  await loadActive();
+  return r.rows.length > 0;
 }

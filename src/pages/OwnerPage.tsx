@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, CircleDollarSign, Clock3, ExternalLink, Eye, KeyRound, LogOut, Radio, RefreshCw, Users, Wallet } from 'lucide-react';
 import { PageHeader, H2 } from '../components/docs/DocParts';
 import { button } from '../components/ui/button';
-import { loadOwnerOverview, OwnerKeyError, ownerKeyStore, type CallerStats, type Kind, type OwnerOverview, type ToolStats } from '../lib/ownerApi';
+import { loadOwnerOverview, OwnerKeyError, ownerKeyStore, stopOutreach, type CallerStats, type Kind, type OwnerOverview, type ToolStats } from '../lib/ownerApi';
 
 // Owner dashboard: revenue per tool, who calls each tool, and real site visitors. Data needs the owner key.
 
@@ -380,18 +380,29 @@ const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => (
 // ---------- Personal notes ----------
 
 // Callers who looked like a real developer or AI app, and got a note from you in their answers.
-const Outreach: React.FC<{ data: OwnerOverview }> = ({ data }) => (
-  <Card title="People you've reached out to" aside={<span className="text-[12px] text-ink-500">A note from you rides along in their answers for 14 days</span>}>
-    {data.outreach?.length ? <TableShell head={['Who', 'Used', 'Note sent', 'Shown until']} minWidth={560}>
-      {data.outreach.map((o) => <tr key={o.userAgent + o.since}>
-        <td className={td}><div className="text-ink-100">{o.name}</div><div className="font-mono text-[11.5px] text-ink-500">{o.userAgent}</div></td>
-        <td className={`${td} text-[12px]`}>{o.tools}<div className="text-ink-500">{o.runs} calls that week</div></td>
-        <td className={`${td} whitespace-nowrap`} title={new Date(o.since).toLocaleString()}>{ago(o.since)}</td>
-        <td className={`${td} whitespace-nowrap`}>{new Date(o.until).toLocaleDateString()}</td>
-      </tr>)}
-    </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">Nobody yet. When a caller uses the tools like a real developer or AI app (not a directory bot), a personal note is added to their answers and you get an email.</p>}
-  </Card>
-);
+const Outreach: React.FC<{ data: OwnerOverview; ownerKey: string; onChange: () => void }> = ({ data, ownerKey, onChange }) => {
+  const [busy, setBusy] = useState('');
+  const stop = async (outreachKey: string) => {
+    setBusy(outreachKey);
+    try { await stopOutreach(ownerKey, outreachKey); onChange(); } catch { /* the list refreshes and still shows it as active */ } finally { setBusy(''); }
+  };
+  return (
+    <Card title="People you've reached out to" aside={<span className="text-[12px] text-ink-500">A note from you rides along in their answers for 14 days</span>}>
+      {data.outreach?.length ? <TableShell head={['Who', 'Used', 'Note sent', 'Note']} minWidth={600}>
+        {data.outreach.map((o) => <tr key={o.key}>
+          <td className={td}><div className="text-ink-100">{o.name}</div><div className="font-mono text-[11.5px] text-ink-500">{o.userAgent}</div></td>
+          <td className={`${td} text-[12px]`}>{o.tools}<div className="text-ink-500">{o.runs} calls that week</div></td>
+          <td className={`${td} whitespace-nowrap`} title={new Date(o.since).toLocaleString()}>{ago(o.since)}</td>
+          <td className={`${td} whitespace-nowrap`}>
+            {o.active
+              ? <><div>Showing until {new Date(o.until).toLocaleDateString()}</div><button onClick={() => void stop(o.key)} disabled={busy === o.key} className="mt-1 text-[12px] text-accent-300 hover:text-accent-200 disabled:opacity-50">{busy === o.key ? 'Stopping…' : 'Stop note'}</button></>
+              : <span className="text-ink-500">Stopped</span>}
+          </td>
+        </tr>)}
+      </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">Nobody yet. When a caller uses the tools like a real developer or AI app (not a directory bot), a personal note is added to their answers and you get an email.</p>}
+    </Card>
+  );
+};
 
 // ---------- Page ----------
 
@@ -490,7 +501,7 @@ export const OwnerPage: React.FC = () => {
             <VisitorsSection data={data} />
 
             <H2 id="runs">Latest tool runs</H2>
-            <Outreach data={data} />
+            <Outreach data={data} ownerKey={key} onChange={() => void refresh()} />
             <RecentRuns data={data} />
           </>}
       </article>

@@ -12,7 +12,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { callerNotes } from "./notes";
-import { outreachNotes, refreshOutreach, listOutreach } from "./outreach";
+import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./outreach";
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
@@ -291,6 +291,17 @@ async function startServer() {
   });
 
   // Owner dashboard (/owner on the site): revenue per tool, who calls each tool, and site visitors.
+  app.post("/api/owner/outreach/stop", noCache, async (req: any, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const key = typeof req.body?.key === "string" ? req.body.key : "";
+    try {
+      res.json({ stopped: await stopOutreach(key) });
+    } catch (error) {
+      console.error("stopping outreach failed:", error);
+      res.status(503).json({ error: "Could not stop the note right now." });
+    }
+  });
+
   app.get("/api/owner/overview", noCache, async (req, res) => {
     if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
     const days = [1, 7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 7;

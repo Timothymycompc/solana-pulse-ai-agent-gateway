@@ -5,7 +5,7 @@ import express from "express";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
 import { hashIp } from "../server/meter";
-import { noteText, outreachNotes, pickCandidates, refreshOutreach, listOutreach, type CallerActivity } from "../server/outreach";
+import { noteText, outreachNotes, pickCandidates, refreshOutreach, listOutreach, stopOutreach, type CallerActivity } from "../server/outreach";
 
 const row = (o: Partial<CallerActivity>): CallerActivity => ({ client: "my-agent/1.0", callerHash: "h1", mcpClient: null, runs: 0, hours: 0, tools: {}, owner: false, ...o });
 
@@ -73,4 +73,20 @@ test("from the usage log to a note in their answers", async () => {
   }
   await refreshOutreach();
   assert.equal((await listOutreach()).length, 1, "a caller is greeted once, not every refresh");
+});
+
+test("a stopped note stays stopped, and the owner's own test payments never trigger one", async () => {
+  const [entry] = await listOutreach();
+  assert.equal(await stopOutreach(entry.key), true);
+  await refreshOutreach();
+  assert.equal((await listOutreach()).find((o) => o.key === entry.key)?.active, false, "not greeted again");
+
+  // A network that paid with the owner's wallet is the owner's, however much it called.
+  const mine = hashIp("203.0.113.77");
+  await pool.query(`INSERT INTO x402_payments (tx_signature, tool, payer, amount_base_units, asset, network) VALUES ('tx-mine', 'fee', 'HGKYVGfQGvWdd9Y7uEm7NyHHPjmf5KMFAkfeYMvk5nVV', 10000, 'USDC', 'solana')`);
+  for (let h = 0; h < 12; h++) {
+    await pool.query(`INSERT INTO service_usage (endpoint, method, status, caller_hash, client, payment_tx, created_at) VALUES ('/api/tools/fee', 'POST', 200, $1, 'pay-test/1.0', $2, NOW() - make_interval(hours => $3::int))`, [mine, h === 0 ? "tx-mine" : null, h]);
+  }
+  await refreshOutreach();
+  assert.ok(!(await listOutreach()).some((o) => o.userAgent === "pay-test/1.0"));
 });
