@@ -96,7 +96,7 @@ async function startServer() {
       const isToolCall = req.method === "POST" && (pathOnly.startsWith("/api/tools/") || endpoint.startsWith("/mcp/tools/"));
       const input = !isToolCall ? null : endpoint.startsWith("/mcp/tools/") ? req.body?.params?.arguments : req.body;
       void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client, mcpClient, via: res.locals.via ?? null, paymentTx,
-        input, output: isToolCall ? res.locals.output : null });
+        input, output: isToolCall ? res.locals.output : null, noteSent: res.locals.noteSent === true });
     });
     next();
   };

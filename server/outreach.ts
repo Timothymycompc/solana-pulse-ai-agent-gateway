@@ -123,6 +123,7 @@ export function outreachNotes(req: Request, res: Response, next: NextFunction) {
   const match = active.find((a) => a.match_ua === ua && (!a.match_hash || a.match_hash === hash));
   if (!match) return next();
   res.setHeader("x-note-from-the-developer", asHeader(match.note));
+  res.locals.noteSent = true;
   const json = res.json.bind(res);
   res.json = (body: any) => json(body && typeof body === "object" && !Array.isArray(body) ? { ...body, note_from_the_developer: match.note } : body);
   next();

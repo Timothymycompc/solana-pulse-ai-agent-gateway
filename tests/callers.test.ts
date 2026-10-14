@@ -12,6 +12,7 @@ test("directory, uptime and x402 indexer bots are bots, named after themselves",
   assert.equal(kindOf("mcpbeat/0.1 (+https://mcpbeat.com/bot/; liveness check)"), "bot: mcpbeat");
   assert.equal(kindOf("SentinelOracle/0.1 (+https://glimind.com/opt-out; liveness-only, never invokes tools)"), "bot: SentinelOracle");
   assert.equal(kindOf("PayAI-Bazaar/1.0 (+https://docs.payai.network/x402/facilitators/bazaar)"), "bot: PayAI-Bazaar");
+  assert.equal(kindOf("CoinbaseBazaarDiscovery/1.0 (+https://docs.cdp.coinbase.com/x402/bazaar)"), "bot: CoinbaseBazaarDiscovery");
   assert.equal(kindOf("InvokeRankBot/0.1 (+https://invokerank.com/bot; bot@invokerank.com)"), "bot: InvokeRankBot");
   assert.equal(kindOf("Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)"), "bot: ClaudeBot");
   assert.equal(kindOf("Mozilla/5.0 (compatible; Agent402/1.0; +https://github.com/MikeyPetrillo/Agent402)"), "bot: Agent402");

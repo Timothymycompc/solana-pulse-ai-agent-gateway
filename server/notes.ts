@@ -25,6 +25,7 @@ export function callerNotes(req: Request, res: Response, next: NextFunction) {
   const until = pass ? new Date(pass.until).toUTCString().replace(":00 GMT", " UTC").replace(/^\w+, /, "") : "";
   const note = pass ? `${match.note} PS: I've given you unlimited free calls until ${until} while you test.` : match.note;
   res.setHeader("x-note-from-the-developer", asHeader(note));
+  res.locals.noteSent = true;
   const json = res.json.bind(res);
   res.json = (body: any) => json(body && typeof body === "object" && !Array.isArray(body) ? { ...body, note_from_the_developer: note } : body);
   next();

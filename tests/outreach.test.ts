@@ -59,7 +59,7 @@ test("from the usage log to a note in their answers", async () => {
   const app = express();
   app.set("trust proxy", true);
   app.use("/api", outreachNotes);
-  app.post("/api/tools/:name", (_req, res) => res.json({ verdict: "SAFE" }));
+  app.post("/api/tools/:name", (_req, res) => res.json({ verdict: "SAFE", note_sent: res.locals.noteSent === true }));
   const server = app.listen(0);
   const port = (server.address() as any).port;
   const call = async (ua: string) => (await fetch(`http://127.0.0.1:${port}/api/tools/token_safety`, { method: "POST", headers: { "user-agent": ua, "x-forwarded-for": "198.51.100.9" } })).json();
@@ -67,7 +67,10 @@ test("from the usage log to a note in their answers", async () => {
     const theirs: any = await call("dex-sniper/2.1");
     assert.equal(theirs.verdict, "SAFE");
     assert.match(theirs.note_from_the_developer, /token_safety \(12 calls this week\)/);
-    assert.equal(((await call("someone-else/1")) as any).note_from_the_developer, undefined);
+    assert.equal(theirs.note_sent, true, "the usage log is told the note went out");
+    const other: any = await call("someone-else/1");
+    assert.equal(other.note_from_the_developer, undefined);
+    assert.equal(other.note_sent, false);
   } finally {
     server.close();
   }

@@ -35,7 +35,8 @@ const AI_APPS: [RegExp, string][] = [
   [/\bn8n\b/i, "n8n"],
   [/notebooklm/i, "NotebookLM"],
 ];
-const NOT_AN_APP = /bot\b|bot\/|crawler|spider|searchbot/i;
+// A company's directory indexer is not its AI app: "CoinbaseBazaarDiscovery" lists x402 tools, it isn't AgentKit.
+const NOT_AN_APP = /bot\b|bot\/|crawler|spider|searchbot|bazaar/i;
 
 // Anything that says it is a bot, probe, crawler or monitor, or leaves a homepage or contact address the way bots do.
 const BOT = /bot\b|bot\/|bot;|crawl|spider|probe|collector|monitor|uptime|liveness|health|check|scan|harvest|research|registry|census|verif|watch|tripwire|observatory|index|archive|rank|trust|bazaar|headless|lighthouse|slurp|preview|fetcher|whatsapp|facebookexternalhit|\(\+|\+https?:|\+mailto|mailto:|[\w.-]+@[\w-]+\.\w+/i;

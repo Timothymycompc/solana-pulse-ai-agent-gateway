@@ -353,11 +353,12 @@ const RunRow: React.FC<{ r: Run }> = ({ r }) => {
         </td>
         <td className={`${td} font-mono text-ink-100`}>{r.tool}</td>
         <td className={`${td} text-[12px]`}>{r.transport.toUpperCase()}</td>
-        <td className={td}>{OUTCOME[r.outcome] ?? r.outcome}{r.outcome === 'error' ? <span className="font-mono text-ink-500"> {r.status}</span> : null}</td>
+        <td className={td}>{OUTCOME[r.outcome] ?? r.outcome}{r.outcome === 'error' ? <span className="font-mono text-ink-500"> {r.status}</span> : null}{r.noteSent ? <span className="text-ink-500"> · note sent</span> : null}</td>
         <td className={td}><span className="flex items-center gap-1.5"><Swatch kind={shown(r.caller.kind)} /><span className="truncate text-ink-100">{r.caller.name}</span></span></td>
       </tr>
       {open && <tr className="row-detail">
         <td colSpan={5} className="px-3 py-3">
+          {r.noteSent && <p className="mb-3 text-[12px] text-ink-300">This answer also carried your note from the developer. The output below is the tool's result, saved before the note was added.</p>}
           <div className="grid gap-4 md:grid-cols-2">
             {([['Input', r.input], ['Output', r.output]] as const).map(([label, value]) => <div key={label} className="min-w-0">
               <p className="mb-1.5 text-[12.5px] font-semibold text-ink-300">{label}</p>

@@ -109,6 +109,10 @@ test("tool inputs and results are kept, capped, and cleared after 30 days", asyn
   assert.deepEqual(run.input, { query: "BONK" });
   assert.deepEqual(run.output, { found: true, symbol: "BONK" });
   assert.equal(o.recentRuns.find((r) => r.tool === "fee")!.input, null);
+  assert.equal(run.noteSent, false);
+
+  await recordServiceUsage({ endpoint: "/api/tools/token_safety", method: "POST", status: 200, callerHash: null, client: "algebra-executor/1", noteSent: true });
+  assert.equal((await ownerOverview({ days: 7 })).recentRuns.find((r) => r.tool === "token_safety" && r.caller.name === "algebra-executor")!.noteSent, true);
 
   await recordServiceUsage({ endpoint: "/api/tools/explain_tx", method: "POST", status: 200, callerHash: null, client: "curl/8.5.0",
     input: { tx: "x".repeat(40_000) }, output: { note: "nul\u0000here" } });
