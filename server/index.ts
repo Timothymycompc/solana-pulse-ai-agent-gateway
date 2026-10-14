@@ -12,6 +12,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { callerNotes } from "./notes";
+import { outreachNotes, refreshOutreach, listOutreach } from "./outreach";
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
@@ -29,6 +30,8 @@ async function startServer() {
   await ensureSchema();
   void clearOldToolIo();
   setInterval(() => void clearOldToolIo(), 6 * 60 * 60 * 1000).unref();
+  void refreshOutreach();
+  setInterval(() => void refreshOutreach(), 30 * 60 * 1000).unref();
 
   const app = express();
   app.set("trust proxy", 1);
@@ -100,6 +103,9 @@ async function startServer() {
   app.use("/api", trackServiceUsage);
   app.use("/mcp", trackServiceUsage);
   app.use("/api", callerNotes);
+  app.use("/api", outreachNotes);
+  app.use("/mcp", callerNotes);
+  app.use("/mcp", outreachNotes);
 
   const limiter = rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Rate limit reached (120 requests per minute per IP). Retry shortly." } });
   app.use("/api/", limiter);
@@ -291,7 +297,8 @@ async function startServer() {
     try {
       // Calls and visits from a network the dashboard is opened from are counted as the owner's own.
       if (req.ip) await noteOwnerNetwork(hashIp(req.ip));
-      res.json(await ownerOverview({ days }));
+      const [overview, outreach] = await Promise.all([ownerOverview({ days }), listOutreach()]);
+      res.json({ ...overview, outreach });
     } catch (error) {
       console.error("owner overview failed:", error);
       res.status(503).json({ error: "The dashboard data is temporarily unavailable." });

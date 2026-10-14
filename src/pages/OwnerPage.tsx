@@ -377,6 +377,22 @@ const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => (
   </Card>
 );
 
+// ---------- Personal notes ----------
+
+// Callers who looked like a real developer or AI app, and got a note from you in their answers.
+const Outreach: React.FC<{ data: OwnerOverview }> = ({ data }) => (
+  <Card title="People you've reached out to" aside={<span className="text-[12px] text-ink-500">A note from you rides along in their answers for 14 days</span>}>
+    {data.outreach?.length ? <TableShell head={['Who', 'Used', 'Note sent', 'Shown until']} minWidth={560}>
+      {data.outreach.map((o) => <tr key={o.userAgent + o.since}>
+        <td className={td}><div className="text-ink-100">{o.name}</div><div className="font-mono text-[11.5px] text-ink-500">{o.userAgent}</div></td>
+        <td className={`${td} text-[12px]`}>{o.tools}<div className="text-ink-500">{o.runs} calls that week</div></td>
+        <td className={`${td} whitespace-nowrap`} title={new Date(o.since).toLocaleString()}>{ago(o.since)}</td>
+        <td className={`${td} whitespace-nowrap`}>{new Date(o.until).toLocaleDateString()}</td>
+      </tr>)}
+    </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">Nobody yet. When a caller uses the tools like a real developer or AI app (not a directory bot), a personal note is added to their answers and you get an email.</p>}
+  </Card>
+);
+
 // ---------- Page ----------
 
 const SignIn: React.FC<{ error: string; onSubmit: (key: string, remember: boolean) => void }> = ({ error, onSubmit }) => {
@@ -474,6 +490,7 @@ export const OwnerPage: React.FC = () => {
             <VisitorsSection data={data} />
 
             <H2 id="runs">Latest tool runs</H2>
+            <Outreach data={data} />
             <RecentRuns data={data} />
           </>}
       </article>

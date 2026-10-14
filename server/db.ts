@@ -78,6 +78,22 @@ export async function ensureSchema() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS page_views_created_idx ON page_views (created_at DESC);`);
 
+  // Personal notes to callers who look like a real developer or AI app (outreach.ts). key is the caller: its user
+  // agent, plus its network hash when the user agent is a generic one many people share.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS outreach (
+      key TEXT PRIMARY KEY,
+      match_ua TEXT NOT NULL,
+      match_hash TEXT,
+      name TEXT,
+      note TEXT NOT NULL,
+      tools TEXT,
+      runs INTEGER,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL
+    );
+  `);
+
   // Networks the owner dashboard was opened from, so the owner's own calls and visits can be told apart.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS owner_networks (
