@@ -11,6 +11,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { decodePaymentResponseHeader } from "@x402/core/http";
+import { callerNotes } from "./notes";
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
@@ -98,6 +99,7 @@ async function startServer() {
   };
   app.use("/api", trackServiceUsage);
   app.use("/mcp", trackServiceUsage);
+  app.use("/api", callerNotes);
 
   const limiter = rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Rate limit reached (120 requests per minute per IP). Retry shortly." } });
   app.use("/api/", limiter);

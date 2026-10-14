@@ -92,3 +92,29 @@ test("Coinbase's Bazaar checker and indexer are asked to pay, not given a free c
     server.close();
   }
 });
+
+test("a note from the developer reaches only the caller it's meant for", async () => {
+  const { callerNotes } = await import("../server/notes");
+  const app = express();
+  app.use("/api", callerNotes);
+  app.post("/api/tools/:name", (_req, res) => res.json({ ran: true }));
+  app.post("/api/paid/:name", (_req, res) => res.status(402).json({ x402Version: 2 }));
+  const server = app.listen(0);
+  const port = (server.address() as any).port;
+  const call = async (path: string, ua: string) => {
+    const r = await fetch(`http://127.0.0.1:${port}${path}`, { method: "POST", headers: { "user-agent": ua } });
+    return { header: r.headers.get("x-note-from-the-developer"), body: await r.json() };
+  };
+  try {
+    const them = await call("/api/tools/token_safety", "algebra-executor/1");
+    assert.equal(them.body.ran, true, "the real answer is untouched");
+    assert.match(them.body.note_from_the_developer, /timothymycompc@gmail\.com/);
+    assert.match(them.header ?? "", /^Hi from the developer/);
+    assert.match((await call("/api/paid/fee", "algebra-executor/1")).body.note_from_the_developer, /Solana Pulse/, "402 answers carry it too");
+    const others = await call("/api/tools/token_safety", "curl/8.5.0");
+    assert.equal(others.header, null);
+    assert.equal(others.body.note_from_the_developer, undefined);
+  } finally {
+    server.close();
+  }
+});
