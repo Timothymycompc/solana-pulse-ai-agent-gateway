@@ -80,18 +80,57 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; sub?: React.ReactN
   </div>
 );
 
+// Number tiles, inside a card so they fold like everything else.
 const StatRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="grid grid-cols-2 divide-x divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 surface sm:grid-cols-4 sm:divide-y-0">{children}</div>
+  <div className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-4 sm:divide-y-0">{children}</div>
 );
 
-const Card: React.FC<{ title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, aside, children, className = '' }) => (
-  <section className={`overflow-hidden rounded-xl border border-white/10 surface ${className}`}>
-    {(title || aside) && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-      <h3 className="text-[14px] font-semibold text-ink-100">{title}</h3>{aside}
-    </div>}
-    {children}
-  </section>
-);
+// Which cards the owner folded, remembered in this browser only (the page works the same without it).
+const FOLD_KEY = 'owner-folded';
+const readFolded = (): string[] => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]'); } catch { return []; } };
+const useFolded = (id: string) => {
+  const [folded, setFolded] = useState(() => readFolded().includes(id));
+  const toggle = () => setFolded((f) => {
+    const next = !f;
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...readFolded().filter((x) => x !== id), ...(next ? [id] : [])])); } catch { /* not remembered */ }
+    return next;
+  });
+  return [folded, toggle] as const;
+};
+
+// A card folds up when its title is clicked; the aside (sort, filters) hides with the contents.
+const Card: React.FC<{ id: string; title: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ id, title, aside, children, className = '' }) => {
+  const [folded, toggle] = useFolded(id);
+  return (
+    <section className={`overflow-hidden rounded-xl border border-white/10 surface ${className}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${folded ? '' : 'border-b border-white/10'}`}>
+        <button onClick={toggle} aria-expanded={!folded} className="flex items-center gap-1.5 text-left text-[14px] font-semibold text-ink-100 hover:text-white">
+          <ChevronDown className={`h-4 w-4 shrink-0 text-ink-500 transition ${folded ? '-rotate-90' : ''}`} />{title}
+        </button>
+        {!folded && aside}
+      </div>
+      {!folded && children}
+    </section>
+  );
+};
+
+// "Sort by" for a table: the options are named in plain words, the first is the default.
+type SortOption<T> = { label: string; compare: (a: T, b: T) => number };
+function useSorted<T>(rows: T[], options: SortOption<T>[]) {
+  const [pick, setPick] = useState(0);
+  const sorted = useMemo(() => [...rows].sort(options[pick].compare), [rows, options, pick]);
+  const picker = <label className="flex items-center gap-1.5 text-[11px] text-ink-500">Sort by
+    <select value={pick} onChange={(e) => setPick(Number(e.target.value))} className="rounded-md border border-white/10 bg-black/30 px-1.5 py-1 text-[11px] text-ink-100">
+      {options.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
+    </select>
+  </label>;
+  return [sorted, picker] as const;
+}
+const byText = <T,>(f: (x: T) => string) => (a: T, b: T) => f(a).localeCompare(f(b));
+const byNum = <T,>(f: (x: T) => number) => (a: T, b: T) => f(b) - f(a);
+const byTime = <T,>(f: (x: T) => string | null) => (a: T, b: T) => (f(b) ? Date.parse(f(b)!) : 0) - (f(a) ? Date.parse(f(a)!) : 0);
+const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-[11px] transition ${active ? 'border-accent-400/60 bg-accent-500/15 text-white' : 'border-white/10 text-ink-400 hover:border-white/25 hover:text-ink-100'}`;
+const Asides: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="flex flex-wrap items-center gap-3">{children}</div>;
 
 const KindTag: React.FC<{ kind: Kind }> = ({ kind }) => (
   <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] text-ink-300"><Swatch kind={shown(kind)} />{LABEL[shown(kind)]}</span>
@@ -168,16 +207,25 @@ const ToolRow: React.FC<{ tool: ToolStats; max: number; callers: CallerStats[]; 
   );
 };
 
+const TOOL_SORTS: SortOption<ToolStats>[] = [
+  { label: 'Most runs', compare: byNum((t) => t.runs) },
+  { label: 'Most revenue', compare: byNum((t) => t.revenueWindowUsdc) },
+  { label: 'Most callers', compare: byNum((t) => t.callers) },
+  { label: 'Most errors', compare: byNum((t) => t.errors) },
+  { label: 'Ran most recently', compare: byTime((t) => t.lastRunAt) },
+  { label: 'Name A–Z', compare: byText((t) => t.tool) },
+];
 const ToolsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
   const [showIdle, setShowIdle] = useState(false);
   const max = Math.max(0, ...data.tools.map((t) => t.runs));
-  const visible = data.tools.filter((t) => showIdle || t.runs > 0 || t.payments > 0);
+  const visible = useMemo(() => data.tools.filter((t) => showIdle || t.runs > 0 || t.payments > 0), [data.tools, showIdle]);
   const idle = data.tools.length - data.tools.filter((t) => t.runs > 0 || t.payments > 0).length;
+  const [rows, sortPicker] = useSorted(visible, TOOL_SORTS);
   return (
-    <Card title="Revenue and callers per tool" aside={idle > 0 && <button onClick={() => setShowIdle((s) => !s)} className="text-[11px] text-ink-400 hover:text-white">{showIdle ? 'Hide' : 'Show'} {idle} tool{idle === 1 ? '' : 's'} with no runs</button>}>
+    <Card id="tools" title="Revenue and callers per tool" aside={<Asides>{sortPicker}{idle > 0 && <button onClick={() => setShowIdle((s) => !s)} className="text-[11px] text-ink-400 hover:text-white">{showIdle ? 'Hide' : 'Show'} {idle} tool{idle === 1 ? '' : 's'} with no runs</button>}</Asides>}>
       <div className="px-4 pt-3"><Legend /></div>
       <TableShell head={['Tool', 'Revenue', 'Runs', 'Who ran it', 'Calls']} minWidth={820}>
-        {visible.map((t) => <ToolRow key={t.tool} tool={t} max={max} callers={data.callers} days={data.days} />)}
+        {rows.map((t) => <ToolRow key={t.tool} tool={t} max={max} callers={data.callers} days={data.days} />)}
       </TableShell>
       <p className="px-4 py-3 text-[11.5px] leading-4 text-ink-500">Revenue is for the selected period; all-time and from-others totals are underneath. "Asked to pay" is a call that got the x402 price instead of running, which is how directory bots check prices. Click a tool for its callers.</p>
     </Card>
@@ -186,6 +234,15 @@ const ToolsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
 
 // ---------- Callers ----------
 
+const CALLER_SORTS: SortOption<CallerStats>[] = [
+  { label: 'Most tool runs', compare: byNum((c) => c.runs) },
+  { label: 'Seen most recently', compare: byTime((c) => c.lastSeen) },
+  { label: 'First seen, newest', compare: byTime((c) => c.firstSeen) },
+  { label: 'Paid the most', compare: byNum((c) => c.paidUsdc) },
+  { label: 'Most other requests', compare: byNum((c) => c.pings + c.reads) },
+  { label: 'Most errors', compare: byNum((c) => c.errors) },
+  { label: 'Name A–Z', compare: byText((c) => c.name) },
+];
 const CallersSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
   const [filter, setFilter] = useState<ShownKind | 'all'>('all');
   const [openId, setOpenId] = useState<string | null>(null);
@@ -194,10 +251,10 @@ const CallersSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
     callers: k === 'other' ? data.kinds.other.callers + data.kinds.unknown.callers : data.kinds[k].callers,
     runs: k === 'other' ? data.kinds.other.runs + data.kinds.unknown.runs : data.kinds[k].runs,
   }));
-  const rows = data.callers.filter((c) => filter === 'all' || shown(c.kind) === filter);
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-[11px] transition ${active ? 'border-accent-400/60 bg-accent-500/15 text-white' : 'border-white/10 text-ink-400 hover:border-white/25 hover:text-ink-100'}`;
+  const filtered = useMemo(() => data.callers.filter((c) => filter === 'all' || shown(c.kind) === filter), [data.callers, filter]);
+  const [rows, sortPicker] = useSorted(filtered, CALLER_SORTS);
   return (
-    <Card title={`${num.format(data.callerCount)} callers`}>
+    <Card id="callers" title={`${num.format(data.callerCount)} callers`} aside={sortPicker}>
       <div className="flex flex-wrap gap-2 px-4 py-3">
         <button className={chip(filter === 'all')} onClick={() => setFilter('all')}>All</button>
         {counts.map((c) => <button key={c.kind} className={`${chip(filter === c.kind)} inline-flex items-center gap-1.5`} onClick={() => setFilter(c.kind)}>
@@ -237,11 +294,27 @@ const CallersSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
 
 // ---------- Payments ----------
 
-const PaymentsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => (
+type Payment = OwnerOverview['recentPayments'][number];
+type Payer = OwnerOverview['payers'][number];
+const PAYMENT_SORTS: SortOption<Payment>[] = [
+  { label: 'Newest', compare: byTime((p) => p.at) },
+  { label: 'Biggest', compare: byNum((p) => p.amountUsdc) },
+  { label: 'Tool A–Z', compare: byText((p) => p.tool) },
+  { label: 'Not yours first', compare: byNum((p) => (p.mine ? 0 : 1)) },
+];
+const PAYER_SORTS: SortOption<Payer>[] = [
+  { label: 'Paid the most', compare: byNum((p) => p.usdc) },
+  { label: 'Paid most recently', compare: byTime((p) => p.lastAt) },
+  { label: 'Most payments', compare: byNum((p) => p.payments) },
+];
+const PaymentsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
+  const [payments, paymentSort] = useSorted(data.recentPayments, PAYMENT_SORTS);
+  const [payers, payerSort] = useSorted(data.payers, PAYER_SORTS);
+  return (
   <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
-    <Card title="Recent payments">
+    <Card id="payments" title="Recent payments" aside={data.recentPayments.length > 1 && paymentSort}>
       {data.recentPayments.length ? <TableShell head={['When', 'Tool', 'Amount', 'Payer', 'Called by']} minWidth={620}>
-        {data.recentPayments.map((p) => <tr key={p.txSignature}>
+        {payments.map((p) => <tr key={p.txSignature}>
           <td className={`${td} whitespace-nowrap`} title={new Date(p.at).toLocaleString()}><Solscan kind="tx" id={p.txSignature} label={ago(p.at)} /></td>
           <td className={`${td} font-mono`}>{p.tool}</td>
           <td className={`${td} tabular-nums text-ink-100`}>{usd(p.amountUsdc)}</td>
@@ -250,9 +323,9 @@ const PaymentsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => (
         </tr>)}
       </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">No payments yet.</p>}
     </Card>
-    <Card title={`${num.format(data.revenue.payers)} payers`}>
+    <Card id="payers" title={`${num.format(data.revenue.payers)} payers`} aside={data.payers.length > 1 && payerSort}>
       <ul className="divide-y divide-white/[0.06] text-[12px]">
-        {data.payers.slice(0, 15).map((p) => <li key={p.payer} className="flex items-center justify-between gap-3 px-4 py-2">
+        {payers.slice(0, 15).map((p) => <li key={p.payer} className="flex items-center justify-between gap-3 px-4 py-2">
           <span className="min-w-0"><Solscan kind="account" id={p.payer} />{p.mine && <span className="ml-1.5 text-[11.5px] text-ink-500">you</span>}
             <span className="block text-[11.5px] text-ink-500">{num.format(p.payments)} payment{p.payments === 1 ? '' : 's'} · {p.tools} tool{p.tools === 1 ? '' : 's'} · last {ago(p.lastAt)}</span></span>
           <span className="shrink-0 tabular-nums text-ink-100">{usd(p.usdc)}</span>
@@ -261,7 +334,8 @@ const PaymentsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => (
       </ul>
     </Card>
   </div>
-);
+  );
+};
 
 // ---------- Visitors ----------
 
@@ -308,19 +382,19 @@ const VisitorsSection: React.FC<{ data: OwnerOverview }> = ({ data }) => {
   const period = data.days === 1 ? '24 hours' : `${data.days} days`;
   return (
     <div className="space-y-4">
-      <StatRow>
+      <Card id="visitor-summary" title="Visitors at a glance"><StatRow>
         <Stat label="On the site now" value={num.format(v.liveNow)} sub={`${num.format(v.last30Minutes)} in the last 30 minutes`} icon={Radio} />
         <Stat label="Visitors, 24 hours" value={num.format(v.visitors24h)} sub={`${num.format(v.views24h)} page views`} icon={Users} />
         <Stat label={`Visitors, ${period}`} value={num.format(v.visitors)} sub={`${num.format(v.views)} page views`} icon={Eye} />
         <Stat label="Phones and computers" value={`${num.format(v.mobile)} / ${num.format(v.desktop)}`} sub={`Left out: ${num.format(v.botViews)} bot, ${num.format(v.ownViews)} yours`} icon={Users} />
-      </StatRow>
-      <Card title={`Visitors per ${v.bucket}, last ${period}`}><VisitorBars v={v} /></Card>
+      </StatRow></Card>
+      <Card id="visitors-chart" title={`Visitors per ${v.bucket}, last ${period}`}><VisitorBars v={v} /></Card>
       <div className="grid gap-4 md:grid-cols-3">
-        <Card title="Top pages"><RankList rows={v.pages.map((p) => ({ label: p.path, value: p.views, sub: `${num.format(p.visitors)} ppl` }))} empty="No visits yet." /></Card>
-        <Card title="Came from"><RankList rows={v.referrers.map((r) => ({ label: r.host, value: r.views }))} empty="No visits yet." /></Card>
-        <Card title="Browsers"><RankList rows={v.devices.map((d) => ({ label: d.name, value: d.visitors }))} empty="No visits yet." /></Card>
+        <Card id="top-pages" title="Top pages"><RankList rows={v.pages.map((p) => ({ label: p.path, value: p.views, sub: `${num.format(p.visitors)} ppl` }))} empty="No visits yet." /></Card>
+        <Card id="came-from" title="Came from"><RankList rows={v.referrers.map((r) => ({ label: r.host, value: r.views }))} empty="No visits yet." /></Card>
+        <Card id="browsers" title="Browsers"><RankList rows={v.devices.map((d) => ({ label: d.name, value: d.visitors }))} empty="No visits yet." /></Card>
       </div>
-      <Card title="Latest visits">
+      <Card id="latest-visits" title="Latest visits">
         {v.recent.length ? <TableShell head={['When', 'Page', 'Came from', 'Browser', 'Visitor']} minWidth={560}>
           {v.recent.slice(0, 15).map((r, i) => <tr key={i}>
             <td className={`${td} whitespace-nowrap`} title={new Date(r.at).toLocaleString()}>{ago(r.at)}</td>
@@ -370,13 +444,81 @@ const RunRow: React.FC<{ r: Run }> = ({ r }) => {
     </>
   );
 };
-const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => (
-  <Card title="Latest tool runs">
-    {data.recentRuns.length ? <TableShell head={['When', 'Tool', 'Via', 'Result', 'Caller']} minWidth={560}>
-      {data.recentRuns.slice(0, 25).map((r, i) => <RunRow key={`${r.at}-${i}`} r={r} />)}
-    </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">No tool runs in this period.</p>}
-  </Card>
-);
+const RUN_SORTS: SortOption<Run>[] = [
+  { label: 'Newest', compare: byTime((r) => r.at) },
+  { label: 'Oldest', compare: (a, b) => byTime((r: Run) => r.at)(b, a) },
+  { label: 'Tool A–Z', compare: byText((r) => r.tool) },
+  { label: 'Caller A–Z', compare: byText((r) => r.caller.name) },
+  { label: 'Paid first', compare: byNum((r) => (r.outcome === 'paid' ? 1 : 0)) },
+  { label: 'Errors first', compare: byNum((r) => (r.outcome === 'error' ? 1 : 0)) },
+  { label: 'Note sent first', compare: byNum((r) => (r.noteSent ? 1 : 0)) },
+];
+const RecentRuns: React.FC<{ data: OwnerOverview }> = ({ data }) => {
+  const [filter, setFilter] = useState<ShownKind | 'all'>('all');
+  const present = SHOWN.filter((k) => data.recentRuns.some((r) => shown(r.caller.kind) === k));
+  const filtered = useMemo(() => data.recentRuns.filter((r) => filter === 'all' || shown(r.caller.kind) === filter), [data.recentRuns, filter]);
+  const [rows, sortPicker] = useSorted(filtered, RUN_SORTS);
+  return (
+    <Card id="runs" title="Latest tool runs" aside={sortPicker}>
+      {present.length > 1 && <div className="flex flex-wrap gap-2 px-4 py-3">
+        <button className={chip(filter === 'all')} onClick={() => setFilter('all')}>All</button>
+        {present.map((k) => <button key={k} className={`${chip(filter === k)} inline-flex items-center gap-1.5`} onClick={() => setFilter(k)}><Swatch kind={k} />{LABEL[k]}</button>)}
+      </div>}
+      {rows.length ? <TableShell head={['When', 'Tool', 'Via', 'Result', 'Caller']} minWidth={560}>
+        {rows.slice(0, 25).map((r, i) => <RunRow key={`${r.at}-${i}`} r={r} />)}
+      </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">No tool runs in this period.</p>}
+    </Card>
+  );
+};
+
+// ---------- Live usage (the numbers the public site shows) ----------
+
+type PublicUsage = {
+  toolRuns24h: number; otherCallers24h: number; otherToolRuns7d: number; otherCallers7d: number; pings24h: number; lastToolRunAt: string | null;
+  tools: { endpoint: string; runs: number; otherCallers: number; lastRunAt: string }[]; note: string;
+};
+type UsageTool = PublicUsage['tools'][number];
+const USAGE_SORTS: SortOption<UsageTool>[] = [
+  { label: 'Most runs', compare: byNum((t) => t.runs) },
+  { label: 'Most callers besides you', compare: byNum((t) => t.otherCallers) },
+  { label: 'Ran most recently', compare: byTime((t) => t.lastRunAt) },
+  { label: 'Name A–Z', compare: byText((t) => t.endpoint) },
+];
+const LiveUsage: React.FC<{ tick: string }> = ({ tick }) => {
+  const [usage, setUsage] = useState<PublicUsage | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Reloads whenever the dashboard does (tick is its generatedAt).
+  useEffect(() => {
+    let live = true;
+    fetch('/api/analytics/usage', { cache: 'no-store' })
+      .then(async (r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((u) => { if (live) { setUsage(u); setFailed(false); } })
+      .catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, [tick]);
+  const [tools, sortPicker] = useSorted(usage?.tools ?? [], USAGE_SORTS);
+  return (
+    <Card id="live-usage" title="Live usage, as the public site shows it" aside={usage && usage.tools.length > 1 && sortPicker}>
+      {!usage ? <p className="px-4 py-6 text-[12px] text-ink-500">{failed ? "Live usage can't be loaded right now." : 'Loading…'}</p> : <>
+        <StatRow>
+          <Stat label="Tool runs, 24 hours" value={num.format(usage.toolRuns24h)} sub={`last run ${ago(usage.lastToolRunAt)}`} icon={Radio} />
+          <Stat label="Callers besides you, 24 hours" value={num.format(usage.otherCallers24h)} icon={Users} />
+          <Stat label="Runs by others, 7 days" value={num.format(usage.otherToolRuns7d)} sub={`from ${num.format(usage.otherCallers7d)} callers`} icon={Users} />
+          <Stat label="Uptime pings, 24 hours" value={num.format(usage.pings24h)} sub="mostly directory bots" icon={Eye} />
+        </StatRow>
+        {tools.length ? <TableShell head={['Tool', 'Runs, 7 days', 'Callers besides you', 'Last run']} minWidth={520}>
+          {tools.map((t) => <tr key={t.endpoint}>
+            <td className={`${td} font-mono text-ink-100`}>{t.endpoint}</td>
+            <td className={`${td} tabular-nums`}>{num.format(t.runs)}</td>
+            <td className={`${td} tabular-nums`}>{num.format(t.otherCallers)}</td>
+            <td className={`${td} whitespace-nowrap`} title={new Date(t.lastRunAt).toLocaleString()}>{ago(t.lastRunAt)}</td>
+          </tr>)}
+        </TableShell> : <p className="px-4 py-6 text-[12px] text-ink-500">No tool runs in the last 7 days.</p>}
+        <p className="px-4 py-3 text-[11.5px] leading-4 text-ink-500">{usage.note} The public page lists the top 12 tool routes; HTTP and MCP are counted separately.</p>
+      </>}
+    </Card>
+  );
+};
 
 // ---------- Personal notes ----------
 
@@ -388,7 +530,7 @@ const Outreach: React.FC<{ data: OwnerOverview; ownerKey: string; onChange: () =
     try { await stopOutreach(ownerKey, outreachKey); onChange(); } catch { /* the list refreshes and still shows it as active */ } finally { setBusy(''); }
   };
   return (
-    <Card title="People you've reached out to" aside={<span className="text-[12px] text-ink-500">A note from you rides along in their answers for 14 days</span>}>
+    <Card id="outreach" title="People you've reached out to" aside={<span className="text-[12px] text-ink-500">A note from you rides along in their answers for 14 days</span>}>
       {data.outreach?.length ? <TableShell head={['Who', 'Used', 'Note sent', 'Note']} minWidth={600}>
         {data.outreach.map((o) => <tr key={o.key}>
           <td className={td}><div className="text-ink-100">{o.name}</div><div className="font-mono text-[11.5px] text-ink-500">{o.userAgent}</div></td>
@@ -483,12 +625,14 @@ export const OwnerPage: React.FC = () => {
           : <>
             {error && <p role="status" className="text-[12px] text-warning-300">Could not refresh: {error} Showing the last numbers.</p>}
             <p className="flex items-center gap-1.5 text-[11px] text-ink-500"><Clock3 className="h-3 w-3" />Updated {new Date(data.generatedAt).toLocaleTimeString()}. Refreshes every 30 seconds.</p>
-            <StatRow>
+            <Card id="revenue-summary" title="Revenue at a glance"><StatRow>
               <Stat label={`Revenue from others, ${period}`} value={usd(r!.fromOthersWindowUsdc)} sub={`${usd(r!.windowUsdc)} with your test payments`} icon={CircleDollarSign} />
               <Stat label="Revenue from others, all time" value={usd(r!.fromOthersUsdc)} sub={`${usd(r!.allTimeUsdc)} in total · ${num.format(r!.payments)} payments`} icon={Wallet} />
               <Stat label="Revenue, 24 hours" value={usd(r!.last24hUsdc)} sub={`${num.format(r!.paymentsWindow)} payments in ${period}`} icon={CircleDollarSign} />
               <Stat label="Payers besides you" value={num.format(r!.otherPayers)} sub={`${num.format(r!.payers)} wallets have paid`} icon={Users} />
-            </StatRow>
+            </StatRow></Card>
+
+            <LiveUsage tick={data.generatedAt} />
 
             <ToolsSection data={data} />
 
