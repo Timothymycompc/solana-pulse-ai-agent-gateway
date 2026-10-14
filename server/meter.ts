@@ -61,16 +61,26 @@ export async function getFreeCallStatus(ip: string): Promise<Record<string, numb
   return Object.fromEntries(result.rows.map((r: any) => [r.tool, Number(r.calls_used)]));
 }
 
+// One-off free passes the owner grants: a caller named here runs every tool free, without using its daily free calls,
+// until the time given. After that it's back to the normal 25 a day. Kept in code so every pass is on record.
+export const FREE_PASSES: { userAgent: RegExp; until: string; why: string }[] = [
+  { userAgent: /^algebra-executor\//i, until: "2026-10-15T03:00:00Z", why: "Granted 2026-10-14 for 24 hours: the most active real caller, while it tests." },
+];
+export const freePassFor = (userAgent: string | undefined, now = Date.now()) =>
+  FREE_PASSES.find((p) => p.userAgent.test(userAgent ?? "") && now < Date.parse(p.until)) ?? null;
+
 // How a call is admitted before any payment is asked for.
 export type Admission =
   | { via: "free_tool" }
   | { via: "owner" }
+  | { via: "free_pass" }
   | { via: "free_call"; remaining: number }
   | { via: "x402" };
 
-export async function admitCall(o: { tool: string; ip: string; apiKey?: string; hasPayment: boolean }): Promise<Admission> {
+export async function admitCall(o: { tool: string; ip: string; apiKey?: string; hasPayment: boolean; userAgent?: string }): Promise<Admission> {
   if (!priceOf(o.tool)) return { via: "free_tool" };
   if (isOwnerKey(o.apiKey)) return { via: "owner" };
+  if (!o.hasPayment && freePassFor(o.userAgent)) return { via: "free_pass" };
   // A caller that already attached an x402 payment pays; free calls are not spent on it.
   if (!o.hasPayment && o.ip && o.ip !== "unknown") {
     const used = await reserveFreeCall(o.ip, o.tool);
@@ -95,7 +105,7 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "");
     let admission: Admission;
     try {
-      admission = await admitCall({ tool, ip, apiKey: keyFromReq(req), hasPayment });
+      admission = await admitCall({ tool, ip, apiKey: keyFromReq(req), hasPayment, userAgent: req.get("user-agent") });
     } catch (error) {
       console.error("free call metering error:", error);
       return res.status(503).json({ error: "Usage metering is temporarily unavailable. Retry shortly." });

@@ -328,7 +328,7 @@ async function startServer() {
   // note() tells the request's usage record how a tool call was admitted, when paid its settlement transaction, and
   // the tool's result.
   type CallNote = { via?: string; paymentTx?: string; output?: unknown };
-  const createMcpServer = (caller: { apiKey?: string; ip: string; note?: (n: CallNote) => void }) => {
+  const createMcpServer = (caller: { apiKey?: string; ip: string; userAgent?: string; note?: (n: CallNote) => void }) => {
     const server = new McpServer({ name: "solana-pulse-gateway", version: "2.0.0" });
     for (const tool of TOOLS) {
       const price = priceOf(tool.name);
@@ -341,7 +341,7 @@ async function startServer() {
         if (!price) return handler(args);
         let admission;
         try {
-          admission = await admitCall({ tool: tool.name, ip: caller.ip, apiKey: caller.apiKey, hasPayment: Boolean(extra?._meta?.["x402/payment"]) });
+          admission = await admitCall({ tool: tool.name, ip: caller.ip, apiKey: caller.apiKey, hasPayment: Boolean(extra?._meta?.["x402/payment"]), userAgent: caller.userAgent });
         } catch (error) {
           console.error("free call metering error:", error);
           return { content: [{ type: "text" as const, text: "Usage metering is temporarily unavailable. Retry shortly." }], isError: true };
@@ -373,7 +373,7 @@ async function startServer() {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     sseTransports.set(sessionId, transport);
-    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown" }).connect(transport);
+    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", userAgent: req.get("user-agent") }).connect(transport);
     res.on("close", () => sseTransports.delete(sessionId));
   });
   app.post("/mcp/messages", async (req, res) => {
@@ -382,7 +382,7 @@ async function startServer() {
     else res.status(404).json({ error: "MCP SSE session not found." });
   });
   app.post("/mcp", async (req, res) => {
-    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", note: (n) => Object.assign(res.locals, n) });
+    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", userAgent: req.get("user-agent"), note: (n) => Object.assign(res.locals, n) });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {

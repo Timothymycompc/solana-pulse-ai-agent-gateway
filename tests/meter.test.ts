@@ -118,3 +118,15 @@ test("a note from the developer reaches only the caller it's meant for", async (
     server.close();
   }
 });
+
+test("a free pass lets its caller run paid tools free until it ends, without using daily free calls", async () => {
+  const { freePassFor, FREE_PASSES } = await import("../server/meter");
+  const until = Date.parse(FREE_PASSES[0].until);
+  assert.ok(freePassFor("algebra-executor/1", until - 1000));
+  assert.equal(freePassFor("algebra-executor/1", until + 1000), null, "it ends on time");
+  assert.equal(freePassFor("someone-else/1", until - 1000), null);
+  if (Date.now() < until) {
+    for (let i = 0; i < 30; i++) assert.deepEqual(await admitCall({ tool: "token_safety", ip: "192.0.2.77", hasPayment: false, userAgent: "algebra-executor/1" }), { via: "free_pass" });
+    assert.equal((await getFreeCallStatus("192.0.2.77")).token_safety, undefined, "daily free calls untouched");
+  }
+});
