@@ -166,7 +166,8 @@ export const tokenVerdict: ToolDef = {
     { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
   ],
   notes: [
-    "A verdict is a screen, not a guarantee. SAFE means none of the known traps were found, not that the price can't fall. It can't catch everything, such as a team abandoning a project or insiders it has no data on.",
+    "The check doesn't make a token safe, and it can't. It looks for the known ways people get robbed with a token. \"SAFE\" really means \"none of the traps we know about are present.\" Every rule exists because it matches a real scam.",
+    "It can't catch everything, such as a team abandoning a project or insiders it has no data on, and SAFE says nothing about whether the price will rise or fall.",
     "The sell test sells about $20 from a real holder's wallet in a simulation only: nothing is sent, and no funds move.",
     "Top-holder share counts accounts, which can include exchanges and liquidity pools.",
   ],

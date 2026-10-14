@@ -6,6 +6,7 @@
 - MCP endpoint: `POST /mcp` (Streamable HTTP) or `/mcp/sse`
 - Listed in the official MCP Registry as `io.github.Timothymycompc/solana-pulse-gateway`
 - Open source (MIT) and free to use: every tool gives 25 free calls a day
+- Built on [our principles](PRINCIPLES.md): real data with its source, "unknown" instead of a guess, and no false data on the chain. A safety check doesn't make a token safe, and it can't. It looks for the known ways people get robbed with a token. "SAFE" really means "none of the traps we know about are present." Every rule exists because it matches a real scam.
 
 ## Why
 
@@ -63,10 +64,10 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 
 - All calls are rate-limited to 120 requests per minute per IP.
 - Every tool gives each caller 25 free calls a day (reset at 00:00 UTC, counted by a keyed hash of the caller's network, shared across HTTP and MCP), then costs $0.01 USDC per call ($0.02 for `check_tx`, `tx_matches` and `token_safety`). Normal use stays free; payment covers heavy, automated use.
-- Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. The [PayAI](https://facilitator.payai.network) facilitator verifies, settles and pays network fees. Calls that return an error are never charged.
+- Payment is per request with [x402](https://github.com/x402-foundation/x402) v2 (scheme `exact`, USDC on Solana mainnet). HTTP answers `402` with a `PAYMENT-REQUIRED` header; MCP returns a PaymentRequired tool result and accepts payment in `_meta["x402/payment"]`. Coinbase's x402 facilitator verifies, settles and pays network fees, with [PayAI's](https://facilitator.payai.network) as a backup if Coinbase can't be reached at startup. Calls that return an error are never charged.
 - No accounts, API keys or stored balances.
 - Usage records hold the route, status, client name and a keyed hash of the caller's network, never IP addresses. For tool calls they also keep the tool's input and result (up to 32 KB each) for 30 days, then clear them. Site visits are recorded the same way, with the page and referring site. The owner sees revenue per tool, callers and visitors at `/owner`, using the owner key.
-- Each paid tool publishes an x402 discovery listing (the Bazaar extension: description, input schema and a real example), so facilitator directories such as PayAI's, which Coinbase AgentKit can search, list it after its first paid call.
+- Each paid tool publishes an x402 discovery listing (the Bazaar extension: description, input schema and a real example), so facilitator directories such as Coinbase's x402 Bazaar and PayAI's list it after its first paid call through them.
 
 ### How payments evolved
 
