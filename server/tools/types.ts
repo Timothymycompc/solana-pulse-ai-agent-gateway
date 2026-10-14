@@ -22,6 +22,8 @@ export type OutputDoc = {
 export type ToolContext = {
   connection: (network: string) => Connection;
   fetchJson: (url: string, timeoutMs?: number) => Promise<any>;
+  // POST a JSON body and read JSON back (Jupiter's swap builder). Optional so contexts that never need it can omit it.
+  postJson?: (url: string, body: unknown, timeoutMs?: number) => Promise<any>;
 };
 
 export type ToolCategory = "transactions" | "tokens" | "wallets" | "network" | "reference";

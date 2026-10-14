@@ -56,9 +56,15 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
     args: async (c) => ({ tx: await build(c, [...sendUsdc(toUsdc, recipient, 1_000_000n), ...sendUsdc(strangerUsdc, stranger, 5_000_000n)]), expected: intent(USDC_MINT, "1") }),
   },
   { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ token: USDC_MINT }) },
+  // An established token that should pass every check, sell test included.
+  { name: "token-verdict-jup", tool: tokenVerdict, args: async () => ({ token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" }) },
+  // A brand-new pump.fun token whose creator has rugged before (RugCheck, 2026-10-14).
+  { name: "token-verdict-rugger", tool: tokenVerdict, args: async () => ({ token: "G2YQ1fjjKTXqcDDQNAnCuWp3K2pdjtmhWWG4FTFDpump" }) },
 ];
 
-for (const scenario of SCENARIOS) {
+// Name scenarios to record only those (`npm run test:record -- token-verdict-jup`); with none, all are recorded.
+const only = process.argv.slice(2);
+for (const scenario of SCENARIOS.filter((s) => !only.length || only.includes(s.name))) {
   const { ctx, connection, recording } = recordingContext(RPC);
   const args = await scenario.args(connection);
   const result = await scenario.tool.run(z.object(scenario.tool.inputs).parse(args), ctx);

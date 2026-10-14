@@ -77,8 +77,9 @@ export const lamportsToSol = (lamports: bigint | number | string) => formatUnits
 export type JupToken = {
   id: string; name: string; symbol: string; decimals: number; isVerified?: boolean; tags?: string[];
   organicScore?: number; liquidity?: number; holderCount?: number; tokenProgram?: string; usdPrice?: number; mcap?: number;
-  audit?: { mintAuthorityDisabled?: boolean; freezeAuthorityDisabled?: boolean; topHoldersPercentage?: number };
+  audit?: { mintAuthorityDisabled?: boolean; freezeAuthorityDisabled?: boolean; topHoldersPercentage?: number; devBalancePercentage?: number; devMints?: number };
   firstPool?: { id?: string; createdAt?: string };
+  dev?: string;
 };
 const jupCache = new Map<string, { at: number; value: JupToken[] }>();
 // ok is false when Jupiter could not be reached, so callers can tell "no data" from "no answer".
@@ -95,8 +96,29 @@ export async function jupLookup(ctx: ToolContext, query: string): Promise<{ toke
   } catch { return { tokens: [], ok: false }; }
 }
 
-// Tests reset the cache so each recorded scenario makes its own Jupiter calls.
-export const clearJupCache = () => jupCache.clear();
+// RugCheck's public token report: who provides the liquidity and whether it is locked, insider wallet networks, the
+// creator's history and whether the name and logo can still change. ok is false when RugCheck could not be reached.
+export type RugMarket = { marketType?: string; lp?: { lpLockedPct?: number; quoteUSD?: number; baseUSD?: number } };
+export type RugReport = {
+  markets?: RugMarket[]; totalLPProviders?: number; risks?: { name: string; level: string; description?: string }[];
+  insiderNetworks?: { size?: number; currentHolding?: number }[] | null; graphInsidersDetected?: number;
+  tokenMeta?: { mutable?: boolean; updateAuthority?: string | null }; creator?: string; rugged?: boolean;
+};
+const rugCache = new Map<string, { at: number; value: RugReport }>();
+export async function rugReport(ctx: ToolContext, mint: string): Promise<{ report: RugReport | null; ok: boolean }> {
+  const hit = rugCache.get(mint);
+  if (hit && Date.now() - hit.at < 60_000) return { report: hit.value, ok: true };
+  try {
+    const value = await ctx.fetchJson(`https://api.rugcheck.xyz/v1/tokens/${mint}/report`, 8_000);
+    if (!value || typeof value !== "object") return { report: null, ok: false };
+    rugCache.set(mint, { at: Date.now(), value });
+    if (rugCache.size > 500) rugCache.clear();
+    return { report: value, ok: true };
+  } catch { return { report: null, ok: false }; }
+}
+
+// Tests reset the caches so each recorded scenario makes its own Jupiter and RugCheck calls.
+export const clearJupCache = () => { jupCache.clear(); rugCache.clear(); };
 
 // For display-only data (symbols, prices), where a Jupiter outage just leaves fields empty.
 export const jupSearch = async (ctx: ToolContext, query: string): Promise<JupToken[]> => (await jupLookup(ctx, query)).tokens;

@@ -120,6 +120,11 @@ async function startServer() {
       if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
       return res.json();
     },
+    postJson: async (url, body, timeoutMs = 8000) => {
+      const res = await fetch(url, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+      return res.json();
+    },
   };
 
   // Validate inputs against the tool's schema, run it, and map failures to a status and a fix.

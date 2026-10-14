@@ -1,7 +1,8 @@
 // Token intelligence: resolve tickers to the right mint, and give a reasoned safety verdict for a mint.
 import { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
-import { assertAddress, BONK_MINT, formatUnits, jupLookup, KNOWN_STABLECOINS, NETWORK_DOC, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken } from "./lib";
+import { assertAddress, BONK_MINT, formatUnits, jupLookup, KNOWN_STABLECOINS, NETWORK_DOC, rugReport, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken, type RugReport } from "./lib";
+import { sellCheck } from "./sellcheck";
 import { ToolError, type ToolDef } from "./types";
 
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
@@ -75,15 +76,72 @@ const EXTENSION_RULES: Record<string, (ext: any, stable: string | null) => Omit<
   mintCloseAuthority: (e, stable) => (e.state?.closeAuthority ? { result: stable ? "info" : "warn", detail: `Close authority ${e.state.closeAuthority} can close the mint once supply is zero.` } : null),
 };
 
+// Can whoever supplied the liquidity take it back? That's the classic rug pull: the creator adds a pool, buyers come in,
+// then the creator withdraws the pool and the token can no longer be sold for anything. Liquidity that is locked,
+// burned, sitting in a launchpad's bonding curve or spread over many providers can't be pulled by one person.
+const BONDING_CURVES = /pump_?fun$|moonshot|launchlab|bonk_?fun|boop/i;
+export function liquidityPullCheck(r: RugReport, verified: boolean): Omit<Check, "name" | "source"> | null {
+  const markets = (r.markets ?? []).map((m) => ({ type: m.marketType ?? "", usd: (m.lp?.quoteUSD ?? 0) + (m.lp?.baseUSD ?? 0), locked: Math.min(Math.max(m.lp?.lpLockedPct ?? 0, 0), 100) }))
+    .filter((m) => m.usd >= 1_000);
+  if (!markets.length) return null;
+  const total = markets.reduce((a, m) => a + m.usd, 0);
+  const safeUsd = markets.reduce((a, m) => a + (BONDING_CURVES.test(m.type) ? m.usd : (m.usd * m.locked) / 100), 0);
+  const unlockedPct = Math.round(100 - (safeUsd / total) * 100);
+  const providers = r.totalLPProviders ?? 0;
+  if (unlockedPct <= 20) return { result: "pass", detail: `${100 - unlockedPct}% of the liquidity is locked, burned or held by a launchpad, so nobody can pull it.` };
+  if (providers >= 10) return { result: "pass", detail: `The liquidity comes from ${providers} different providers, so no single one can pull it.` };
+  const who = providers ? `${providers} provider${providers === 1 ? "" : "s"}` : "a few providers";
+  if (providers <= 2) return { result: verified ? "warn" : "fail", detail: `${unlockedPct}% of the liquidity is unlocked and comes from ${who}, who can withdraw it at any time and leave holders unable to sell.` };
+  return { result: "warn", detail: `${unlockedPct}% of the liquidity is unlocked and comes from only ${who}. If they withdraw it, the price collapses.` };
+}
+
+// Wallets that RugCheck links by funding or transfers: one person spreading the supply over many wallets to look like
+// many holders, then selling them all at once. The top-10 check misses this when no single wallet is large.
+export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name" | "source"> | null {
+  const networks = r.insiderNetworks ?? [];
+  const wallets = networks.reduce((a, n) => a + (n.size ?? 0), 0);
+  if (!wallets || rawSupply <= 0n) return { result: "pass", detail: "No networks of linked insider wallets detected." };
+  const held = networks.reduce((a, n) => a + (Number(n.currentHolding) || 0), 0);
+  const pct = (held / Number(rawSupply)) * 100;
+  const shown = pct < 0.1 ? "under 0.1" : pct.toFixed(1);
+  if (pct > 30) return { result: "fail", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them and could sell together.` };
+  if (pct > 10) return { result: "warn", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them.` };
+  return { result: "pass", detail: `${wallets} linked wallets found, holding ${shown}% of the supply: too little to crash the price.` };
+}
+
+// The creator's track record: a wallet that has rugged before, or one that launches tokens by the hundred and
+// abandons them, is the strongest warning sign there is for a new token.
+export function creatorCheck(r: RugReport | null, j: JupToken | undefined, verified: boolean): Omit<Check, "name" | "source"> | null {
+  if (r?.risks?.some((k) => /creator history of rugged/i.test(k.name))) return { result: "fail", detail: "The creator has launched tokens before that were rugged." };
+  const made = j?.audit?.devMints;
+  const holds = j?.audit?.devBalancePercentage;
+  const parts: string[] = [];
+  let result: Check["result"] = "pass";
+  if (typeof made === "number" && made >= 20 && !verified) { result = "warn"; parts.push(`The creator has launched ${made.toLocaleString("en-US")} tokens; serial launchers usually abandon or dump them.`); }
+  if (typeof holds === "number" && holds > 20) { result = "warn"; parts.push(`The creator still holds ${holds.toFixed(1)}% of the supply and could sell it at any time.`); }
+  if (parts.length) return { result, detail: parts.join(" ") };
+  if (typeof made !== "number" && !r) return null;
+  return { result: "pass", detail: `No rugged tokens in the creator's history${typeof made === "number" ? ` (${made.toLocaleString("en-US")} token${made === 1 ? "" : "s"} launched)` : ""}.` };
+}
+
+// A name and logo that can still change let a token be renamed to impersonate a real one after people buy it.
+export function metadataCheck(r: RugReport, verified: boolean, stable: string | null): Omit<Check, "name" | "source"> | null {
+  const meta = r.tokenMeta;
+  if (!meta || typeof meta.mutable !== "boolean") return null;
+  if (!meta.mutable) return { result: "pass", detail: "The token's name and logo are locked and can't be changed." };
+  const who = meta.updateAuthority ? ` by ${meta.updateAuthority}` : "";
+  return { result: verified || stable ? "info" : "warn", detail: `The token's name and logo can still be changed${who}${verified || stable ? ", which is common for established tokens." : ", so it could later be renamed to look like another token."}` };
+}
+
 export const tokenVerdict: ToolDef = {
   name: "token_safety",
   oldName: "token_verdict",
   oldInputs: { mint: "token" },
   title: "Is this token safe?",
   category: "tokens",
-  benefit: { kind: "money", text: "Flags tokens whose issuer can freeze or take your tokens, thin liquidity and a few wallets holding most of the supply, before you buy. Regulated stablecoins' powers count as expected." },
+  benefit: { kind: "money", text: "Flags tokens you can't sell, liquidity the creator can pull, creators who have rugged before, hidden insider wallets and issuers who can freeze or take your tokens, before you buy. Regulated stablecoins' powers count as expected." },
   useWhen: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with the exact reasons, from on-chain and market data.",
-  description: "Checks what the token's issuer can do (mint, freeze, Token-2022 traps), verification, liquidity, who holds it and how old it is, and turns that into one verdict.",
+  description: "Simulates a real holder selling, checks whether the liquidity can be pulled, the creator's record, insider wallet networks, what the issuer can do (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, and turns that into one verdict.",
   inputs: { token: z.string(), network: NETWORK },
   inputDocs: [
     { name: "token", type: "string (token address)", required: true, lookingFor: "The token's address.", whereToGet: "From find_token (for a ticker) or tokens (for tokens a wallet holds)." },
@@ -100,20 +158,23 @@ export const tokenVerdict: ToolDef = {
     { field: "about.who_can_freeze", type: "string | null", is: "Who can freeze holders' tokens. null means nobody.", howWorkedOut: "The on-chain freeze authority." },
     { field: "about.extensions", type: "string[]", is: "Token-2022 extensions turned on.", howWorkedOut: "Read from the token's account." },
     { field: "about.usd_price / liquidity_usd / holders / top10_share_pct / first_traded", type: "number | string | null", is: "Market facts the checks use.", howWorkedOut: "Jupiter token data. top10_share_pct is the share the 10 biggest holders own. first_traded is when its first pool was made." },
-    { field: "checks[].name", type: "string", is: "Which check: verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin or market_data.", howWorkedOut: "A fixed list. market_data (warn) shows up only when Jupiter can't be reached. The market checks are then skipped, not guessed." },
-    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (info for known stablecoins). Age: warn under 24 hours. Permanent delegate, frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin." },
+    { field: "about.creator / creator_tokens_launched", type: "string | number | null", is: "The wallet that created the token, and how many tokens it has launched.", howWorkedOut: "Jupiter token data." },
+    { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "RugCheck's report of the token's metadata." },
+    { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
+    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers. Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (info for known stablecoins). Age: warn under 24 hours. Permanent delegate, frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin." },
     { field: "checks[].detail", type: "string", is: "The fact behind the result, in plain words.", howWorkedOut: "Built from the data." },
-    { field: "checks[].source", type: '"on-chain" | "jupiter"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market data." },
+    { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
   ],
   notes: [
-    "A verdict is a screen, not a guarantee. It won't catch every scam (for example wallets working together, or off-chain rug pulls).",
+    "A verdict is a screen, not a guarantee. SAFE means none of the known traps were found, not that the price can't fall. It can't catch everything, such as a team abandoning a project or insiders it has no data on.",
+    "The sell test sells about $20 from a real holder's wallet in a simulation only: nothing is sent, and no funds move.",
     "Top-holder share counts accounts, which can include exchanges and liquidity pools.",
   ],
   example: async () => ({ token: BONK_MINT }),
   run: async ({ token, network }, ctx) => {
     const mintAddress = assertAddress(token, "token");
     const conn = ctx.connection(network);
-    const [account, market] = await Promise.all([conn.getParsedAccountInfo(new PublicKey(mintAddress), "confirmed"), jupLookup(ctx, mintAddress)]);
+    const [account, market, rug] = await Promise.all([conn.getParsedAccountInfo(new PublicKey(mintAddress), "confirmed"), jupLookup(ctx, mintAddress), rugReport(ctx, mintAddress)]);
     const jupList = market.tokens;
     const owner = account.value?.owner.toBase58();
     const parsed: any = (account.value?.data as any)?.parsed;
@@ -152,10 +213,35 @@ export const tokenVerdict: ToolDef = {
       add("age", ageHours < 24 ? "warn" : "pass", ageHours < 24 ? `First traded ${Math.max(Math.round(ageHours), 0)} hour(s) ago. Most rug pulls happen in the first day.` : `Trading since ${firstPoolAt.slice(0, 10)}.`, "jupiter");
     }
 
+    // The deeper checks: who can pull the liquidity, the creator's record, insider networks, the name and logo, and a
+    // real sale. Stablecoins skip the ones that don't apply to a redeemable, regulated token.
+    const verified = j?.isVerified === true;
+    // RugCheck sometimes can't build a report for very large tokens. For a verified token that's a note, since Jupiter's
+    // verification already screens out most scams; for an unverified one, the missing checks matter, so it's a warning.
+    if (!rug.ok && !stable) add("rugcheck_data", verified ? "info" : "warn", `RugCheck is unavailable for this token right now, so liquidity locks, insider wallets and the creator's rug history were not checked.${verified ? "" : " Retry for a full verdict."}`, "rugcheck");
+    if (rug.report && !stable) {
+      const pull = liquidityPullCheck(rug.report, verified);
+      if (pull) add("liquidity_pull", pull.result, pull.detail, "rugcheck");
+      const insiders = insiderCheck(rug.report, BigInt(info.supply));
+      if (insiders) add("insiders", insiders.result, insiders.detail, "rugcheck");
+    }
+    if (!stable) {
+      const creator = creatorCheck(rug.report, j, verified);
+      if (creator) add("creator_history", creator.result, creator.detail, rug.report ? "rugcheck" : "jupiter");
+    }
+    if (rug.report) {
+      const meta = metadataCheck(rug.report, verified, stable);
+      if (meta) add("metadata", meta.result, meta.detail, "rugcheck");
+    }
+    if (!stable && network === "mainnet-beta") {
+      const sell = await sellCheck(ctx, conn, mintAddress, Number(info.decimals), typeof j?.usdPrice === "number" ? j.usdPrice : null);
+      add("sell_test", sell.result, sell.detail, "simulation");
+    }
+
     const fails = checks.filter((c) => c.result === "fail");
     const warns = checks.filter((c) => c.result === "warn");
     const verdict = fails.length ? "AVOID" : warns.length ? "CAUTION" : "SAFE";
-    const summary = fails.length ? `AVOID: ${fails.map((c) => c.detail).join(" ")}` : warns.length ? `CAUTION: ${warns.map((c) => c.detail).join(" ")}` : "No red flags found in on-chain powers, verification, liquidity, concentration or age.";
+    const summary = fails.length ? `AVOID: ${fails.map((c) => c.detail).join(" ")}` : warns.length ? `CAUTION: ${warns.map((c) => c.detail).join(" ")}` : "No red flags found: it can be sold, the liquidity can't be pulled, and the creator, insiders, issuer powers, liquidity, holders and age all check out.";
     return {
       token: mintAddress, network, verdict, summary,
       about: {
@@ -163,6 +249,8 @@ export const tokenVerdict: ToolDef = {
         token_program: owner === TOKEN_PROGRAM ? "spl-token" : "token-2022", who_can_mint: info.mintAuthority ?? null, who_can_freeze: info.freezeAuthority ?? null,
         extensions: extensions.map((e) => e.extension), usd_price: j?.usdPrice ?? null, liquidity_usd: typeof j?.liquidity === "number" ? Math.round(j.liquidity) : null,
         holders: j?.holderCount ?? null, top10_share_pct: typeof top === "number" ? Math.round(top * 10) / 10 : null, first_traded: firstPoolAt,
+        creator: j?.dev ?? rug.report?.creator ?? null, creator_tokens_launched: typeof j?.audit?.devMints === "number" ? j.audit.devMints : null,
+        metadata_can_change: typeof rug.report?.tokenMeta?.mutable === "boolean" ? rug.report.tokenMeta.mutable : null,
       },
       checks,
     };

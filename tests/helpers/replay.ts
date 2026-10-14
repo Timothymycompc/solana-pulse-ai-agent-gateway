@@ -1,4 +1,5 @@
 // Record real mainnet responses once, then replay them so the safety tests run offline and give the same answer every time.
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { Connection, PublicKey } from "@solana/web3.js";
@@ -7,7 +8,10 @@ import { clearJupCache } from "../../server/tools/lib";
 
 export const FIXTURES = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "fixtures");
 
-type Recording = { calls: Record<string, unknown[]>; http: Record<string, unknown> };
+type Recording = { calls: Record<string, unknown[]>; http: Record<string, unknown>; post?: Record<string, unknown> };
+
+// POST answers are keyed by the URL and a hash of the body, so a replay only matches the exact same request.
+const postKey = (url: string, body: unknown) => `${url} ${crypto.createHash("sha256").update(JSON.stringify(body)).digest("hex").slice(0, 16)}`;
 export type Fixture = { name: string; recordedAt: string; args: Record<string, unknown>; recording: Recording };
 
 // JSON cannot hold PublicKeys, Buffers or bigints, so tag them on the way out and rebuild them on the way back.
@@ -57,6 +61,13 @@ export function recordingContext(rpcUrl: string) {
       recording.http[url] = encode(body);
       return body;
     },
+    postJson: async (url, payload) => {
+      const res = await fetch(url, { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+      const body = await res.json();
+      (recording.post ??= {})[postKey(url, payload)] = encode(body);
+      return body;
+    },
   };
   return { ctx, connection: real, recording };
 }
@@ -81,6 +92,12 @@ export function replayContext(fixture: Fixture, options: { httpDown?: boolean } 
       if (options.httpDown) throw new Error("HTTP 503 from lite-api.jup.ag");
       if (!(url in fixture.recording.http)) throw new Error(`Fixture ${fixture.name} has no recorded response for ${url}`);
       return decode(fixture.recording.http[url]);
+    },
+    postJson: async (url, payload) => {
+      if (options.httpDown) throw new Error("HTTP 503 from lite-api.jup.ag");
+      const key = postKey(url, payload);
+      if (!fixture.recording.post || !(key in fixture.recording.post)) throw new Error(`Fixture ${fixture.name} has no recorded POST to ${url}`);
+      return decode(fixture.recording.post[key]);
     },
   };
 }
