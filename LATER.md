@@ -15,5 +15,7 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 
 - X menu (npm run x): approve or add queue posts from the menu instead of editing x-queue.ts and deploying.
 
+- Short address for free: Firebase Hosting (e.g. solanapulse.web.app) forwarding to Cloud Run. Check first: the free-call allowance must still see each caller's own address through the extra hop (trust proxy), Firebase cuts requests at 60s (keep Cloud Scheduler on the run.app address for video posts), then update links, llms.txt, mcp.json and the registry. Or a paid domain once there is income. Another registry entry is called "Solana Pulse XaaS", so a distinct address helps.
+
 ## Next projects
 - EVM token safety (Base first, then Ethereum, BNB, Arbitrum, Polygon), its own repo, 8-15 tools.
