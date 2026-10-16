@@ -60,11 +60,13 @@ test("a caller that attaches a payment pays and keeps its free calls", async () 
 test("percent-encoded and old tool names share the real tool's allowance", async () => {
   const app = express();
   app.set("trust proxy", 1);
+  app.use(express.json());
   const payWall = (_req: any, res: any) => res.status(402).json({ paymentRequired: true });
   app.post("/api/tools/:name", paidRouteMiddleware(payWall as any), (_req, res) => res.json({ ran: true }));
   const server = app.listen(0);
   const port = (server.address() as any).port;
-  const call = async (path: string) => (await fetch(`http://127.0.0.1:${port}${path}`, { method: "POST", headers: { "x-forwarded-for": "192.0.2.44" } })).status;
+  const call = async (path: string) => (await fetch(`http://127.0.0.1:${port}${path}`, { method: "POST",
+    headers: { "x-forwarded-for": "192.0.2.44", "content-type": "application/json" }, body: JSON.stringify({ name: "BONK" }) })).status;
   try {
     for (let i = 0; i < FREE_CALLS_PER_TOOL; i++) assert.equal(await call("/api/tools/find_token"), 200);
     assert.equal(await call("/api/tools/find%5Ftoken"), 402);
@@ -128,5 +130,28 @@ test("a free pass lets its caller run paid tools free until it ends, without usi
   if (Date.now() < until) {
     for (let i = 0; i < 30; i++) assert.deepEqual(await admitCall({ tool: "token_safety", ip: "192.0.2.77", hasPayment: false, userAgent: "algebra-executor/1" }), { via: "free_pass" });
     assert.equal((await getFreeCallStatus("192.0.2.77")).token_safety, undefined, "daily free calls untouched");
+  }
+});
+
+test("an empty body is a payment probe only for tools that need inputs; fee and blockhash keep their free calls", async () => {
+  const app = express();
+  app.set("trust proxy", 1);
+  app.use(express.json());
+  const payWall = (_req: any, res: any) => res.status(402).json({ x402Version: 2 });
+  app.post("/api/tools/:name", paidRouteMiddleware(payWall as any), (_req, res) => res.json({ ran: true }));
+  const server = app.listen(0);
+  const port = (server.address() as any).port;
+  const call = async (tool: string, body?: unknown) => (await fetch(`http://127.0.0.1:${port}/api/tools/${tool}`, { method: "POST",
+    headers: { "x-forwarded-for": "192.0.2.66", ...(body === undefined ? {} : { "content-type": "application/json" }) },
+    body: body === undefined ? undefined : JSON.stringify(body) })).status;
+  try {
+    assert.equal(await call("token_safety"), 402, "no body: probe");
+    assert.equal(await call("token_safety", {}), 402, "empty JSON: probe");
+    assert.equal((await getFreeCallStatus("192.0.2.66")).token_safety, undefined, "a probe uses no free call");
+    assert.equal(await call("token_safety", { mint: "x" }), 200, "a real call still gets a free call");
+    assert.equal(await call("fee", {}), 200, "fee runs with no inputs, so it is a real call");
+    assert.equal(await call("blockhash"), 200, "so does blockhash");
+  } finally {
+    server.close();
   }
 });

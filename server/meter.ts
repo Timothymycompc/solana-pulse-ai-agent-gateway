@@ -3,6 +3,7 @@ import { keyFromReq } from "./auth";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { pool } from "./db";
 import { FREE_CALLS_PER_TOOL, priceOf, toolForRoute } from "./pricing";
+import { z } from "zod";
 import { TOOLS_BY_NAME } from "./tools";
 
 // Free calls: each paid tool can be called FREE_CALLS_PER_TOOL times per caller IP (IPv6 grouped by /64) per UTC day,
@@ -92,6 +93,16 @@ export async function admitCall(o: { tool: string; ip: string; apiKey?: string; 
 // Directory checkers must see "402 Payment Required" to list a paid tool, so they get no free calls over HTTP: Coinbase's
 // Bazaar validator (Go's default user agent and nothing else) and its indexer (CoinbaseBazaarDiscovery), which calls
 // each tool with its listed example after a payment. A Go app that names itself still gets free calls.
+// Tools that cannot run without inputs; for these an empty body is a discovery probe (paidRouteMiddleware).
+// Tools whose inputs are all optional, like fee and blockhash, run on an empty body, so it is a real call.
+const needsInput = new Map<string, boolean>();
+export function toolNeedsInput(tool: string): boolean {
+  const def = TOOLS_BY_NAME.get(tool);
+  if (!def) return false;
+  if (!needsInput.has(def.name)) needsInput.set(def.name, !z.object(def.inputs).safeParse({}).success);
+  return needsInput.get(def.name)!;
+}
+
 export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$|^CoinbaseBazaarDiscovery\//;
 
 // HTTP gate for data routes: free tools, the owner key and free calls pass straight through; everything else goes to x402.
@@ -102,7 +113,11 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     const name = typeof req.params.name === "string" ? req.params.name : toolForRoute(req.path);
     const tool = TOOLS_BY_NAME.get(name)?.name ?? name;
     const ip = req.ip || "unknown";
-    const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "");
+    // An empty body to a tool that needs inputs is a discovery probe (Coinbase's Bazaar), not a real call: skip free
+    // calls so it answers 402 with the payment terms. fee and blockhash run on an empty body, so those keep free calls.
+    const emptyBody = req.method === "POST" && (!req.body || (typeof req.body === "object" && !Array.isArray(req.body) && Object.keys(req.body).length === 0));
+    const probe = emptyBody && toolNeedsInput(tool);
+    const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "") || probe;
     let admission: Admission;
     try {
       admission = await admitCall({ tool, ip, apiKey: keyFromReq(req), hasPayment, userAgent: req.get("user-agent") });
