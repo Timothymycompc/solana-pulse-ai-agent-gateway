@@ -22,6 +22,10 @@ export const KNOWN_STABLECOINS: Record<string, string> = {
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC (Circle)",
   Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: "USDT (Tether)",
   "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo": "PYUSD (Paxos)",
+  // Added 2026-10-16 after the audit judged USDG like a memecoin (AVOID). Addresses from Jupiter's verified stable list.
+  "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH": "USDG (Paxos, Global Dollar)",
+  HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr: "EURC (Circle)",
+  HVbpJAQGNpkgBaYBZQBR1t7yFdvaYVp2vCQQfKKEN4tM: "USDP (Paxos)",
 };
 
 export const PROGRAM_LABELS: Record<string, string> = {
@@ -87,13 +91,20 @@ export async function jupLookup(ctx: ToolContext, query: string): Promise<{ toke
   const key = query.trim();
   const hit = jupCache.get(key);
   if (hit && Date.now() - hit.at < 60_000) return { tokens: hit.value, ok: true };
-  try {
-    const result = await ctx.fetchJson(`https://lite-api.jup.ag/tokens/v2/search?query=${encodeURIComponent(key)}`, 8000);
-    const value: JupToken[] = Array.isArray(result) ? result : [];
-    jupCache.set(key, { at: Date.now(), value });
-    if (jupCache.size > 500) jupCache.clear();
-    return { tokens: value, ok: true };
-  } catch { return { tokens: [], ok: false }; }
+  // One retry after a short pause: Jupiter's free API turns away bursts (HTTP 429), and with only 4 calls at once in
+  // the Oct 2026 audit, find_token returned 503s and token_safety fell back to CAUTION (market data unavailable).
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const result = await ctx.fetchJson(`https://lite-api.jup.ag/tokens/v2/search?query=${encodeURIComponent(key)}`, 8000);
+      const value: JupToken[] = Array.isArray(result) ? result : [];
+      jupCache.set(key, { at: Date.now(), value });
+      if (jupCache.size > 500) jupCache.clear();
+      return { tokens: value, ok: true };
+    } catch {
+      if (attempt === 1) await new Promise((r) => setTimeout(r, ctx.retryDelayMs ?? 1200));
+    }
+  }
+  return { tokens: [], ok: false };
 }
 
 // RugCheck's public token report: who provides the liquidity and whether it is locked, insider wallet networks, the

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import { checkTransactionIntent, preflightTransaction } from "../server/tools/transactions";
-import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, resolveToken, tokenVerdict } from "../server/tools/tokens";
+import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
 import { loadFixture, replayContext } from "./helpers/replay";
@@ -124,6 +124,60 @@ test("token_safety says when market data is missing instead of blaming the token
 
 test("find_token fails with a retryable error when token search is down", async () => {
   clearJupCache();
-  const ctx = { connection: () => { throw new Error("no RPC needed"); }, fetchJson: async () => { throw new Error("HTTP 503"); } };
+  const ctx = { connection: () => { throw new Error("no RPC needed"); }, fetchJson: async () => { throw new Error("HTTP 503"); }, retryDelayMs: 0 };
   await assert.rejects(resolveToken.run({ name: "BONK" }, ctx as any), (e: unknown) => e instanceof ToolError && e.status === 503);
+});
+
+// Found in the 2026-10-16 audit of 500 tokens against the live server.
+test("insiders: RugCheck data claiming more than the whole supply is reported as unknown, not AVOID", () => {
+  // dogwifhat's real RugCheck numbers: one 6,675-wallet network "holding" 3.1x the supply.
+  const wif = insiderCheck({ insiderNetworks: [{ size: 6675, currentHolding: 3_113_036_720_740_009 }, { size: 4, currentHolding: 5_500_000_000_000 }, { size: 7, currentHolding: 776_285_000_000 }] }, 998_836_874_304_514n);
+  assert.equal(wif?.result, "info");
+  assert.match(wif!.detail, /unknown/i);
+  assert.equal(insiderCheck({ insiderNetworks: [{ size: 40, currentHolding: 1_000_000 }] }, 1_000_000n)?.result, "fail", "exactly 100% is still possible, so still a fail");
+});
+
+test("find_token matches a ticker listed with a leading $ (dogwifhat is $WIF)", async () => {
+  clearJupCache();
+  assert.ok(sameTicker("$WIF", "WIF") && sameTicker("wif", "$WIF") && !sameTicker("WIFE", "WIF"));
+  const wif = { id: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", symbol: "$WIF", name: "dogwifhat", decimals: 6, isVerified: true, liquidity: 6_129_272 };
+  const copy = { id: "3NGdM1KZZMscrzNQWVdYWZ2eutnDH7tseKNoWGUMpump", symbol: "WIF", name: "Fake", decimals: 6, isVerified: false, liquidity: 3_000 };
+  const ctx = { connection: () => { throw new Error("no RPC needed"); }, fetchJson: async () => [wif, copy], retryDelayMs: 0 };
+  const r: any = await resolveToken.run({ name: "WIF" }, ctx as any);
+  assert.equal(r.best?.address, wif.id);
+  assert.equal(r.copycats, 1);
+});
+
+test("find_token retries once when Jupiter turns a request away", async () => {
+  clearJupCache();
+  let calls = 0;
+  const ctx = { connection: () => { throw new Error("no RPC needed"); }, fetchJson: async () => { if (++calls === 1) throw new Error("HTTP 429"); return [{ id: "x", symbol: "BONK", name: "Bonk", decimals: 5, isVerified: true }]; }, retryDelayMs: 0 };
+  const r: any = await resolveToken.run({ name: "BONK" }, ctx as any);
+  assert.equal(calls, 2);
+  assert.equal(r.best?.address, "x");
+});
+
+test("a SAFE summary only claims the checks that ran, and names the ones that didn't", async () => {
+  const s = safeSummary([
+    { name: "verified", result: "pass", detail: "", source: "jupiter" },
+    { name: "liquidity_pull", result: "pass", detail: "", source: "rugcheck" },
+    { name: "sell_test", result: "info", detail: "Sell test skipped: the token's holders could not be read right now.", source: "simulation" },
+  ]);
+  assert.doesNotMatch(s, /sale worked/);
+  assert.match(s, /liquidity can't be pulled/);
+  assert.match(s, /Not checked: Sell test skipped/);
+  const usdc = await replay(tokenVerdict, "token-verdict-usdc");
+  assert.doesNotMatch(usdc.summary, /sale worked|insider network|rug record/, "a stablecoin skips those checks, so the summary can't claim them");
+  assert.match(usdc.summary, /don't apply/);
+});
+
+test("find_token doesn't offer unverified copies as choices when no verified token has the ticker", async () => {
+  clearJupCache();
+  // BCAT, 2026-10-16: Jupiter's search returned only unverified tokens with that ticker; the verified one was missing.
+  const fake = (id: string) => ({ id, symbol: "BCAT", name: "BCAT", decimals: 6, isVerified: false, liquidity: 3_200 });
+  const ctx = { connection: () => { throw new Error("no RPC needed"); }, fetchJson: async () => [fake("a"), fake("b"), fake("c")], retryDelayMs: 0 };
+  const r: any = await resolveToken.run({ name: "BCAT" }, ctx as any);
+  assert.equal(r.best, null);
+  assert.match(r.next_step, /Ask the user for the exact token address/);
+  assert.doesNotMatch(r.next_step, /which one they mean/);
 });

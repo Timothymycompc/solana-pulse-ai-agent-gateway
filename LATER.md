@@ -22,3 +22,4 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 
 ## Next projects
 - EVM token safety (Base first, then Ethereum, BNB, Arbitrum, Polygon), its own repo, 8-15 tools.
+- Trading tools (asked 2026-10-16): MCP tools that look for trading edges and run trades safely. Edges and execution are two separate pieces. The edge part needs market data Pulse does not have yet (price history, volume, order flow). Any edge it claims must be backtested on recorded data, with the measured win rate, fees and slippage published. Never a "this will go up" verdict from a hunch. The execution part fits Pulse well: token_safety before every buy, a sell-test simulation, a hard spending cap per trade and per day, a dry-run mode by default, and the user signing every trade. Start only after the 2026-10-16 token_safety audit bugs are fixed.

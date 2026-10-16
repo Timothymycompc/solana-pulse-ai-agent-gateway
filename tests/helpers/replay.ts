@@ -88,6 +88,7 @@ export function replayContext(fixture: Fixture, options: { httpDown?: boolean } 
   }) as Connection;
   return {
     connection: () => connection,
+    retryDelayMs: 0,
     fetchJson: async (url) => {
       if (options.httpDown) throw new Error("HTTP 503 from lite-api.jup.ag");
       if (!(url in fixture.recording.http)) throw new Error(`Fixture ${fixture.name} has no recorded response for ${url}`);

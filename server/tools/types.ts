@@ -24,6 +24,8 @@ export type ToolContext = {
   fetchJson: (url: string, timeoutMs?: number) => Promise<any>;
   // POST a JSON body and read JSON back (Jupiter's swap builder). Optional so contexts that never need it can omit it.
   postJson?: (url: string, body: unknown, timeoutMs?: number) => Promise<any>;
+  // Pause before retrying a failed outside call. Tests set 0.
+  retryDelayMs?: number;
 };
 
 export type ToolCategory = "transactions" | "tokens" | "wallets" | "network" | "reference";

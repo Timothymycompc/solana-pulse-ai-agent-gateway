@@ -8,6 +8,9 @@ import { ToolError, type ToolDef } from "./types";
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
 
 const flip = (v: boolean | undefined) => (typeof v === "boolean" ? !v : null);
+// Tickers match in any case and with or without a leading "$": dogwifhat's ticker is listed as "$WIF", people type "WIF".
+const ticker = (s: string) => s.trim().replace(/^\$/, "").toLowerCase();
+export const sameTicker = (a: string, b: string) => ticker(a) === ticker(b);
 const candidate = (t: JupToken) => ({
   address: t.id, symbol: t.symbol, name: t.name, decimals: t.decimals, verified: t.isVerified === true,
   liquidity_usd: typeof t.liquidity === "number" ? Math.round(t.liquidity) : null,
@@ -29,9 +32,9 @@ export const resolveToken: ToolDef = {
   inputDocs: [{ name: "name", type: "string", required: true, lookingFor: 'The token\'s ticker, name or address, e.g. "BONK", "Jupiter", "USDC".', whereToGet: "The token name exactly as the user wrote it." }],
   outputs: [
     { field: "name", type: "string", is: "What was searched.", howWorkedOut: "Your input, trimmed." },
-    { field: "best", type: "object | null", is: "The token we recommend, or null when it isn't safe to pick one for you.", howWorkedOut: "The verified token whose ticker exactly matches (any case) with the most liquidity. Null if there's no verified exact match." },
+    { field: "best", type: "object | null", is: "The token we recommend, or null when it isn't safe to pick one for you.", howWorkedOut: "The verified token whose ticker exactly matches (any case, with or without a leading $) with the most liquidity. Null if there's no verified exact match." },
     { field: "confidence", type: '"high" | "medium" | "low"', is: "How safe it is to use best without asking the user.", howWorkedOut: "high: a verified exact match and no other verified token shares the ticker. medium: another verified token shares it. low: no verified exact match." },
-    { field: "copycats", type: "number", is: "Unverified tokens using the same ticker. Usually scams copying the real one.", howWorkedOut: "Matches with the same ticker (any case) that aren't verified." },
+    { field: "copycats", type: "number", is: "Unverified tokens using the same ticker. Usually scams copying the real one.", howWorkedOut: "Matches with the same ticker (any case, with or without a leading $) that aren't verified." },
     { field: "candidates[].address", type: "string", is: "The token's address, its real identity.", howWorkedOut: "Jupiter token search." },
     { field: "candidates[].symbol / name", type: "string", is: "Ticker and display name.", howWorkedOut: "Jupiter token search." },
     { field: "candidates[].decimals", type: "number", is: "Decimal places. Needed to convert amounts.", howWorkedOut: "Jupiter token data." },
@@ -46,22 +49,46 @@ export const resolveToken: ToolDef = {
   example: async () => ({ name: "BONK" }),
   run: async ({ name }, ctx) => {
     const q = String(name).trim();
-    const search = await jupLookup(ctx, q);
+    const search = await jupLookup(ctx, q.replace(/^\$/, "") || q);
     if (!search.ok) throw new ToolError(503, "Token search (Jupiter) is unavailable right now.", "Retry in a few seconds. Don't pick a token address from memory meanwhile. Failed calls are never charged.");
     const results = search.tokens.map(candidate);
-    const same = results.filter((c) => c.symbol.toLowerCase() === q.toLowerCase());
+    const same = results.filter((c) => sameTicker(c.symbol, q));
     const verifiedSame = same.filter((c) => c.verified).sort((a, b) => (b.liquidity_usd ?? 0) - (a.liquidity_usd ?? 0));
     const bestMatch = verifiedSame[0] ?? null;
     const confidence = bestMatch ? (verifiedSame.length === 1 ? "high" : "medium") : "low";
     const copycatCount = same.filter((c) => !c.verified).length;
     const nextStep = bestMatch
       ? `Use token address ${bestMatch.address}.${copycatCount ? ` Ignore the ${copycatCount} unverified token(s) also called ${q}.` : ""}${confidence === "medium" ? " More than one verified token uses this ticker. Confirm with the user." : ""}`
+      // Every exact match unverified is how copycats look, and the real token may be missing from Jupiter's search
+      // (BCAT, Oct 2026: only 3 unverified copies came back). Don't offer them as choices.
+      : copycatCount ? `Every token called "${q}" found here is unverified (${copycatCount}), which is how copycats look, and the real one may be missing from the search. Ask the user for the exact token address instead of picking from these.`
       : results.length ? `No verified token is called exactly "${q}". Show the user the candidates and ask which one they mean.` : `No token found for "${q}". Ask the user for the token address.`;
     return { name: q, best: bestMatch, confidence, copycats: copycatCount, candidates: results.slice(0, 10), next_step: nextStep };
   },
 };
 
 type Check = { name: string; result: "pass" | "info" | "warn" | "fail"; detail: string; source: string };
+
+// A SAFE summary names only the checks that ran and passed, and says which ones were skipped, so it never claims
+// "it can be sold" when the sell test couldn't run (JUP, Oct 2026) or "insiders check out" for a stablecoin.
+const PASS_WORDS: [string, string][] = [
+  ["sell_test", "a real holder's sale worked in a simulation"], ["liquidity_pull", "the liquidity can't be pulled"],
+  ["creator_history", "the creator has no rug record"], ["insiders", "no insider network holds a large share"],
+  ["mint_authority", "nobody can mint more"], ["freeze_authority", "nobody can freeze holders"],
+  ["verified", "Jupiter verifies it"], ["liquidity", "it has over $100,000 of liquidity"], ["holder_concentration", "the top 10 holders own under half"], ["age", "it has traded for over a day"],
+];
+const NOT_CHECKED = /skipped|unknown|unavailable|not available|inconclusive|not checked/i;
+export function safeSummary(checks: Check[]): string {
+  const passed = new Set(checks.filter((c) => c.result === "pass").map((c) => c.name));
+  const said = PASS_WORDS.filter(([name]) => passed.has(name)).map(([, words]) => words);
+  const skipped = checks.filter((c) => c.result === "info" && NOT_CHECKED.test(c.detail)).map((c) => c.detail);
+  const stable = checks.find((c) => c.name === "known_stablecoin");
+  return [
+    `No red flags found${said.length ? `: ${said.join(", ")}` : ""}.`,
+    stable ? `${stable.detail} The sell, liquidity-pull, insider and creator checks don't apply to it.` : "",
+    skipped.length ? `Not checked: ${skipped.join(" ")}` : "",
+  ].filter(Boolean).join(" ");
+}
 
 const EXTENSION_RULES: Record<string, (ext: any, stable: string | null) => Omit<Check, "name" | "source"> | null> = {
   permanentDelegate: (e, stable) => ({ result: stable ? "info" : "fail", detail: `A permanent delegate (${e.state?.delegate ?? "set"}) can transfer or burn anyone's tokens at any time.${stable ? ` Expected for ${stable}, a regulated stablecoin.` : ""}` }),
@@ -103,6 +130,9 @@ export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name
   if (!wallets || rawSupply <= 0n) return { result: "pass", detail: "No networks of linked insider wallets detected." };
   const held = networks.reduce((a, n) => a + (Number(n.currentHolding) || 0), 0);
   const pct = (held / Number(rawSupply)) * 100;
+  // RugCheck sometimes reports networks holding more than the whole supply (dogwifhat: 312%, USDG: 3,393%, Oct 2026),
+  // which can't be true, so its insider data for that token can't be trusted either way. Unknown, not a verdict.
+  if (pct > 100) return { result: "info", detail: `Insider wallets: unknown. RugCheck's data for this token says linked wallets hold ${Math.round(pct)}% of the supply, which is impossible, so it was not used.` };
   const shown = pct < 0.1 ? "under 0.1" : pct.toFixed(1);
   if (pct > 30) return { result: "fail", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them and could sell together.` };
   if (pct > 10) return { result: "warn", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them.` };
@@ -242,7 +272,7 @@ export const tokenVerdict: ToolDef = {
     const fails = checks.filter((c) => c.result === "fail");
     const warns = checks.filter((c) => c.result === "warn");
     const verdict = fails.length ? "AVOID" : warns.length ? "CAUTION" : "SAFE";
-    const summary = fails.length ? `AVOID: ${fails.map((c) => c.detail).join(" ")}` : warns.length ? `CAUTION: ${warns.map((c) => c.detail).join(" ")}` : "No red flags found: it can be sold, the liquidity can't be pulled, and the creator, insiders, issuer powers, liquidity, holders and age all check out.";
+    const summary = fails.length ? `AVOID: ${fails.map((c) => c.detail).join(" ")}` : warns.length ? `CAUTION: ${warns.map((c) => c.detail).join(" ")}` : safeSummary(checks);
     return {
       token: mintAddress, network, verdict, summary,
       about: {
