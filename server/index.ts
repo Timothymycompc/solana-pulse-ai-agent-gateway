@@ -22,6 +22,7 @@ import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
 import { runXPost } from "./x";
 import { postManual } from "./x-manual";
+import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
@@ -329,6 +330,20 @@ async function startServer() {
       console.error("X post failed:", error);
       res.status(502).json({ posted: false, error: String(error?.message ?? error).slice(0, 400) });
     }
+  });
+
+  // The X queue posts still to go out, with the owner's edits, and the last posts made (npm run x).
+  app.get("/api/owner/x/queue", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const recent = (await pool.query(`SELECT key, kind, text, post_id, created_at FROM x_posts WHERE kind <> 'seen' ORDER BY created_at DESC LIMIT 5`)).rows;
+    res.json({ upcoming: await upcomingQueue(), recent });
+  });
+
+  // Saves an edit to an upcoming queue post: { key, text }; empty text goes back to the original.
+  app.post("/api/owner/x/queue/edit", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const r = await saveQueueEdit(String(req.body?.key ?? ""), String(req.body?.text ?? ""));
+    res.status(r.saved ? 200 : 400).json(r);
   });
 
   // A post the owner writes by hand (scripts/x-post.ts): { text, media: bucket file names }. ?dry=1 only checks it.

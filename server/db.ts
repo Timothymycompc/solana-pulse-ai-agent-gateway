@@ -10,7 +10,7 @@ export const pool = new Pool({
 // A tool run: a tool call over HTTP or MCP. Other /mcp traffic is connections, tool listings and uptime pings.
 export const TOOL_RUN_SQL = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%')`;
 
-// The gateway keeps seven tables. No wallets, keys or balances are stored: payments settle on chain via x402.
+// The gateway keeps eight tables. No wallets, keys or balances are stored: payments settle on chain via x402.
 export async function ensureSchema() {
   // Free calls per paid tool, counted per caller network per UTC day (keyed hash, never the raw IP).
   await pool.query(`
@@ -104,6 +104,15 @@ export async function ensureSchema() {
       text TEXT,
       post_id TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  // The owner's edits to upcoming X queue posts (x-edits.ts), by queue key; the original stays in x-queue.ts.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS x_edits (
+      key TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
 

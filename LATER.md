@@ -13,5 +13,7 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 - Live usage page: leave bots out of the "callers besides you" counts.
 - Get the 8 renamed tools listed on PayAI's directory under their new names.
 
+- X menu (npm run x): approve or add queue posts from the menu instead of editing x-queue.ts and deploying.
+
 ## Next projects
 - EVM token safety (Base first, then Ethereum, BNB, Arbitrum, Polygon), its own repo, 8-15 tools.

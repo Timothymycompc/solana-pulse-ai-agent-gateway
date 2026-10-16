@@ -8,10 +8,11 @@ import crypto from "node:crypto";
 import { pool } from "./db";
 import { ownerOverview } from "./owner";
 import { TOOLS } from "./tools";
-import { LIST_PRS, QUEUE } from "./x-queue";
+import { LIST_PRS, MAX_POST_CHARS, QUEUE } from "./x-queue";
+import { queueEdits } from "./x-edits";
 
 const POST_URL = "https://api.x.com/2/tweets";
-export const MAX_POST_CHARS = 280;
+export { MAX_POST_CHARS };
 
 export type XKeys = { consumerKey: string; consumerSecret: string; token: string; tokenSecret: string };
 export type XPost = { key: string; kind: "milestone" | "stats" | "queue" | "manual"; text: string; media?: string[] };
@@ -170,7 +171,7 @@ export type XDeps = {
 };
 const defaultDeps: XDeps = { overview: () => ownerOverview({ days: 7 }), prMerged, post: postToX, now: () => new Date() };
 
-async function nextPost(done: Set<string>, d: XDeps): Promise<XPost | null> {
+async function nextPost(done: Set<string>, d: XDeps, edits: Map<string, string>): Promise<XPost | null> {
   for (const t of TOOLS) {
     if (!done.has(`tool:${t.name}`)) {
       return { key: `tool:${t.name}`, kind: "milestone", text: `New in Solana Pulse: ${t.name}. ${t.title}.` };
@@ -195,7 +196,7 @@ async function nextPost(done: Set<string>, d: XDeps): Promise<XPost | null> {
     if (text) return { key: weekKey, kind: "stats", text };
   }
   const next = QUEUE.find((q) => q.approved && !done.has(`queue:${q.key}`));
-  return next ? { key: `queue:${next.key}`, kind: "queue", text: next.text, media: next.video ? [next.video] : undefined } : null;
+  return next ? { key: `queue:${next.key}`, kind: "queue", text: edits.get(next.key) ?? next.text, media: next.video ? [next.video] : undefined } : null;
 }
 
 export type XRunResult = { posted: boolean; dryRun?: boolean; reason?: string; postId?: string } & Partial<XPost>;
@@ -212,7 +213,7 @@ export async function runXPost(opts: { dryRun?: boolean; deps?: Partial<XDeps> }
       done.add(`tool:${t.name}`);
     }
   }
-  const pick = await nextPost(done, d);
+  const pick = await nextPost(done, d, await queueEdits());
   if (!pick) return { posted: false, reason: "Nothing to post: no new milestone, this week's stats are out, and no approved queue posts are left." };
   if (pick.text.length > MAX_POST_CHARS) return { posted: false, reason: `The post is ${pick.text.length} characters; X allows ${MAX_POST_CHARS}.`, ...pick };
   if (opts.dryRun) return { posted: false, dryRun: true, ...pick };

@@ -6,6 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
 import { isoWeek, MAX_POST_CHARS, mediaProblem, oauthHeader, runXPost, statsText, uploadMedia, type XDeps } from "../server/x";
 import { postManual } from "../server/x-manual";
+import { saveQueueEdit, upcomingQueue } from "../server/x-edits";
 import { QUEUE } from "../server/x-queue";
 import { TOOLS } from "../server/tools";
 
@@ -182,4 +183,27 @@ test("a manual post is checked, previewed without posting, then posted with its 
   assert.deepEqual(sent, [{ text: "hello", media: ["uploads/a.jpg", "uploads/b.png"] }]);
   const row = (await db.query(`SELECT kind, text, post_id FROM x_posts WHERE key = 'manual:2026-10-16T10:00:00.000Z'`)).rows[0] as any;
   assert.deepEqual(row, { kind: "manual", text: "hello", post_id: "777" });
+});
+
+test("an edit to an upcoming queue post is saved, used when it goes out, and can be reset", async () => {
+  await db.query(`DELETE FROM x_posts WHERE key LIKE 'queue:%'`);
+  const first = (await upcomingQueue())[0];
+  assert.equal(first.edited, false);
+  assert.match((await saveQueueEdit(first.key, "x".repeat(MAX_POST_CHARS + 1))).reason!, /X allows/);
+  assert.match((await saveQueueEdit("no-such-post", "hi")).reason!, /No queue post/);
+  assert.equal((await saveQueueEdit(first.key, "  my own words  ")).saved, true);
+  const after = (await upcomingQueue())[0];
+  assert.equal(after.text, "my own words");
+  assert.equal(after.edited, true);
+  assert.equal(after.original, first.original);
+  const sent: string[] = [];
+  const d = deps({ overview: async () => ({ callers: [] }), post: async (t) => { sent.push(t); return "9"; } });
+  let r;
+  do { r = await runXPost({ deps: d }); } while (r.posted && r.key !== `queue:${first.key}`);
+  assert.equal(r.text, "my own words");
+  assert.match((await saveQueueEdit(first.key, "too late")).reason!, /already gone out/);
+  const second = (await upcomingQueue())[0];
+  await saveQueueEdit(second.key, "temp");
+  await saveQueueEdit(second.key, "");
+  assert.equal((await upcomingQueue())[0].text, second.original);
 });

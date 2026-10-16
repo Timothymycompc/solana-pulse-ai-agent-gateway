@@ -13,6 +13,7 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
   callers.ts       sorts callers into bots, AI apps, scripts and browsers by user agent
   owner.ts         owner dashboard data: revenue per tool, callers, visitors
   x.ts             posts to the Pulse X account: milestones, weekly stats, then the queue
+  x-edits.ts       the owner's edits to upcoming queue posts (saved in the database, no deploy needed)
   x-manual.ts      posts the owner writes by hand (npm run x-post), with pictures or a video
   x-queue.ts       the queue of X posts (only approved ones go out) and the list pull requests to announce
   auth.ts          reads the owner key from a request
@@ -55,6 +56,7 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | `npm run x-setup` | Store the X keys and schedule the X poster (Tue, Thu, Sat at 16:00 UTC) |
 | `npm run x-key-1` … `x-key-4` | Replace one X key (1 API Key, 2 API Key Secret, 3 Access Token, 4 Access Token Secret); refuses a wrong-shaped paste |
 | `npm run x-check` | Test the stored X keys against X without printing them; READY means they can post |
+| `npm run x` (or `pulsex`) | The X menu: command sheet, what's scheduled, upcoming posts to read and edit in nano, change the schedule, manual post |
 | `npm run x-times` | Show when the X poster runs; `-- tue,thu,sat 11am` changes it (Central time), `-- off` / `-- on` pauses and resumes |
 | `npm run x-next` | Post the bot's next item now, after a preview and a yes |
 | `npm run x-post -- "text" [files]` | Post your own text with up to 4 pictures or one video/GIF, after a preview and a yes (`-` instead of the text to type it) |

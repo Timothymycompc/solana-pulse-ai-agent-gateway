@@ -6,6 +6,8 @@
 // ~/pulse-video/clips.py and quote real mainnet results recorded on 2026-10-12. Hashtags only: X's automation rules
 // don't allow automated posts that mention other accounts unasked.
 
+export const MAX_POST_CHARS = 280;
+
 export type QueuePost = { key: string; approved: boolean; text: string; video?: string };
 
 const tags = (...t: string[]) => "\n" + ["#Solana", "#AIagents", ...t].join(" ");

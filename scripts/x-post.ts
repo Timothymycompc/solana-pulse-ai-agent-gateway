@@ -35,7 +35,7 @@ function show(r: any) {
 async function call(path: string, ownerKey: string, body?: unknown): Promise<any> {
   const res = await fetch(`${SVC_URL}${path}`, { method: "POST", headers: { "x-api-key": ownerKey, "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body) });
-  if (res.status === 404) stop("The live server has no such command yet. Deploy first: npm run deploy");
+  if (res.status === 404 || !res.headers.get("content-type")?.includes("json")) stop("The live server has no such command yet. Deploy first: npm run deploy");
   return res.json().catch(() => ({ error: `HTTP ${res.status}` }));
 }
 
