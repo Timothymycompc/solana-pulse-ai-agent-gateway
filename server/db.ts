@@ -124,19 +124,21 @@ export async function ensureSchema() {
     );
   `);
 
-  // token_safety measured against what really happened (accuracy.ts). One row per token per cohort: the verdict and
-  // market numbers when it was checked, then, for sampled new tokens, whether it rugged a week later. Token
-  // addresses and public market data only.
+  // token_safety measured against what really happened (accuracy.ts). One row per token per cohort: the verdict, each
+  // check's result and the market numbers when it was checked, then, for sampled young tokens, the same numbers a week
+  // later. Token addresses and public market data only.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accuracy_tokens (
       cohort TEXT NOT NULL,
       mint TEXT NOT NULL,
+      found_in TEXT,
       added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       checked_at TIMESTAMPTZ,
       verdict TEXT,
-      failed_checks TEXT[],
-      warned_checks TEXT[],
+      checks JSONB,
       verified BOOLEAN,
+      tags TEXT[],
+      first_pool_at TIMESTAMPTZ,
       liquidity_then DOUBLE PRECISION,
       price_then DOUBLE PRECISION,
       follow_up_due TIMESTAMPTZ,

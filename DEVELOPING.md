@@ -55,7 +55,7 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | `npm run deploy -- --check-only` | Check setup and code without uploading |
 | `npm run deploy` | Back up, deploy hidden, test, then go live |
 | `npm run set-rpc-key` | Store a new Helius (or other) RPC key |
-| `npm run accuracy-setup` | Start the token_safety accuracy test on Google Cloud (Cloud Scheduler, every 10 minutes): 100 new tokens, each checked again a week later |
+| `npm run accuracy-setup` | Start the token_safety accuracy test on Google Cloud (Cloud Scheduler, every 10 minutes): 100 young tokens people are trading, each checked again a week later |
 | `npm run accuracy-rerun` | Queue the 500 tokens of the 2026-10-16 audit (tests/audit/) for fresh verdicts on Google Cloud |
 | `npm run accuracy` | Show the accuracy test's results: verdicts, how many rugs it caught, false alarms |
 | `npm run set-jupiter-key` | Store a free Jupiter API key (portal.jup.ag) for token data and sell tests |

@@ -1,7 +1,9 @@
 #!/bin/bash
 # Starts the token_safety accuracy test on Google Cloud (server/accuracy.ts): a Cloud Scheduler job calls
 # POST /api/owner/accuracy/tick every 10 minutes, so it keeps running with no computer or phone open.
-# It samples 100 new tokens, then checks each one a week later. Results: npm run accuracy (or GET /api/owner/accuracy).
+# It samples 100 young tokens people are trading, then checks each one a week later. Results: npm run accuracy.
+# Cost: about 20 seconds of server time per tick while sampling, about 1 second after; inside Cloud Run's and Cloud
+# Scheduler's free tiers. Pause it once npm run accuracy shows all 100 followed up.
 # Run it after deploying the code that has /api/owner/accuracy. Safe to run again (it updates the job).
 set -uo pipefail
 SVC_URL="https://solana-pulse-gateway-1021990235790.us-central1.run.app"

@@ -1,10 +1,11 @@
-// The accuracy test (accuracy.ts) against a real Postgres (PGlite, in memory): sampling new tokens, following them
-// up a week later, and the rates it reports. Outside data is faked here; the rules for "rugged" are what's tested.
+// The accuracy test (accuracy.ts) against a real Postgres (PGlite, in memory): sampling young tokens, following them
+// up a week later, and the answers it reports. Outside data is faked here; the sampling rules, the meaning of "lost
+// most" and the arithmetic of the answers are what's tested.
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
-import { accuracyReport, accuracyTick, addToQueue, ruggedOutcome, SAMPLE_COHORT } from "../server/accuracy";
+import { accuracyReport, accuracyTick, addToQueue, knownGood, outcome, SAMPLE_COHORT } from "../server/accuracy";
 import { clearJupCache } from "../server/tools/lib";
 
 const db = new PGlite();
@@ -16,66 +17,107 @@ before(async () => {
   await ensureSchema();
 });
 
-test("rugged: RugCheck says so, or liquidity fell 90%+; unknown when neither source answers", () => {
-  assert.equal(ruggedOutcome({ rugcheckRugged: true, liquidityThen: 50_000, liquidityNow: 49_000 }), true);
-  assert.equal(ruggedOutcome({ rugcheckRugged: null, liquidityThen: 50_000, liquidityNow: 5_000 }), true, "exactly 90% down");
-  assert.equal(ruggedOutcome({ rugcheckRugged: false, liquidityThen: 50_000, liquidityNow: 6_000 }), false);
-  assert.equal(ruggedOutcome({ rugcheckRugged: false, liquidityThen: 50_000, liquidityNow: null }), false);
-  assert.equal(ruggedOutcome({ rugcheckRugged: null, liquidityThen: 50_000, liquidityNow: null }), null, "never guessed");
+const o = (p: Partial<Parameters<typeof outcome>[0]>) => outcome({ rugcheck_rugged: null, liquidity_then: 50_000, liquidity_now: 50_000, price_then: 1, price_now: 1, ...p }).lostMost;
+test("lost most: price or liquidity down 90%+, or RugCheck says rugged; unknown when no source answers", () => {
+  assert.equal(o({}), false);
+  assert.equal(o({ price_now: 0.1 }), true, "exactly 90% down");
+  assert.equal(o({ price_now: 0.11 }), false);
+  assert.equal(o({ liquidity_now: 0 }), true, "no longer listed: no liquidity");
+  assert.equal(o({ rugcheck_rugged: true }), true);
+  assert.equal(o({ liquidity_now: null, price_now: null }), null, "never guessed");
+  assert.equal(o({ liquidity_now: null, price_now: null, rugcheck_rugged: false }), null, "RugCheck's 'not rugged' alone doesn't show a buyer kept their money");
 });
 
-const NEW_A = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApump";
-const NEW_B = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBpump";
-const TINY = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCpump";
-function world(state: { rugged: Record<string, boolean>; liquidity: Record<string, number> }) {
-  return {
-    connection: () => { throw new Error("no RPC needed"); },
-    retryDelayMs: 0,
-    fetchJson: async (url: string) => {
-      if (url.endsWith("/tokens/v2/recent")) return [{ id: NEW_A, liquidity: 40_000 }, { id: NEW_B, liquidity: 25_000 }, { id: TINY, liquidity: 900 }];
-      const search = url.match(/search\?query=(\w+)/);
-      if (search) return state.liquidity[search[1]] === undefined ? [] : [{ id: search[1], symbol: "X", name: "X", decimals: 6, isVerified: false, liquidity: state.liquidity[search[1]], usdPrice: 1 }];
-      const rug = url.match(/tokens\/(\w+)\/report/);
-      if (rug) return { rugged: state.rugged[rug[1]] ?? false };
-      throw new Error(`unexpected ${url}`);
-    },
-  } as any;
-}
-const verdicts: Record<string, string> = { [NEW_A]: "AVOID", [NEW_B]: "SAFE" };
-const fakeVerdict = async (mint: string) => ({ verdict: verdicts[mint] ?? "CAUTION", checks: [{ name: "liquidity", result: verdicts[mint] === "AVOID" ? "fail" : "pass" }] });
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3.6e6).toISOString();
+const A = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApump", B = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBpump";
+const OLD = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", TINY = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDpump";
+const listed: Record<string, any> = {
+  [A]: { id: A, liquidity: 40_000, usdPrice: 1, firstPool: { createdAt: hoursAgo(5) } },
+  [B]: { id: B, liquidity: 25_000, usdPrice: 2, firstPool: { createdAt: hoursAgo(30) } },
+  [OLD]: { id: OLD, liquidity: 5_000_000, usdPrice: 3, firstPool: { createdAt: hoursAgo(24 * 400) }, isVerified: true, tags: ["verified"] },
+  [TINY]: { id: TINY, liquidity: 900, usdPrice: 1, firstPool: { createdAt: hoursAgo(1) } },
+};
+const rugged: Record<string, boolean> = {};
+const world = {
+  connection: () => { throw new Error("no RPC needed"); },
+  retryDelayMs: 0,
+  fetchJson: async (url: string) => {
+    if (url.includes("/tokens/v2/toptraded/1h")) return [listed[A], listed[OLD], listed[TINY]];
+    if (url.includes("/tokens/v2/toporganicscore/1h")) return [listed[B], listed[A]];
+    if (url.includes("/tokens/v2/toptrending/5m")) return [];
+    const search = url.match(/search\?query=(\w+)/);
+    if (search) return listed[search[1]] ? [{ symbol: "X", name: "X", decimals: 6, ...listed[search[1]] }] : [];
+    const rug = url.match(/tokens\/(\w+)\/report/);
+    if (rug) return { rugged: rugged[rug[1]] ?? false };
+    throw new Error(`unexpected ${url}`);
+  },
+} as any;
+const fakeVerdict = async (mint: string) => mint === A
+  ? { verdict: "AVOID", checks: [{ name: "liquidity_pull", result: "fail" }, { name: "age", result: "warn" }] }
+  : { verdict: mint === OLD ? "SAFE" : "CAUTION", checks: [{ name: "liquidity_pull", result: "pass" }, { name: "age", result: mint === OLD ? "pass" : "warn" }] };
 
-test("a tick samples new tokens with enough liquidity, and a week later records whether they rugged", async () => {
+test("a tick samples young tokens with enough liquidity, and a week later answers the questions", async () => {
   clearJupCache();
-  const state = { rugged: {} as Record<string, boolean>, liquidity: { [NEW_A]: 40_000, [NEW_B]: 25_000 } as Record<string, number> };
-  const first = await accuracyTick(world(state), fakeVerdict);
-  assert.equal(first.sampled, 2, "the $900 token is skipped");
-  assert.equal((await accuracyTick(world(state), fakeVerdict)).sampled, 0, "the same tokens aren't sampled twice");
+  const first = await accuracyTick(world, fakeVerdict);
+  assert.equal(first.sampled, 2, "the 400-day-old token and the $900 one are skipped");
+  assert.equal((await accuracyTick(world, fakeVerdict)).sampled, 0, "the same tokens aren't sampled twice");
+  const rows = (await pool.query(`SELECT mint, found_in, checks FROM accuracy_tokens WHERE cohort = $1 ORDER BY mint`, [SAMPLE_COHORT])).rows;
+  assert.deepEqual(rows.map((r: any) => r.found_in).sort(), ["toporganicscore/1h", "toptraded/1h"], "the lists take turns");
+  assert.deepEqual(rows[0].checks, { liquidity_pull: "fail", age: "warn" }, "every check's result is kept");
 
-  // A week passes: A rugged (RugCheck), B lost 95% of its liquidity.
+  // A week passes: A's price fell 95% (the AVOID was right); B held up (the CAUTION was fine).
   await pool.query(`UPDATE accuracy_tokens SET follow_up_due = NOW() - INTERVAL '1 minute'`);
   clearJupCache();
-  state.rugged[NEW_A] = true;
-  state.liquidity[NEW_B] = 1_000;
-  assert.equal((await accuracyTick(world(state), fakeVerdict)).followedUp, 2);
+  listed[A] = { ...listed[A], usdPrice: 0.05 };
+  assert.equal((await accuracyTick(world, fakeVerdict)).followedUp, 2);
 
   const c = (await accuracyReport()).cohorts[SAMPLE_COHORT];
-  assert.deepEqual(c.outcomes.rugged, { AVOID: 1, SAFE: 1 });
-  assert.equal(c.caughtAsAvoid, "50% (1 of 2)");
-  assert.equal(c.ruggedButSafe, "50% (1 of 2)");
-  assert.equal(c.avoidButDidNotRug, "no data yet");
+  assert.deepEqual(c["1_lostMostByVerdict"], { AVOID: "100% (1 of 1)", CAUTION: "0% (0 of 1)", SAFE: "no data yet" });
+  assert.equal(c["2_ofTokensThatLostMost"].calledAvoid, "100% (1 of 1)");
+  assert.equal(c["2_ofTokensThatLostMost"].calledSafe, "0% (0 of 1)");
+  const pull = c["3_byCheck"].find((x: any) => x.check === "liquidity_pull");
+  assert.deepEqual(pull, { check: "liquidity_pull", lostMostWhenFlagged: "100% (1 of 1)", lostMostWhenPassed: "0% (0 of 1)" });
+  assert.equal(c.howTheyLostIt.priceDown90, 1);
 });
 
-test("tokens queued by hand get a verdict and no follow-up; a failing check gives up after 3 tries", async () => {
+test("queued tokens get a verdict and no follow-up; known-good tokens' SAFE rate is reported; a failing check gives up after 3 tries", async () => {
   clearJupCache();
-  const state = { rugged: {}, liquidity: {} };
-  assert.equal(await addToQueue("rerun", [NEW_A, "not-an-address", NEW_A]), 1);
-  const broken = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDpump";
+  assert.equal(await addToQueue("rerun", [OLD, "not-an-address", OLD]), 1);
+  const broken = "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEpump";
   await addToQueue("rerun", [broken]);
   const verdict = async (mint: string) => { if (mint === broken) throw new Error("RPC down"); return fakeVerdict(mint); };
-  for (let i = 0; i < 4; i++) await accuracyTick(world(state), verdict);
-  const rows = (await pool.query(`SELECT mint, verdict, follow_up_due, attempts FROM accuracy_tokens WHERE cohort = 'rerun' ORDER BY mint`)).rows;
-  assert.equal(rows.find((r: any) => r.mint === NEW_A).verdict, "AVOID");
-  assert.equal(rows.find((r: any) => r.mint === NEW_A).follow_up_due, null);
-  assert.equal(rows.find((r: any) => r.mint === broken).attempts, 3);
-  assert.equal((await accuracyReport()).cohorts.rerun.errors, 1);
+  for (let i = 0; i < 4; i++) await accuracyTick(world, verdict);
+  const row = (await pool.query(`SELECT * FROM accuracy_tokens WHERE cohort = 'rerun' AND mint = $1`, [OLD])).rows[0];
+  assert.equal(row.verdict, "SAFE");
+  assert.equal(row.follow_up_due, null);
+  assert.ok(knownGood(row));
+  const r = (await accuracyReport()).cohorts.rerun;
+  assert.equal(r["4_knownGood"].calledSafe, "100% (1 of 1)");
+  assert.equal(r.errors, 1);
+  assert.equal((await pool.query(`SELECT attempts FROM accuracy_tokens WHERE mint = $1`, [broken])).rows[0].attempts, 3);
+});
+
+test("known good leaves out stocks, thin liquidity and young tokens", () => {
+  const base = { verified: true, tags: ["verified"], liquidity_then: 2e6, first_pool_at: "2025-01-01T00:00:00Z", checked_at: "2026-10-16T00:00:00Z" };
+  assert.ok(knownGood(base));
+  assert.ok(!knownGood({ ...base, tags: ["verified", "stocks"] }));
+  assert.ok(!knownGood({ ...base, liquidity_then: 500_000 }));
+  assert.ok(!knownGood({ ...base, first_pool_at: "2026-09-01T00:00:00Z" }));
+  assert.ok(!knownGood({ ...base, verified: false }));
+});
+
+test("a partial verdict (market data unavailable) is retried, not counted", async () => {
+  clearJupCache();
+  const P = "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpump";
+  await addToQueue("partial", [P]);
+  let jupiterDown = true;
+  const verdict = async () => ({ verdict: jupiterDown ? "CAUTION" : "AVOID", checks: [{ name: jupiterDown ? "market_data" : "liquidity", result: jupiterDown ? "warn" : "fail" }] });
+  await accuracyTick(world, verdict);
+  let row = (await pool.query(`SELECT * FROM accuracy_tokens WHERE cohort = 'partial'`)).rows[0];
+  assert.equal(row.verdict, null);
+  assert.match(row.error, /Partial verdict/);
+  jupiterDown = false;
+  await accuracyTick(world, verdict);
+  row = (await pool.query(`SELECT * FROM accuracy_tokens WHERE cohort = 'partial'`)).rows[0];
+  assert.equal(row.verdict, "AVOID");
 });

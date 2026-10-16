@@ -106,14 +106,14 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 88 tests, offline, about 35 seconds
+npm test               # 90 tests, offline, about 35 seconds
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 ```
 
 - **Safety checks** (`tests/safety.test.ts`) run against real mainnet transactions recorded in `tests/fixtures/`: a drainer token approval (BLOCK), SOL moved by a hidden extra instruction, a 10x decimals slip, an extra USDC transfer to a stranger (all MISMATCH), plus clean transfers that must pass, including one that creates the recipient's token account.
 - **Free-call metering** (`tests/meter.test.ts`) runs the real SQL on an in-memory Postgres (PGlite): the daily allowance, refunds for failed calls, the daily reset and percent-encoded tool names.
 - **Units** (`tests/units.test.ts`): exact amount math, error explanations and instruction decoding.
-- **Accuracy on real outcomes** (`server/accuracy.ts`, `tests/accuracy.test.ts`): on Google Cloud, Cloud Scheduler samples 100 new tokens with at least $10,000 of liquidity, records token_safety's verdict, and checks each one a week later for a rug (RugCheck's rugged flag, or liquidity down 90%+). `npm run accuracy` shows how many rugs were caught and how many tokens that didn't rug were called AVOID.
+- **Accuracy on real outcomes** (`server/accuracy.ts`, `tests/accuracy.test.ts`): on Google Cloud, Cloud Scheduler samples 100 tokens under 3 days old with at least $10,000 of liquidity from Jupiter's activity lists, records token_safety's full verdict and every check's result, and looks again a week later: did buyers lose most of their money (price or liquidity down 90%+, or RugCheck marks it rugged)? `npm run accuracy` answers four questions: how often each verdict's tokens lost most, how many of the losers were called AVOID or SAFE, which checks carry the signal, and how many well-known tokens are called SAFE.
 - **Discovery listings** (`tests/discovery.test.ts`): every paid tool's x402 listing passes the Bazaar extension's own validators, and its example is a valid input.
 
 GitHub Actions runs the type check, the tool check and the tests on every push.
