@@ -1,0 +1,2005 @@
+{
+"about": "The 500 tokens of the 2026-10-16 token_safety audit (Jupiter lists: top organic, top traded, trending, recent, verified, liquid staking), by address and list. Re-run with npm run accuracy-rerun.",
+"tokens": [
+{
+"mint": "So11111111111111111111111111111111111111112",
+"list": "top_organic"
+},
+{
+"mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+"list": "top_organic"
+},
+{
+"mint": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+"list": "top_organic"
+},
+{
+"mint": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+"list": "top_organic"
+},
+{
+"mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+"list": "top_organic"
+},
+{
+"mint": "CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH",
+"list": "top_organic"
+},
+{
+"mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+"list": "top_organic"
+},
+{
+"mint": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+"list": "top_organic"
+},
+{
+"mint": "DFMt2FyLpB6ekPNAzVErLXgpSnJ9CRf1VnxBAkTLpump",
+"list": "top_organic"
+},
+{
+"mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+"list": "top_organic"
+},
+{
+"mint": "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx",
+"list": "top_organic"
+},
+{
+"mint": "JuprjznTrTSp2UFa3ZBUFgwdAmtZCq4MQCwysN55USD",
+"list": "top_organic"
+},
+{
+"mint": "CARDSccUMFKoPRZxt5vt3ksUbxEFEcnZ3H2pd3dKxYjp",
+"list": "top_organic"
+},
+{
+"mint": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+"list": "top_organic"
+},
+{
+"mint": "2bCCHQadi4QeHWPKG3w13siCyWWQPgkFtniouTqVpump",
+"list": "top_organic"
+},
+{
+"mint": "DEW9dSN6QpWyNthphCpMmAbZP1Q4cEKR9xQXAri98WDP",
+"list": "top_organic"
+},
+{
+"mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+"list": "top_organic"
+},
+{
+"mint": "33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump",
+"list": "top_organic"
+},
+{
+"mint": "A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS",
+"list": "top_organic"
+},
+{
+"mint": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+"list": "top_organic"
+},
+{
+"mint": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+"list": "top_organic"
+},
+{
+"mint": "ALDVtr9JeLjKH91fHFvLxFoyd7C6eLUxi9dUoN2FsWdD",
+"list": "top_organic"
+},
+{
+"mint": "nxPqZ4F7ux8Vph5NFu25rEP6Kx9Gr1U6Fmj36Rjpump",
+"list": "top_organic"
+},
+{
+"mint": "3w5cKpkfz2TAS22oXhMSZGjpsK6URL5d5db2thvwMtVx",
+"list": "top_organic"
+},
+{
+"mint": "BPxxfRCXkUVhig4HS1Lh7kZqV6SPJhzfEk4x6fVBjPCy",
+"list": "top_organic"
+},
+{
+"mint": "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump",
+"list": "top_organic"
+},
+{
+"mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+"list": "top_organic"
+},
+{
+"mint": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+"list": "top_organic"
+},
+{
+"mint": "2ay4jNY3JxfuXJzhZ8DrAKkGzpirgD7Dv2ccL9zmpump",
+"list": "top_organic"
+},
+{
+"mint": "Diy4Q5aiNEcdn7CWhuwYtuoHtHD9rKBTHCa9hi4qpump",
+"list": "top_organic"
+},
+{
+"mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+"list": "top_organic"
+},
+{
+"mint": "HuAXPyDWDaMYFKuwQHpqL1oPnj93zdzWmtvFGzCeCUa7",
+"list": "top_organic"
+},
+{
+"mint": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
+"list": "top_organic"
+},
+{
+"mint": "3ZLekZYq2qkZiSpnSvabjit34tUkjSwD1JFuW9as9wBG",
+"list": "top_organic"
+},
+{
+"mint": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+"list": "top_organic"
+},
+{
+"mint": "AKotzk1dhcNangAJBtvNKtT9bhbSVZc2mMhRFgkFpump",
+"list": "top_organic"
+},
+{
+"mint": "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+"list": "top_organic"
+},
+{
+"mint": "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3",
+"list": "top_organic"
+},
+{
+"mint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+"list": "top_organic"
+},
+{
+"mint": "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+"list": "top_organic"
+},
+{
+"mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+"list": "top_organic"
+},
+{
+"mint": "Pren1FvFX6J3E4kXhJuCiAD5aDmGEb7qJRncwA8Lkhw",
+"list": "top_organic"
+},
+{
+"mint": "5tCju6YNxHq5zrA6tGndr6F7TK42mpUFmeE31cSFpump",
+"list": "top_organic"
+},
+{
+"mint": "6Mix12LiHrQFojaQEnfPUC65Qkwd6X4Y5Qg93oFbordr",
+"list": "top_organic"
+},
+{
+"mint": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
+"list": "top_organic"
+},
+{
+"mint": "Dz9mQ9NzkBcCsuGPFJ3r1bS4wgqKMHBPiVuniW8Mbonk",
+"list": "top_organic"
+},
+{
+"mint": "98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g",
+"list": "top_organic"
+},
+{
+"mint": "HgTGdc29D5bDMrDvsCLnorxz899VyDj7ZN7FPa6vpump",
+"list": "top_organic"
+},
+{
+"mint": "GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump",
+"list": "top_organic"
+},
+{
+"mint": "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL",
+"list": "top_organic"
+},
+{
+"mint": "AMC1qwR9KhiyrQBRPrxnfo4JfMeMZqEBvt5tgTytNNoc",
+"list": "top_organic"
+},
+{
+"mint": "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump",
+"list": "top_organic"
+},
+{
+"mint": "4sWNB8zGWHkh6UnmwiEtzNxL4XrN7uK9tosbESbJFfVs",
+"list": "top_organic"
+},
+{
+"mint": "2j5SaS7xy776qCBpyPQbZjyQSAtKiFgrwjfErthnW2ZM",
+"list": "top_organic"
+},
+{
+"mint": "4qH8A5GxvRMZgpRFjXASc6U9HAoEzKeUqxY2dPB7pump",
+"list": "top_organic"
+},
+{
+"mint": "DxUbj2gg4fgD8cBhV9HFVpzYJAYMN6TdsHGREMAspump",
+"list": "top_organic"
+},
+{
+"mint": "58QyXQ1UDgHh64EiTsCeevVM9cLPqBDNf3qZE6EdfUhZ",
+"list": "top_organic"
+},
+{
+"mint": "9BEcn9aPEmhSPbPQeFGjidRiEKki46fVQDyPpSQXPA2D",
+"list": "top_organic"
+},
+{
+"mint": "shib5gSoVKPjwkXrxRk7SbQFzb2R9rQB3TgQWYX4RwW",
+"list": "top_organic"
+},
+{
+"mint": "2nP9yKQNSGQy851iyawDvBkzkK2R2aqKArQCKc2gpump",
+"list": "top_organic"
+},
+{
+"mint": "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
+"list": "top_organic"
+},
+{
+"mint": "FYFDLqtBd4ZAiDfbx7XxXndcjJuBEZCz5XKAqQwaHC8W",
+"list": "top_organic"
+},
+{
+"mint": "KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS",
+"list": "top_organic"
+},
+{
+"mint": "HTmQz7My6MehV7bjhJ6jde8nDND1yvsz68d24LP7YgUQ",
+"list": "top_organic"
+},
+{
+"mint": "BAhD3vUoHxDHWwA7D9755VAi8tyTGJerQqVw4kL76zSJ",
+"list": "top_organic"
+},
+{
+"mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+"list": "top_organic"
+},
+{
+"mint": "9g4Pib6AM3oVdP9YA7ZcssAXAuhoUzkjR8w27doYpump",
+"list": "top_organic"
+},
+{
+"mint": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
+"list": "top_organic"
+},
+{
+"mint": "DzMwArmdzPqcqgvyqAmTxy79XdA9NwK9mMteqWLJpump",
+"list": "top_organic"
+},
+{
+"mint": "ApZuxdpzMrbEYTGEzeY9afh5pj9d6qPRJCTgQYiipbKg",
+"list": "top_organic"
+},
+{
+"mint": "8x5VqbHA8D7NkD52uNuS5nnt3PwA8pLD34ymskeSo2Wn",
+"list": "top_organic"
+},
+{
+"mint": "HwJyyniKKDRLXxjRSzyLtpvxzqecqrhrbcSbKRm7STNK",
+"list": "top_organic"
+},
+{
+"mint": "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+"list": "top_organic"
+},
+{
+"mint": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
+"list": "top_organic"
+},
+{
+"mint": "jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v",
+"list": "top_organic"
+},
+{
+"mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+"list": "top_organic"
+},
+{
+"mint": "WXMRyRZhsa19ety5erZhHg4N3xj3EVN92u94422teJp",
+"list": "top_organic"
+},
+{
+"mint": "7VertkgF9KLhxxJXHX6uaWuoYZTP9LdGj2bWmVXVpump",
+"list": "top_organic"
+},
+{
+"mint": "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB",
+"list": "top_organic"
+},
+{
+"mint": "A2yA6AFtfKkfVkfsnGpvsKoUV5kQPpMYboZsBPvmkA9T",
+"list": "top_organic"
+},
+{
+"mint": "DtcicPCKTKeAh7TDEzTym3hXeoHAoMiBdYJhMYxZpump",
+"list": "top_organic"
+},
+{
+"mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+"list": "top_organic"
+},
+{
+"mint": "HsRpHQn6VbyMs5b5j5SV6xQ2VvpvvCCzu19GjytVSCoz",
+"list": "top_organic"
+},
+{
+"mint": "DoGEV7LASBkQbibMc5k5vKnTZoMg423GpJ5QtJEGfm7R",
+"list": "top_organic"
+},
+{
+"mint": "6n48buQMwU47stjQr4Hiw59aRiDHXkXgi5ybDmqbuePS",
+"list": "top_organic"
+},
+{
+"mint": "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
+"list": "top_organic"
+},
+{
+"mint": "BsbsB3WLq7vbY5En3MBCAsTrcwaCxNKY2Mp5pGuLpump",
+"list": "top_organic"
+},
+{
+"mint": "4MMQY9bwkxxTtsK3W227Q5ABT6yFY8Pmn9Ze7wmAXKY8",
+"list": "top_organic"
+},
+{
+"mint": "Grass7B4RdKfBCjTKgSqnXkqjwiGvQyFbuSCUJr3XXjs",
+"list": "top_organic"
+},
+{
+"mint": "DKYcjobF7HPtL9RyQBRdeRQ2iWvizpfbgWwPWNXdpump",
+"list": "top_organic"
+},
+{
+"mint": "BXoHJddsWJLHtAopeiSbKUSELsu8hSFMs8baGMDkpump",
+"list": "top_organic"
+},
+{
+"mint": "AMQ8BusAhpwbt3ufSCTi4k3BEQ7AecX9u12Jnk6Spump",
+"list": "top_organic"
+},
+{
+"mint": "9pTGUwAhG3CLAcu8rZKgu8cQaeAdQRmkbbG8hfzzpump",
+"list": "top_organic"
+},
+{
+"mint": "8RVBk8vxLiUHueLUW1f4izFVqN3nWippLhkohKg6EGkS",
+"list": "top_organic"
+},
+{
+"mint": "6UtY9iTZMQQ5QZVrbzFnNaJntV7oySm9k97mvwnuZcxr",
+"list": "top_organic"
+},
+{
+"mint": "CTPoyCwkjMvoJwU4xvZZqoD8tiYk6yDchySiN5gGpump",
+"list": "top_organic"
+},
+{
+"mint": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+"list": "top_organic"
+},
+{
+"mint": "7KEPApdbBMByrmqihz3bht2uMhFQcatjfSFQCKq66kH3",
+"list": "top_organic"
+},
+{
+"mint": "3AkNtx7ZYEmMZKciNyrwUNiHMpP4AUNPqHCmAJcsYCus",
+"list": "top_organic"
+},
+{
+"mint": "Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu",
+"list": "top_organic"
+},
+{
+"mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+"list": "trending"
+},
+{
+"mint": "XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1",
+"list": "trending"
+},
+{
+"mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+"list": "trending"
+},
+{
+"mint": "GbbesPbaYh5uiAZSYNXTc7w9jty1rpg3P9L4JeN4LkKc",
+"list": "trending"
+},
+{
+"mint": "SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3",
+"list": "trending"
+},
+{
+"mint": "Y5AW42YoGR2tWKmSmKjdLyVvttwu8r54ea1v6KSpump",
+"list": "trending"
+},
+{
+"mint": "u7XNK4pbxXgWzBwqidDV2TtsXwLqqxtjmGfw1H8pump",
+"list": "trending"
+},
+{
+"mint": "oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp",
+"list": "trending"
+},
+{
+"mint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+"list": "trending"
+},
+{
+"mint": "1NJMqVM4PadjuzYmeB7zV7q7DV8oB3ExaQCd9x6KsLz",
+"list": "trending"
+},
+{
+"mint": "CWZ6BsdnjkDVTGkmL6bGbJXXig6ceef12KvyGQW14cMt",
+"list": "trending"
+},
+{
+"mint": "72QvBVwpxqmheEPfaCwWSWqEFsUy3rhWt6JhQBMNTwD1",
+"list": "trending"
+},
+{
+"mint": "7JA5eZdCzztSfQbJvS8aVVxMFfd81Rs9VvwnocV1mKHu",
+"list": "trending"
+},
+{
+"mint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+"list": "trending"
+},
+{
+"mint": "HAYQtfJEQ9DbDbaHEhxfGsWbSZ3ywthdsVB3PuB72DYe",
+"list": "trending"
+},
+{
+"mint": "xorcaYqbXUNz3474ubUMJAdu2xgPsew3rUCe5ughT3N",
+"list": "trending"
+},
+{
+"mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+"list": "trending"
+},
+{
+"mint": "METAewgxyPbgwsseH8T16a39CQ5VyVxZi9zXiDPY18m",
+"list": "trending"
+},
+{
+"mint": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+"list": "trending"
+},
+{
+"mint": "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
+"list": "trending"
+},
+{
+"mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+"list": "trending"
+},
+{
+"mint": "CYPHuMmCL1GxJWa2tsPhLKykC7GrHJTCHwbXD4g5uawK",
+"list": "trending"
+},
+{
+"mint": "METAwkXcqyXKy1AtsSgJ8JiUHwGCafnZL38n3vYmeta",
+"list": "trending"
+},
+{
+"mint": "VVV4UdRywr7SLafPHzqXwRCw7myXkmgCtitXUvj8g8c",
+"list": "trending"
+},
+{
+"mint": "C1mBfBoDkwWfd6uTFZp62ARHLjeVp3bDpCDMfMZtPngE",
+"list": "trending"
+},
+{
+"mint": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+"list": "trending"
+},
+{
+"mint": "XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2",
+"list": "trending"
+},
+{
+"mint": "SoLo9oxzLDpcq1dpqAgMwgce5WqkRDtNXK7EPnbmeta",
+"list": "trending"
+},
+{
+"mint": "CniPCE4b3s8gSUPhUiyMjXnytrEqUrMfSsnbBjLCpump",
+"list": "trending"
+},
+{
+"mint": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+"list": "trending"
+},
+{
+"mint": "GoLDppdjB1vDTPSGxyMJFqdnj134yH6Prg9eqsGDiw6A",
+"list": "trending"
+},
+{
+"mint": "taoC6xyv2v8tDLcev4uaGUgV4vdQsWJrGft2kcBRrBY",
+"list": "trending"
+},
+{
+"mint": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+"list": "trending"
+},
+{
+"mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+"list": "trending"
+},
+{
+"mint": "SNDKbwMUQvZhnLnxLduradgLHG5KrPuKwpnrkkGRhfH",
+"list": "trending"
+},
+{
+"mint": "85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ",
+"list": "trending"
+},
+{
+"mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+"list": "trending"
+},
+{
+"mint": "keybg184d4vyXeQdFqs4o99YsMg7xBthxTJ6Ky3ondo",
+"list": "trending"
+},
+{
+"mint": "MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5",
+"list": "trending"
+},
+{
+"mint": "ZBCNpuD7YMXzTHB2fhGkGi78MNsHGLRXUhRewNRm9RU",
+"list": "trending"
+},
+{
+"mint": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+"list": "trending"
+},
+{
+"mint": "ondohH8Vssxiqcy5u6Efi4AYN17KZrzQtv2a91dnrgW",
+"list": "trending"
+},
+{
+"mint": "CREDBHvVqREBCAxMihzr8D1nepHMr2gmQoZWpmgGmeta",
+"list": "trending"
+},
+{
+"mint": "FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P",
+"list": "trending"
+},
+{
+"mint": "PEPEqnuuCDbBC89p1u9vpnP1KQ2oj1xTcQBsjt9X55m",
+"list": "trending"
+},
+{
+"mint": "XsoBhf2ufR8fTyNSjqfU71DYGaE6Z3SUGAidpzriAA4",
+"list": "trending"
+},
+{
+"mint": "5dvXTZ5qwgafnHtwu3Ls3QrWx1U4LQsFeCuJgkk4QEC6",
+"list": "trending"
+},
+{
+"mint": "G7vQWurMkMMm2dU3iZpXYFTHT9Biio4F4gZCrwFpKNwG",
+"list": "trending"
+},
+{
+"mint": "poNSfquKq512ApeYjVghwViSun4x1MhCqHVH2Paq4jN",
+"list": "trending"
+},
+{
+"mint": "2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump",
+"list": "trending"
+},
+{
+"mint": "iy11ytbSGcUnrjE6Lfv78TFqxKyUESfku1FugS9ondo",
+"list": "trending"
+},
+{
+"mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+"list": "trending"
+},
+{
+"mint": "RBLXDGRD64AtRamHMFVcjqne3Ar7NLWtFtYNtsrf1cE",
+"list": "trending"
+},
+{
+"mint": "CFNRDaxFcvRwRSNnA5cHrCCr6AHhk9dNkHWpRUjNupFL",
+"list": "trending"
+},
+{
+"mint": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+"list": "trending"
+},
+{
+"mint": "QUBTAD8C9bMU9LvmMNgKPhrmBGbHvxpu6vfWQtThxxw",
+"list": "trending"
+},
+{
+"mint": "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF",
+"list": "trending"
+},
+{
+"mint": "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof",
+"list": "trending"
+},
+{
+"mint": "LLYuwZ33keFihgwoxXsBawy31AiRFLFSva32TYq5TvD",
+"list": "trending"
+},
+{
+"mint": "7M3gDRgozcumFsiTeXwjB8cYxpg7Q9R7rH7rkw2Fpump",
+"list": "trending"
+},
+{
+"mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+"list": "trending"
+},
+{
+"mint": "9PR7nCP9DpcUotnDPVLUBUZKu5WAYkwrCUx9wDnSpump",
+"list": "trending"
+},
+{
+"mint": "CARSsxWPkpQWvfyRBwfGMGvysJBHdHGfE46X5MNgmeta",
+"list": "trending"
+},
+{
+"mint": "SHDWyBxihqiCj6YekG2GUr7wqKLeLAMK1gHZck9pL6y",
+"list": "trending"
+},
+{
+"mint": "B32ocrADBEo1XHsGVnxqP81SaK2NiZkQmmAoTnmT8Ybu",
+"list": "trending"
+},
+{
+"mint": "BLKKYfF41c6xRPrtX1rdYbxLE1xxEdZUnxQsB5hcZ8Nf",
+"list": "trending"
+},
+{
+"mint": "6UpQcMAb5xMzxc7ZfPaVMgx3KqsvKZdT5U718BzD5We2",
+"list": "trending"
+},
+{
+"mint": "Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump",
+"list": "trending"
+},
+{
+"mint": "4Zp52aF4hZi9fzH19xpbWKYKQvgLyCN67KFbrQDqeTKh",
+"list": "trending"
+},
+{
+"mint": "61V8vBaqAGMpgDQi4JcAwo1dmBGHsyhzodcPqnEVpump",
+"list": "top_traded"
+},
+{
+"mint": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
+"list": "top_traded"
+},
+{
+"mint": "BEFJzjudaKsEA8JH7xKgfSNMcLjXNvJM1mq6FnnLVA7L",
+"list": "top_traded"
+},
+{
+"mint": "rc5QqCeRy58gCa4x3KMXiZNY9b86Z3YF3c3M8JLpump",
+"list": "top_traded"
+},
+{
+"mint": "Afkbv7eaxzW1qQyYcf5NeffDRKX4be6fs4TPuJeXpump",
+"list": "top_traded"
+},
+{
+"mint": "DKNGQFNGQmoBdXSRGKJ8tTu7uPDasw5JDcfMmWniNfow",
+"list": "top_traded"
+},
+{
+"mint": "CRWVJeR2yEZuDUKYfGuKCHvLz8ywn4LGvovHfy5WiFmi",
+"list": "top_traded"
+},
+{
+"mint": "HUDmsj3BJ6EkbRBWpi2j8tzRLbv4xhho1x9AGw2Ypump",
+"list": "top_traded"
+},
+{
+"mint": "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+"list": "top_traded"
+},
+{
+"mint": "E4GUSZDyxaeYTEgqW4AjYVzxpHZMYqM3JE3JRuespump",
+"list": "top_traded"
+},
+{
+"mint": "ALrNcQpz19ZZQLZVnrQvGu8G93KvWznGBdX7TAbX7ZeJ",
+"list": "top_traded"
+},
+{
+"mint": "5GgRAEmv8ZxF2PR5hY72Qs5x1bnQ6UK2RbTPoqJ3wSwW",
+"list": "top_traded"
+},
+{
+"mint": "7avWDoV6xH2Fw4zeqnEAULeQtEvayeqM11uxPzMupump",
+"list": "top_traded"
+},
+{
+"mint": "87SsFmfcXVPpzFdHpYAQ6iu6ccdtCmgbifGmywBipump",
+"list": "top_traded"
+},
+{
+"mint": "EWY4owSJYMpwN33qGDu5gGxpkQkpMJu8ZUsQJaNZG5dv",
+"list": "top_traded"
+},
+{
+"mint": "31GYUbJW5vjF1o7VM5SGP9Emj5WDBHb1cdcR8BM6pump",
+"list": "top_traded"
+},
+{
+"mint": "ukHH6c7mMyiWCf1b9pnWe25TSpkDDt3H5pQZgZ74J82",
+"list": "top_traded"
+},
+{
+"mint": "4vPKeUPy5KbhVGhdudx4mukRDJBBkRmzaooQstQgpump",
+"list": "recent"
+},
+{
+"mint": "DacPJiP6GQyiFedaXqUtK7drid7zGTm2wj8ihYgkpump",
+"list": "recent"
+},
+{
+"mint": "9Mpx5ai5urTtJuxFE3P6V9E9GoaG13JmvM3NcJWJpump",
+"list": "recent"
+},
+{
+"mint": "8CGdjn5hKRAeYuCQ4byLQS4TqkjoyKU2tFpNWWdRpump",
+"list": "recent"
+},
+{
+"mint": "9mMWGuRFP8pwhM3vGzd1vsyjd5dHjSgQwpxZnAduBAGS",
+"list": "recent"
+},
+{
+"mint": "3fJ6SonaWf1LjPBeWPwoWTCk7rbBrSPeZokn1S1Kpump",
+"list": "recent"
+},
+{
+"mint": "3WFNH7crEZw725FSuJ8HeoR9fCDv6hqX9SDiW2kUpump",
+"list": "recent"
+},
+{
+"mint": "FHSjuhk7tKLmM3sGud22Pv2QCAwkiTJbXSWvYm9Dc1xk",
+"list": "recent"
+},
+{
+"mint": "D4rzv9WAXJh9QZw1MjqfrtuSrmrkV4DckPTKBoMnpump",
+"list": "recent"
+},
+{
+"mint": "DaAMq34FKcJwNWKbBdRt2pb1CXaUmKK2k14KUrVtpump",
+"list": "recent"
+},
+{
+"mint": "3FWPeRkgNAnMkW7ncdpC3CGwGG2rbwLwNddewE9V8kek",
+"list": "recent"
+},
+{
+"mint": "CKbM9buK2oJDzWLSHYo3PBRsPQjJzESWvRjWRuvqpump",
+"list": "recent"
+},
+{
+"mint": "GHXiJid2xvud8dPpvCFok3DKbK2g97zx7nLZnpJbpump",
+"list": "recent"
+},
+{
+"mint": "DhKgp1wKNCnFD1LqMQNUnbkihyVEds7RwLq52fBWpump",
+"list": "recent"
+},
+{
+"mint": "A3xWtVSoaUPUsr2RVyxeVGGz7QSDaMtCkEdHSngCpump",
+"list": "recent"
+},
+{
+"mint": "7iAG5b4zp5RVHEe6vBKcjb7YEwS19nA8kytc1tSVpump",
+"list": "recent"
+},
+{
+"mint": "5XTnrnyQMPFnZGs5Lkpn3KHxcbKMTD9rNzakZzaVpump",
+"list": "recent"
+},
+{
+"mint": "GGncNxi6hFRoh7CRpoRnPD7N4YVsVJzZJmMRuivxpump",
+"list": "recent"
+},
+{
+"mint": "AjKnPgBT56JxQNBG6FztBroCHSDRMMjAWFwmei3Cpump",
+"list": "recent"
+},
+{
+"mint": "6SdtkhsS2q5CW6xjzwWDCoUhgxre4o2fGRbxHGW1pump",
+"list": "recent"
+},
+{
+"mint": "3bVYCVCaNeTPppp2T2BKCFWBrmnyyJ3DMgGFsn73pump",
+"list": "recent"
+},
+{
+"mint": "8JdDGCBM1EX1YFdrEFbJSiiLQ1o84xbULvxxnVYMpump",
+"list": "recent"
+},
+{
+"mint": "HM1cXXWZi1Mf9qjtGYyVScjA9S8e1ph7uSvp4EzKpump",
+"list": "recent"
+},
+{
+"mint": "9p85dSkL5sa3hdEHYdn3wuhFHyhMuGHZRcHe3P5a7qEM",
+"list": "recent"
+},
+{
+"mint": "Gzk1Sonnfk3RsNQRq9rsyEtXkksvWKQEQmWvVec64LHH",
+"list": "recent"
+},
+{
+"mint": "DKVvpV8nKp4HjSBnHxvMMyUA64iYSSENpC6wvfURpump",
+"list": "recent"
+},
+{
+"mint": "Bgg6Nwd8qA4UVkn71hUqyH2DD3QDTzhNtm6RUPoiMBtP",
+"list": "recent"
+},
+{
+"mint": "EMheYd2Vt6UzBsZjiianbK5qCXLLXCrrRXPGwmCdFttx",
+"list": "recent"
+},
+{
+"mint": "FLs3ahLrverFBpV5JzwegWUTN1W2V2hAYUYjTfhQpump",
+"list": "recent"
+},
+{
+"mint": "9HbuWLahZDKif3Xk1VGhfReaEdE5qMvwpBh8HVQPpump",
+"list": "recent"
+},
+{
+"mint": "apySoLhdVa6QbvNyEjXCbET3FdUm9cCdEvYyjCU7icM",
+"list": "lst"
+},
+{
+"mint": "EatFfcQsVg3eF4rHGWnXXcgoFT6dNu7HhkLMEfMPqa2G",
+"list": "lst"
+},
+{
+"mint": "WFRGSWjaz8tbAxsJitmbfRuFV2mSNwy7BMWcCwaA28U",
+"list": "lst"
+},
+{
+"mint": "LegQQkRCGrp4EqMy8NVrpMTbNi5jaQUDdhKhQSSBSE6",
+"list": "lst"
+},
+{
+"mint": "gSvP9zBJ33pX7W2finzAYJZp6Q9ipNAQ19xU9PrCirz",
+"list": "lst"
+},
+{
+"mint": "xSoL18r4U1k2ALa4yF857VDZJqCKecLtty92nscre3o",
+"list": "lst"
+},
+{
+"mint": "KTjWwdHU3PpjxX5XsbdXGr7oNzz9uig1K5uqUXsBAGS",
+"list": "lst"
+},
+{
+"mint": "yontaGPyo7eLjKfAhW4eXU3L1adKbthqRHx9MsJCzvg",
+"list": "lst"
+},
+{
+"mint": "FoxYewmpjh66W6PFA38k2JRYea22mxnwLLMkVmu5bNU",
+"list": "lst"
+},
+{
+"mint": "rkubjTrZYioRSeXwDnhwGQzvW3qkcin72JSxUt3WMVp",
+"list": "lst"
+},
+{
+"mint": "jucy5XJ76pHVvtPZb5TKRcGQExkwit2P5s4vY8UzmpC",
+"list": "lst"
+},
+{
+"mint": "Dso1bDeDjCQxTrWHqUUi63oBvV7Mdm6WaobLbQ7gnPQ",
+"list": "lst"
+},
+{
+"mint": "dbcMcw2pC8EDt5eiYMiMBwe35mCWK4hRpec98bKAjML",
+"list": "lst"
+},
+{
+"mint": "axso1MBZ8Hz3RdBGeyDcvc3xP5R3YNfLYqREHRvwY2t",
+"list": "lst"
+},
+{
+"mint": "SnKAf8aNjeYz8pY8itYn3VxFhT6Q8WNdPwy17s9USgC",
+"list": "lst"
+},
+{
+"mint": "4dFaRDBmqUJA7FzWjuoBWpDetNFfNmDyjgFjdH66JjfC",
+"list": "lst"
+},
+{
+"mint": "yso11zxLbHA3wBJ9HAtVu6wnesqz9A2qxnhxanasZ4N",
+"list": "lst"
+},
+{
+"mint": "Loothu7Ac6GqtvVcUWSEZBVDAxQnyesc3fFWTGp1DZj",
+"list": "lst"
+},
+{
+"mint": "CorvuSSoLxPKLoXWXSfn8pFSMhCRHhe7Uwqe874cmwvg",
+"list": "lst"
+},
+{
+"mint": "RSoLp7kddnNwvvvaz4b1isQy8vcqdSwXjgm1wXaMhD8",
+"list": "lst"
+},
+{
+"mint": "MangmsBgFqJhW4cLUR9LxfVgMboY1xAoP8UUBiWwwuY",
+"list": "lst"
+},
+{
+"mint": "2uQsyo1fXXQkDtcpXnLofWy88PxcvnfH2L8FPSE62FVU",
+"list": "lst"
+},
+{
+"mint": "DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA",
+"list": "lst"
+},
+{
+"mint": "BULKoNSGzxtCqzwTvg5hFJg8fx6dqZRScyXe5LYMfxrn",
+"list": "lst"
+},
+{
+"mint": "Ra1so1sTkvX3PorAM9ewqrsUMz9sPSbfFZ5oZUjN4oc",
+"list": "lst"
+},
+{
+"mint": "StPsoHokZryePePFV8N7iXvfEmgUoJ87rivABX7gaW6",
+"list": "lst"
+},
+{
+"mint": "3bfv2scCdbvumVBc3Sar5QhYXx7Ecsi8EFF2akjxe329",
+"list": "lst"
+},
+{
+"mint": "2LuXDpkn7ZWMqufwgUv7ZisggGkSE5FpeHCHBsRgLg3m",
+"list": "lst"
+},
+{
+"mint": "iceSdwqztAQFuH6En49HWwMxwthKMnGzLFQcMN3Bqhj",
+"list": "lst"
+},
+{
+"mint": "GRJQtWwdJmp5LLpy8JWjPgn5FnLyqSJGNhn5ZnCTFUwM",
+"list": "lst"
+},
+{
+"mint": "orcaSo6gzWvvXvAHVJQVrxWmHepCcGp7swVX1yTBuoJ",
+"list": "lst"
+},
+{
+"mint": "sphSo1j2eTLa6AB5Wjrmap8VbQoZKccCpqJ7gV5pqGM",
+"list": "lst"
+},
+{
+"mint": "Fi5GayacZzUrfaCRCJtBz2vSYkGF56xjgCceZx5SbXwq",
+"list": "lst"
+},
+{
+"mint": "MpsoLp1YBDqeiuSrVrYH4DoAGJ3myAMmMy6crYNVSTo",
+"list": "lst"
+},
+{
+"mint": "soLuqrygggsrxehAEhrsHgamSpWQUuPso3TiD8yFVwN",
+"list": "lst"
+},
+{
+"mint": "esprDDGBNVg3pJM8EQtCsVwcUsEk5TxgYGVjD4Uu7pZ",
+"list": "lst"
+},
+{
+"mint": "6uLQAevbHZofRWgfCsFC7tnfiRLqUG15TRxWHWxctih6",
+"list": "lst"
+},
+{
+"mint": "WensoLXxZJnev2YvihHFchn1dVVFnFLYvgomXWvvwRu",
+"list": "lst"
+},
+{
+"mint": "HUBsveNpjo5pWqNkH57QzxjQASdTVXcSK7bVKTSZtcSX",
+"list": "lst"
+},
+{
+"mint": "uPtSoL2qszk4SuPHNE2zqk1gDtqCq21ZE1yZCqvFTqq",
+"list": "lst"
+},
+{
+"mint": "XsYka4UhXnzoqmdPCfqX8EZBQcN2MkrG4gJt4SxGvsN",
+"list": "verified_random"
+},
+{
+"mint": "6Bp9LWtyVXcEATi5nuquX5p1hPGUg1cVoUuXGN9Epump",
+"list": "verified_random"
+},
+{
+"mint": "4M79Qjv2Jfjmcq19M41V8QFYohBv2KrgEn9dJhVtpump",
+"list": "verified_random"
+},
+{
+"mint": "7bQsj9DciGXs6cTkhB3D1WbcEjuMpmD7amQRWjEVBpu",
+"list": "verified_random"
+},
+{
+"mint": "AUdUEc98MGfEHJiJfCgMaW8gKdcfNDio8BFzGKBwjztC",
+"list": "verified_random"
+},
+{
+"mint": "XsBhE7XXLouCZ4FPESGHjZnJ2wsZEQY1tAf4iFTncUm",
+"list": "verified_random"
+},
+{
+"mint": "5evN2exivZXJfLaA1KhHfiJKWfwH8znqyH36w1SFz89Y",
+"list": "verified_random"
+},
+{
+"mint": "MAtesZXcU38mgPuteRFo9ApCauYRRuwn3xf1cs5y7ZX",
+"list": "verified_random"
+},
+{
+"mint": "H7bTHGb5Cvo5fGe5jBDNDPUv8KykQnzyZA3qZ8sH7yxw",
+"list": "verified_random"
+},
+{
+"mint": "Xs2jBYo5VxMmuNjpBnMShsLB26dtK75bt42ag93ZdHU",
+"list": "verified_random"
+},
+{
+"mint": "XspAgeHZ7DAtDP9Y3t56sTpuhCFY1GafqstYjcu13f7",
+"list": "verified_random"
+},
+{
+"mint": "XsyE4s6Q9qdmAcRAMETHQsSXRBXL8yEov9AuXbfHrVW",
+"list": "verified_random"
+},
+{
+"mint": "3DFnwGLJUfxc4eMxDgQwW6oWaeKBrJ1iwA26YjTfpump",
+"list": "verified_random"
+},
+{
+"mint": "XsBgbNRDujfznQq8P4NLKEkRTbPxUVt4v1xwkDzMMtQ",
+"list": "verified_random"
+},
+{
+"mint": "BArimz1PcKZr8PcPh3tcZ2dg4S7FJLk3cw6R5F8GsHKg",
+"list": "verified_random"
+},
+{
+"mint": "C49Ut3om3QFTDrMZ5Cr8VcTKPpHDcQ2Fv8mmuJHHigDt",
+"list": "verified_random"
+},
+{
+"mint": "9JK2U7aEkp3tWaFNuaJowWRgNys5DVaKGxWk73VT5ray",
+"list": "verified_random"
+},
+{
+"mint": "XsCKGVtLBwZ4Z264jSPgPxzm3w6Sm3UkKv5WgHd3ike",
+"list": "verified_random"
+},
+{
+"mint": "CZ9GBn1okotqKNUUqoxk4PF2JVi59bw5GWvVo6Dondo",
+"list": "verified_random"
+},
+{
+"mint": "vSoLxydx6akxyMD9XEcPvGYNGq6Nn66oqVb3UkGkei7",
+"list": "verified_random"
+},
+{
+"mint": "Xso9NBGGLwX39AHfBUj42BkSTkaa9ZELUuHgwxj5qUW",
+"list": "verified_random"
+},
+{
+"mint": "EiH6bmhNPBzqaCCx5sawA4aRB9Mz5e3bW4FHo2aKwiYG",
+"list": "verified_random"
+},
+{
+"mint": "gEGtLTPNQ7jcg25zTetkbmF7teoDLcrfTnQfmn2ondo",
+"list": "verified_random"
+},
+{
+"mint": "XsHfvLEUbto797whYCNiqoEGWSpWaRYoZWXJEBGgmsm",
+"list": "verified_random"
+},
+{
+"mint": "66bHtzcXqmLgkn668EG4ETzHL3RLz5ybdckqvrPppump",
+"list": "verified_random"
+},
+{
+"mint": "BgJW7U1u2RY5XJk9uYb5AqFRzjMtqE7pw3kaf9iw9Ntz",
+"list": "verified_random"
+},
+{
+"mint": "5VzwKkvynPJzcgwhBe7ESEyNgqMbo15yBu7Sehssd9ED",
+"list": "verified_random"
+},
+{
+"mint": "CPG7gjcjcdZGHE5EJ6LoAL4xqZtNFeWEXXmtkYjAoVaF",
+"list": "verified_random"
+},
+{
+"mint": "n54ZwXEcLnc3o7zK48nhrLV4KTU5wWD4iq7Gvdt5tik",
+"list": "verified_random"
+},
+{
+"mint": "Xs31mE5EiqjSHEaiX9QDKCN6NvSGCqpJ6f1FNq2wri5",
+"list": "verified_random"
+},
+{
+"mint": "BTr5SwWSKPBrdUzboi2SVr1QvSjmh1caCYUkxsxLpump",
+"list": "verified_random"
+},
+{
+"mint": "XsMDVr6KCH4EFoBnwPFUibztsVeNWLZHjaLkJrMpt3Y",
+"list": "verified_random"
+},
+{
+"mint": "fpSoL8EJ7UA5yJxFKWk1MFiWi35w8CbH36G5B9d7DsV",
+"list": "verified_random"
+},
+{
+"mint": "F3nefJBcejYbtdREjui1T9DPh5dBgpkKq7u2GAAMXs5B",
+"list": "verified_random"
+},
+{
+"mint": "eCSPcjdpdKL1546PU3RM6BXkebuKn8iH4iuMcTBondo",
+"list": "verified_random"
+},
+{
+"mint": "93VXFhKsGXsraivwdwAwoVXHKd4U1TFL64oQYpVjpump",
+"list": "verified_random"
+},
+{
+"mint": "Xsf3EXVHiVJv5YqaPLLT1rgdyuyacDyWEsn3HqkZfXn",
+"list": "verified_random"
+},
+{
+"mint": "Bb4jR951QtVjeFAYFLBYXDSMKjbTDroCLPbFLdd7pump",
+"list": "verified_random"
+},
+{
+"mint": "AFk1RUr18RCFjhKHQN7ufxPBiQYWjXifAw4y4n44jups",
+"list": "verified_random"
+},
+{
+"mint": "jcztDWkrkxyMorbBVd4Amm7PbGHafCLMN94aAKZdrug",
+"list": "verified_random"
+},
+{
+"mint": "61Wj56QgGyyB966T7YsMzEAKRLcMvJpDbPzjkrCZc4Bi",
+"list": "verified_random"
+},
+{
+"mint": "1MGRpPrkhEsCm2GCWD3rsvEU77xTTLAzfKXeFgFondo",
+"list": "verified_random"
+},
+{
+"mint": "H21gP58wVqK4cFJTNcWdcwDxT8A2y7Lek1mYRxQGpump",
+"list": "verified_random"
+},
+{
+"mint": "Xs2LakxmT2YycpcxRDCJ7crPbFf91JKdAAWnfzANFmt",
+"list": "verified_random"
+},
+{
+"mint": "GinNabffZL4fUj9Vactxha74GDAW8kDPGaHqMtMzps2f",
+"list": "verified_random"
+},
+{
+"mint": "Xs8Bh2GQ564EXMxkFSGEEqFwJpQhy3PU6xfreRy865R",
+"list": "verified_random"
+},
+{
+"mint": "fDxs5y12E7x7jBwCKBXGqt71uJmCWsAQ3Srkte6ondo",
+"list": "verified_random"
+},
+{
+"mint": "XsFWXQ48hsQxeYdoJg1tGsfANfFHPs8kbJZL8kkFgj6",
+"list": "verified_random"
+},
+{
+"mint": "Xs1xSyecLzT2u188qGFs1JTBXeE9RmBX1pc11o5X6U2",
+"list": "verified_random"
+},
+{
+"mint": "STrikemJEk2tFVYpg7SMo9nGPrnJ56fHnS1K7PV2fPw",
+"list": "verified_random"
+},
+{
+"mint": "bbahNA5vT9WJeYft8tALrH1LXWffjwqVoUbqYa1ondo",
+"list": "verified_random"
+},
+{
+"mint": "Xssa8PW8vfp3DbCEBY1LbV6sXpFd1foqBdfk5VPLNgV",
+"list": "verified_random"
+},
+{
+"mint": "2oQNkePakuPbHzrVVkQ875WHeewLHCd2cAwfwiLQbonk",
+"list": "verified_random"
+},
+{
+"mint": "XsZLZdFAgS2tyeyifki2fLiPYDA4yW1Y6kTTcBUAf2u",
+"list": "verified_random"
+},
+{
+"mint": "XsZsYW1U5exCzHqwsxwjTDABR2SW9MzKccXSkAgx47N",
+"list": "verified_random"
+},
+{
+"mint": "Xs8wJQMzTe9wnwdvZwtEVm7BrFER3NUhAm8ZxKShZAL",
+"list": "verified_random"
+},
+{
+"mint": "Xs86jCMxhL5uDE4mVyp8dvj8ABJn6Bz1gMzp32swHow",
+"list": "verified_random"
+},
+{
+"mint": "9zNQRsGLjNKwCUU5Gq5LR8beUCPzQMVMqKAi3SSZh54u",
+"list": "verified_random"
+},
+{
+"mint": "Xsho9i16eqqritJGsKX6RZ5wec9DBZz8ybxz78MRh9p",
+"list": "verified_random"
+},
+{
+"mint": "cbLTC4T5NpzSUtQ7ekgEMZGaUPVJY1ko6BUikqa4gGf",
+"list": "verified_random"
+},
+{
+"mint": "XsKfQxVh7wasRmzPQEs4qvnmayt5KTX1CqvQdJ8XcSJ",
+"list": "verified_random"
+},
+{
+"mint": "FqGxVMsvqxchQWRD5CyQpPK1aW13Db8EvC7PvxwVpk3w",
+"list": "verified_random"
+},
+{
+"mint": "Xsf68mBJ5DKypfp2eBy2R2PTusXrQR9b5vfa2SRn896",
+"list": "verified_random"
+},
+{
+"mint": "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS",
+"list": "verified_random"
+},
+{
+"mint": "BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump",
+"list": "verified_random"
+},
+{
+"mint": "XsPrcE2hM5cZP97YfxxEbtwHSyFGNtA8QmDCoiYsBNL",
+"list": "verified_random"
+},
+{
+"mint": "6dKCoWjpj5MFU5gWDEFdpUUeBasBLK3wLEwhUzQPAa1e",
+"list": "verified_random"
+},
+{
+"mint": "EJZJpNa4tDZ3kYdcRZgaAtaKm3fLJ5akmyPkCaKmfWvd",
+"list": "verified_random"
+},
+{
+"mint": "XsqFzD9CqfpnmTiFH631bcvQcDReVTMFZMSjk5aXQZL",
+"list": "verified_random"
+},
+{
+"mint": "XsGFoZFgiRxDk49QCAQUArX84V88t7Bz3fsExp7HLuX",
+"list": "verified_random"
+},
+{
+"mint": "t29YBAB7g6xzgRJkzmc5NkQ7YRjE3NF8mhsLgppondo",
+"list": "verified_random"
+},
+{
+"mint": "Xs98dU7JuRDQXH3ywh8eNEFKMEEwNc1NSTf8Bc7R5z6",
+"list": "verified_random"
+},
+{
+"mint": "XswCi2U1G6Ppbw1QhG45yKb8UKuR1FKLJrquv2FZSD4",
+"list": "verified_random"
+},
+{
+"mint": "Cn5Ne1vmR9ctMGY9z5NC71A3NYFvopjXNyxYtfVYpump",
+"list": "verified_random"
+},
+{
+"mint": "znv3FZt2HFAvzYf5LxzVyryh3mBXWuTRRng25gEZAjh",
+"list": "verified_random"
+},
+{
+"mint": "GpXv1GNGMzrKXCNnYFbZk5TaZXUdKJNu5cmtiUyBdoge",
+"list": "verified_random"
+},
+{
+"mint": "CH74tuRLTYcxG7qNJCsV9rghfLXJCQJbsu7i52a8F1Gn",
+"list": "verified_random"
+},
+{
+"mint": "Xsf3NfLggzL9WXy4yaxJB3866ehq7y7sQxohwAkNiEu",
+"list": "verified_random"
+},
+{
+"mint": "XsAfpyk9U7qUZKq9STpXyzDaoQjGRe6Yqo7TYebpxkx",
+"list": "verified_random"
+},
+{
+"mint": "EsVHcyRxXFJCLMiuYLWhoDygrNe1BJGpYeZ17X7ondo",
+"list": "verified_random"
+},
+{
+"mint": "XsDgw22qRLTv5Uwuzn6T63cW69exG41T6gwQhEK22u2",
+"list": "verified_random"
+},
+{
+"mint": "9mNjA6BizTwpvd4DS3o7BjwZ6aPM9DC2jLHS7JFGbonk",
+"list": "verified_random"
+},
+{
+"mint": "XsFDH7DAPJ9q2KrU8itMbb4bWWSH5zm3Yu1aoWgjDH5",
+"list": "verified_random"
+},
+{
+"mint": "XsDmtC5EpfzJoCzDN2SJP98xpCsSR2CqdZauJSvHNXT",
+"list": "verified_random"
+},
+{
+"mint": "Xs3c2aZenyRQwXjki5MDxJEJ2km27ef2rWQMFWx7QKJ",
+"list": "verified_random"
+},
+{
+"mint": "dhEXYTmQKbYBH3wbWTMqeZZpADSRprM4jiGYbUMondo",
+"list": "verified_random"
+},
+{
+"mint": "BfdVHnbt9LSNAFCZU9kvTjbrH3jX78sv2siLKGQ7pump",
+"list": "verified_random"
+},
+{
+"mint": "9XWWHExgN4yvyLRskzzfcr5AcBaqQ6UtwcDSVpUBsoar",
+"list": "verified_random"
+},
+{
+"mint": "ZDnkXeN5awDioQjP691XFLdgZwDAv19g3fCr9KWondo",
+"list": "verified_random"
+},
+{
+"mint": "bobaM3u8QmqZhY1HwAtnvze9DLXvkgKYk3td3t8MLva",
+"list": "verified_random"
+},
+{
+"mint": "XsFARXCfXKCdu6BxV2WACBt3Dk88nxLujoqPzyyBib9",
+"list": "verified_random"
+},
+{
+"mint": "F2k82EcxLtzekq1bfoGVdgp6EXZ5dLT1jE7g3LvQpump",
+"list": "verified_random"
+},
+{
+"mint": "defiDymAmcYWJrxKsLep27XjhVNVQt6EsWXUCCgcyhq",
+"list": "verified_random"
+},
+{
+"mint": "FThrNpdic79XRV6i9aCWQ2UTp7oRQuCXAgUWtZR2cs42",
+"list": "verified_random"
+},
+{
+"mint": "73xsLcBnLnc9bh81cqVKqj8uEyiarXng5ZwJuTbnVebG",
+"list": "verified_random"
+},
+{
+"mint": "Morpho2VPeTr2E1Jx6monxCzF7mqwUnjz74RdwLXYyP",
+"list": "verified_random"
+},
+{
+"mint": "HPueqQjSgaSatMBKrvBvAnRmc6jnr51cPM1EjUJVpump",
+"list": "verified_random"
+},
+{
+"mint": "DSZeB6pCzZsM43gTz7jakiYeCafinsNMKcpeB1FApump",
+"list": "verified_random"
+},
+{
+"mint": "5csfa95Xf8ebiCwP9joQ7mtC8KwFvnnejnYx5FbYpump",
+"list": "verified_random"
+},
+{
+"mint": "XsqBC5tcVQLYt8wqGCHRnAUUecbRYXoJCReD6w7QEKp",
+"list": "verified_random"
+},
+{
+"mint": "4Hcm1TfA1MvVhCQHvJCcKL7ymUhJZAV7P439H5ZHnKRh",
+"list": "verified_random"
+},
+{
+"mint": "XscTQ6FeMPkhTuhFsrCZRn4fBmGsvqnFmPKfbC9B24g",
+"list": "verified_random"
+},
+{
+"mint": "BbbwE8rudhjK4husSRc37X54mYyDBRcykJ7fk5oHpump",
+"list": "verified_random"
+},
+{
+"mint": "HxQhDGYqyjorgogMJx7YbBHADEDxuHhLnMMmr6VYpyn",
+"list": "verified_random"
+},
+{
+"mint": "5pYB12kEhfhSFXJjZ7JtyqDpt6uUqhsF6iu6Ee9spump",
+"list": "verified_random"
+},
+{
+"mint": "BpYiU1dBXU1fdB64jbR93wHEw3Y47QeRLZvUyLQondo",
+"list": "verified_random"
+},
+{
+"mint": "HHf2VfXSPUVqQth6tXypfdUX2vawCiVKfkbAX4CJpump",
+"list": "verified_random"
+},
+{
+"mint": "XsBGEXxbBcuu8Nrokj14G8v4ezT3JYWWLneTzXK8t6Z",
+"list": "verified_random"
+},
+{
+"mint": "5eyib4qghYGHNh7VvxSFGYLFJSanjq9hug9fR52kksnm",
+"list": "verified_random"
+},
+{
+"mint": "bS532krUcXBMNqXURPtGqYA7dhEsenYe2z9QKkcEASY",
+"list": "verified_random"
+},
+{
+"mint": "DtR4D9FtVoTX2569gaL837ZgrB6wNjj6tkmnX9Rdk9B2",
+"list": "verified_random"
+},
+{
+"mint": "Xs5CavUKFk1UFDwp9BYRFWso8s8mv9Z2ZQ5kZausrMM",
+"list": "verified_random"
+},
+{
+"mint": "7MYegHoqDGhWdvrnxeuiAEndgG6qcs1N3W5v6SXspump",
+"list": "verified_random"
+},
+{
+"mint": "GdZ9rwHyKcriLdbSzhtEFLe5MLs7Vk6AY1aE5ei7nsmP",
+"list": "verified_random"
+},
+{
+"mint": "XsWMMVGbNpxehYdonLXW2DuEtK4gXdC8Y1CNgKe5uuc",
+"list": "verified_random"
+},
+{
+"mint": "F7pB3ZdfBnyFw2LRHydWEn9BmhEa5XihXLjhySFRpump",
+"list": "verified_random"
+},
+{
+"mint": "BWsnyEa1XtsNRdgPaDoA1WVUonF7BBGZTd2zc72NQsWT",
+"list": "verified_random"
+},
+{
+"mint": "FRAGMEWj2z65qM62zqKhNtwNFskdfKs4ekDUDX3b4VD5",
+"list": "verified_random"
+},
+{
+"mint": "g2M4twkhi5uGMdHQS8RbugciyABB2CmngqSUBDupump",
+"list": "verified_random"
+},
+{
+"mint": "CDBdbNqmrLu1PcgjrFG52yxg71QnFhBZcUE6PSFdbonk",
+"list": "verified_random"
+},
+{
+"mint": "GdbJgfLXG5pBEibnrpSvfmXfbNKvyZkLQoTiQLoJpump",
+"list": "verified_random"
+},
+{
+"mint": "HhCLbkW6FwhriTkk81W8tYstsRCLUu6Y7Je1SQjVpump",
+"list": "verified_random"
+},
+{
+"mint": "5TfqNKZbn9AnNtzq8bbkyhKgcPGTfNDc9wNzFrTBpump",
+"list": "verified_random"
+},
+{
+"mint": "GYKmdfcUmZVrqfcH1g579BGjuzSRijj3LBuwv79rpump",
+"list": "verified_random"
+},
+{
+"mint": "8AS9yeGsAwvTs9gCDKMmB2MgX8NiSvv4uppH61yqpump",
+"list": "verified_random"
+},
+{
+"mint": "Xsf8f6sqb9p6JK9oR8UHXk7CmFDvofc1nxeink7AoGA",
+"list": "verified_random"
+},
+{
+"mint": "dog1viwbb2vWDpER5FrJ4YFG6gq6XuyFohUe9TXN65u",
+"list": "verified_random"
+},
+{
+"mint": "GdbyLsNKHKLXTZVEo8QrGKVmrexEeZUYvhpSfuZ9TdkC",
+"list": "verified_random"
+},
+{
+"mint": "9gP2kCy3wA1ctvYWQk75guqXuHfrEomqydHLtcTCqiLa",
+"list": "verified_random"
+},
+{
+"mint": "g4kT9HEg7rN4e5ZaEGHmzpkdM8qMbsZSHJojKeCondo",
+"list": "verified_random"
+},
+{
+"mint": "XsJAv8xheV7udiAeM8DNduVAe4bg1s1SLp3uzJsCCvG",
+"list": "verified_random"
+},
+{
+"mint": "oXeD5ZesXfJQ3mxtuZdMaccUsWrE8r1SnpYRP2Bondo",
+"list": "verified_random"
+},
+{
+"mint": "XswuznKVzdZLDHqsPHx9LdgHqjDQa4d1Eb1LRaFTMyf",
+"list": "verified_random"
+},
+{
+"mint": "wCr7YFeYDWyYSebsoMY75g8c9pguGeVB3rT6kYjondo",
+"list": "verified_random"
+},
+{
+"mint": "XsTJV8FFx22kv41kMcuHawx8eoDybUnLxiiEscw317x",
+"list": "verified_random"
+},
+{
+"mint": "XscBXwj1Xq7g5ayDwJCFUGF3UDxxsVVCnZuwpxMxSQ6",
+"list": "verified_random"
+},
+{
+"mint": "CKaKtYvz6dKPyMvYq9Rh3UBrnNqYZAyd7iF4hJtjUvks",
+"list": "verified_random"
+},
+{
+"mint": "Xs6aNo7u55poct2Xximmqxx7yCRBqAfMpywgVF2mvPq",
+"list": "verified_random"
+},
+{
+"mint": "XsM5qDSyGiTVyHoi2VixmaEacByd3UCUoWtNhEqsyoH",
+"list": "verified_random"
+},
+{
+"mint": "D1gittVxgtszzY4fMwiTfM4Hp7uL5Tdi1S9LYaepAUUm",
+"list": "verified_random"
+},
+{
+"mint": "Bz7vVzQhm2KMW1XgcrDruYega1MiwrAs1DQysrx4tFkp",
+"list": "verified_random"
+},
+{
+"mint": "38PgzpJYu2HkiYvV8qePFakB8tuobPdGm2FFEn7Dpump",
+"list": "verified_random"
+},
+{
+"mint": "XsRuL9oMSNpHehUVP1DQCphXVeQ5gRr1oiRo2cRKbz7",
+"list": "verified_random"
+},
+{
+"mint": "Xsw6qFK7h7pQVrw7jEpGms675Kc5iAhJnfP719iKora",
+"list": "verified_random"
+},
+{
+"mint": "pRoFiTj36haRD5sG2Neqib9KoSrtdYMGrM7SEkZetfR",
+"list": "verified_random"
+},
+{
+"mint": "5x5FUc5azSNYLhR2iPT9xzcMe6Q5nL6iFAUkHWnFxBLV",
+"list": "verified_random"
+},
+{
+"mint": "ESBCnCXtEZDmX8QnHU6qMZXd9mvjSAZVoYaLKKADBAGS",
+"list": "verified_random"
+},
+{
+"mint": "2Wu1g2ft7qZHfTpfzP3wLdfPeV1is4EwQ3CXBfRYAciD",
+"list": "verified_random"
+},
+{
+"mint": "A3gMddXMAhmc3P9dLjHv2n6ywWWzpGZbRCH6y8sta8ug",
+"list": "verified_random"
+},
+{
+"mint": "XspCw9L4DYcvE47p2NdNnpkkcPVwPRLZFXJWKrREDhQ",
+"list": "verified_random"
+},
+{
+"mint": "XsuwUbQSzCJN2wZabD1Gxf1MER2Ypa7hMzVMYB2WawJ",
+"list": "verified_random"
+},
+{
+"mint": "bvjmEwQBqbMr6rnx5a74boBz6nmA1DNThujPnNAondo",
+"list": "verified_random"
+},
+{
+"mint": "G2pMCBjRQHHCkE79r9KAESvdhUCieWPZvX5GRFa3jCLg",
+"list": "verified_random"
+},
+{
+"mint": "XsuDF3uVgT3SMSvX6kssq9FmChHZRBaK7TFdEapnxk5",
+"list": "verified_random"
+},
+{
+"mint": "XsxtnDUJzTMjqmzajufokv9xrG868kvkp5KNuNNsU4d",
+"list": "verified_random"
+},
+{
+"mint": "HVWf8JmLoHs99Lw8Psf3fyqAtA4crWxCPkrmSdNjhNH3",
+"list": "verified_random"
+},
+{
+"mint": "Xs2ZYqqYG6xgBsRBw8Rhn9rCVggLitQMnW8KFKgxAVB",
+"list": "verified_random"
+},
+{
+"mint": "GWGT8Dc44LuQDyeYXXcsnEtgrQLNNYYmWTu4JCeYzZ3K",
+"list": "verified_random"
+},
+{
+"mint": "DnnmrZnCTqQn7bYbVAiWdJLreqrhg7HaSTkmhtzu8THy",
+"list": "verified_random"
+},
+{
+"mint": "XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV",
+"list": "verified_random"
+},
+{
+"mint": "AK9yVoXKK1Cjww7HDyjYNyW5FujD3FJ2xbjMUStspump",
+"list": "verified_random"
+},
+{
+"mint": "FeR8VBqNRSUD5NtXAj2n3j1dAHkZHfyDktKuLXD4pump",
+"list": "verified_random"
+},
+{
+"mint": "XsgtMhyQgTevrWQNyLpHxwQeRAeaxQEtoiV1pNyxmfy",
+"list": "verified_random"
+},
+{
+"mint": "FNMLmBPkhh7nBFyGHsdrmCuvgEf6ygpaVqFejimHEx9V",
+"list": "verified_random"
+},
+{
+"mint": "GVwpWU5PtJFHS1mH35sHmsRN1XWUwRV3Qo94h5Lepump",
+"list": "verified_random"
+},
+{
+"mint": "2kcdBw85q4qMVCjUkEynTnZ3bGbBeCqZRDRNLpeWpump",
+"list": "verified_random"
+},
+{
+"mint": "pawTUoFAzJt2e6vuqyZ3MwaGKPLuVFDp2CctWAEtato",
+"list": "verified_random"
+},
+{
+"mint": "HAs8hvTB8ZH6dBG26KQGik4fxitNYi41jnYd49bvtime",
+"list": "verified_random"
+},
+{
+"mint": "CRTx1JouZhzSU6XytsE42UQraoGqiHgxabocVfARTy2s",
+"list": "verified_random"
+},
+{
+"mint": "8jnGePqBBq1KQfPvqA7zAZySiFTyy8tv2zA8u6nHhsdo",
+"list": "verified_random"
+},
+{
+"mint": "Xs9hw3a4acJr629NUzDbEC376rv3AhfmwvXm9BNnD9G",
+"list": "verified_random"
+},
+{
+"mint": "BmXVAFyfpW7VuVYeWDtbFtLx7sek2mZt3BEsGgAondo",
+"list": "verified_random"
+},
+{
+"mint": "9VxExA1iRPbuLLdSJ2rB3nyBxsyLReT4aqzZBMaBaY1p",
+"list": "verified_random"
+},
+{
+"mint": "sctmTAsDn4tLUcemqoqYijfuRkiEfAMPi84PNq2EueR",
+"list": "verified_random"
+},
+{
+"mint": "XsU4fHhJEFcrwNh4RYuHmWdaoCfsrWKEm4UEs3zTJwH",
+"list": "verified_random"
+},
+{
+"mint": "6iFUKWGDksVvmnSYJUGYnsu168xstni8xJkTF7QrpPAu",
+"list": "verified_random"
+},
+{
+"mint": "DwRtkbsaQMGAS3oMeEGYh6M5vH4X9WECsQgqHjAondo",
+"list": "verified_random"
+},
+{
+"mint": "gfTDvjLp8K5gNDFaLMvoTZWJJY6PmVQfdPaUU7eondo",
+"list": "verified_random"
+},
+{
+"mint": "GRFK7sv4KhkMzJ7BXDUBy4PLyZVBeXuW1FeaT6Mnpump",
+"list": "verified_random"
+},
+{
+"mint": "jmnrdSzu293vKTWyEx3A2ZRVxxytJKW1wD3CLzkondo",
+"list": "verified_random"
+},
+{
+"mint": "XsNnfg6KXzaRsH8PE9T9YEahq3MQpSZ3dQAa4hcL1SN",
+"list": "verified_random"
+},
+{
+"mint": "XsnSHjstf65gXzCjiGWaURcphNkxApTSBjsVvfxb2aj",
+"list": "verified_random"
+},
+{
+"mint": "Xs6hbDwJ8wr1zoxLusdhY2Vxjfz5C2doLVgZdZGRqvz",
+"list": "verified_random"
+},
+{
+"mint": "XsEcrQmyJcwrP4LdMcThckeft9WRR6arQL3hm81dUqK",
+"list": "verified_random"
+},
+{
+"mint": "6Fb84TUdMNAVgwRinLeTgLov8dJnk5yhNt41Xq2a6s4c",
+"list": "verified_random"
+},
+{
+"mint": "gangqfNY8fA7eQY3tHyjrevxHCLnhKRrLGRwUMBR4y6",
+"list": "verified_random"
+},
+{
+"mint": "XswUFSYE5CWsZM3X3yo6e2pZvxcAzx912DonGvgUFka",
+"list": "verified_random"
+},
+{
+"mint": "6NX2MWBuJM2Fn63K4hUgMPivLXHV8pwsU1yTdmjKpump",
+"list": "verified_random"
+},
+{
+"mint": "Xsp5fZxJ7QVkJ7EyLzcQUDVmcTP26ncWMJmAUfNKayH",
+"list": "verified_random"
+},
+{
+"mint": "XsraCsjDB8cYn672MZSxCzZBhrodEPXD7pWd5EiRUhm",
+"list": "verified_random"
+},
+{
+"mint": "HALALGvdNJ8u1J3uFFSsba1tyYPRF3vnYfCQ3CpJasfD",
+"list": "verified_random"
+},
+{
+"mint": "FLqmVrv6cp7icjobpRMQJMEyjF3kF84QmC4HXpySpump",
+"list": "verified_random"
+},
+{
+"mint": "26KMQVgDUoB6rEfnJ51yAABWWJND8uMtpnQgsHQ64Udr",
+"list": "verified_random"
+},
+{
+"mint": "XsuvquK96tF2uby3f6KaTCcAVTZtv6MUkdbzhPYQ1Zr",
+"list": "verified_random"
+},
+{
+"mint": "XsWFY8Ems96uFPnZJ1NwXsqeH6bczLQDDvvvab14crQ",
+"list": "verified_random"
+},
+{
+"mint": "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
+"list": "verified_random"
+},
+{
+"mint": "M1M6sdffCs3ozzhpRveweRCWdZhxth4mvVujPtYEC3h",
+"list": "verified_random"
+},
+{
+"mint": "Xs7jmdBozN4RTu3YgSZeLcimiHJcsovXjvRtHhJbafT",
+"list": "verified_random"
+},
+{
+"mint": "CTg3ZgYx79zrE1MteDVkmkcGniiFrK1hJ6yiabropump",
+"list": "verified_random"
+},
+{
+"mint": "XsGfYyioN9bfk6M6RGKvucDq8grQehqkBz8ziEtT124",
+"list": "verified_random"
+},
+{
+"mint": "J1Wpmugrooj1yMyQKrdZ2vwRXG5rhfx3vTnYE39gpump",
+"list": "verified_random"
+},
+{
+"mint": "L33mHftsNpaj39z1omnGbGbuA5eKqSsbmr91rjTod48",
+"list": "verified_random"
+},
+{
+"mint": "Xsaf8Zm1eVCqduXDZxsx6jj6iBvT9r3PTh2zYZqB2Jx",
+"list": "verified_random"
+},
+{
+"mint": "gKkrSgVjRjdQX4LFErBka1izQhoW2VHXFcCS5Vbondo",
+"list": "verified_random"
+},
+{
+"mint": "FoRGERiW7odcCBGU1bztZi16osPBHjxharvDathL5eds",
+"list": "verified_random"
+},
+{
+"mint": "22Xeo6diWfJrScaoVFzgkwzrCByPukK45fdwkJyrpump",
+"list": "verified_random"
+},
+{
+"mint": "EcQCUYv57C4V6RoPxkVUiDwtX1SP8y8FP5AEToYL8Az",
+"list": "verified_random"
+},
+{
+"mint": "Xs66hB4NftAJmu73aeBc6RXQC4DX4LwU4xvnfsz581r",
+"list": "verified_random"
+},
+{
+"mint": "XsVh5cyAi8zXbSBPR6JPeD1vtN9g76ZzSQM8AswHUvG",
+"list": "verified_random"
+},
+{
+"mint": "CRWNYkqdgvhGGae9CKfNka58j6QQkaD5bLhKXvUYqnc1",
+"list": "verified_random"
+},
+{
+"mint": "GHichsGq8aPnqJyz6Jp1ASTK4PNLpB5KrD6XrfDjpump",
+"list": "verified_random"
+},
+{
+"mint": "GMai1NvHreNe135cvxya1gHaUJZiT1NAvbJkF4hPHQJ9",
+"list": "verified_random"
+},
+{
+"mint": "83kGGSggYGP2ZEEyvX54SkZR1kFn84RgGCDyptbDbonk",
+"list": "verified_random"
+},
+{
+"mint": "GKHgTd6tqvycgG3mqcZraSZDFR32hXhRgo6sZQtudMsC",
+"list": "verified_random"
+},
+{
+"mint": "XsNjsv4Y6FviewTYKcqYVFTVjg5Skn6LMPNbJebTH68",
+"list": "verified_random"
+},
+{
+"mint": "G5W6LwkLeoj6rZqBP1y3KT8k6Cz6rXGJmMNU3TArXtXw",
+"list": "verified_random"
+},
+{
+"mint": "XsDum7DWP825ChLAhSN5NYBpoCUsHJJdRKTPseA9VxR",
+"list": "verified_random"
+},
+{
+"mint": "XswiwGt897dzZU8eHoojgUu2ka34brmPGvWeVHcHho9",
+"list": "verified_random"
+},
+{
+"mint": "Xs3p154XQZvohU4WGF7hMkHhZqxTxfMvPeMbxXyNwWJ",
+"list": "verified_random"
+},
+{
+"mint": "8yxD7uSEyEKpJqaSiunworBFzirAsRXKNjD2X1mdbonk",
+"list": "verified_random"
+},
+{
+"mint": "5H4voZhzySsVvwVYDAKku8MZGuYBC7cXaBKDPW4YHWW1",
+"list": "verified_random"
+},
+{
+"mint": "Xs4KECvTSDsSoW181UGpUN1yC5aZCASEQaHzXj5DiwP",
+"list": "verified_random"
+},
+{
+"mint": "dSHPFuMMjZqt7xDYGWrexXTSkdEZAiZngqymQF2ondo",
+"list": "verified_random"
+},
+{
+"mint": "JE8zmsKRivXggZsJxXHBdCkako85YawNtU5hqS4upump",
+"list": "verified_random"
+},
+{
+"mint": "Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1",
+"list": "verified_random"
+},
+{
+"mint": "EvzskrQ3vUUkiMGG1DzfSDyG6H2WCMy3v9G8fzzondo",
+"list": "verified_random"
+},
+{
+"mint": "4ytpZgVoNB66bFs6NRCUaAVsLdtYk2fHq4U92Jnjpump",
+"list": "verified_random"
+},
+{
+"mint": "73UdJevxaNKXARgkvPHQGKuv8HCZARszuKW2LTL3pump",
+"list": "verified_random"
+},
+{
+"mint": "Tqj8yFmagrg7oorpQkVGYR52r96RFTamvWfth9bpump",
+"list": "verified_random"
+},
+{
+"mint": "XsXb7oGeK1N5Jk9mm9VD4ZQrXsu9NULWP3C3n7hhDWp",
+"list": "verified_random"
+},
+{
+"mint": "P2PXup1ZvMpCDkJn3PQxtBYgxeCSfH39SFeurGSmeta",
+"list": "verified_random"
+},
+{
+"mint": "Xsbcv5nSVTc5A7jRZNe2Sg6VtgCyyb32SC2nnaPK5MZ",
+"list": "verified_random"
+},
+{
+"mint": "AymATz4TCL9sWNEEV9Kvyz45CHVhDZ6kUgjTJPzLpU9P",
+"list": "verified_random"
+},
+{
+"mint": "Xs9bdUnLdSWjQWeEsy8cde6t2L7d3adDRKcH8H51Uwr",
+"list": "verified_random"
+},
+{
+"mint": "XsGmxpiwpg9oBuRoyczLkXs7j82v9Rb4BTHwTkvXnNA",
+"list": "verified_random"
+},
+{
+"mint": "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
+"list": "verified_random"
+},
+{
+"mint": "XsczbcQ3zfcgAEt9qHQES8pxKAVG5rujPSHQEXi4kaN",
+"list": "verified_random"
+},
+{
+"mint": "7Xgc5RacHtGzfhw2HukUBk5V986yBbvshr7rrCoopump",
+"list": "verified_random"
+},
+{
+"mint": "G5e2XonmccmdKc98g3eNQe5oBYGw9m8xdMUvVtcZpump",
+"list": "verified_random"
+},
+{
+"mint": "6yjNqPzTSanBWSa6dxVEgTjePXBrZ2FoHLDQwYwEsyM6",
+"list": "verified_random"
+},
+{
+"mint": "XsHjfVcciZyPmujpSYXKGyQZ3k4yyzxnUXE6CYdZ3AD",
+"list": "verified_random"
+},
+{
+"mint": "XsYq2q3UxkwdHmhxJf5wbuXfDWuy5mYP5xsDBVEDK8Q",
+"list": "verified_random"
+},
+{
+"mint": "HJ39rRZ6ys22KdB3USxDgNsL7RKiQmsC3yL8AS3Suuku",
+"list": "verified_random"
+},
+{
+"mint": "G4QRtYNRPyxdKwcAqqW3xSeEynDDxEyRvrDT9FJEpump",
+"list": "verified_random"
+}
+]
+}
