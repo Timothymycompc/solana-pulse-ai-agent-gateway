@@ -204,11 +204,24 @@ test("a known issuer's permanent delegate warns and names the issuer; anyone els
   assert.equal(permanentDelegateRule("2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk", "USDG (Paxos, Global Dollar)").result, "info");
 });
 
-test("token_safety on real tokens: a tokenized stock and a liquid staking token are CAUTION, not AVOID", async () => {
+test("token_safety on real tokens: a tokenized stock is CAUTION and an established liquid staking token is SAFE", async () => {
   const tsla = await replay(tokenVerdict, "token-verdict-xstock");
   assert.equal(tsla.verdict, "CAUTION");
   assert.ok(tsla.checks.some((c: any) => c.name === "extension:permanentDelegate" && c.result === "warn" && /xStocks/.test(c.detail)));
   const jupsol = await replay(tokenVerdict, "token-verdict-lst");
-  assert.equal(jupsol.verdict, "CAUTION", "its mint authority (the stake pool) still warns");
+  assert.equal(jupsol.verdict, "SAFE");
   assert.ok(jupsol.checks.some((c: any) => c.name === "holder_concentration" && c.result === "info"), "59.8% in the top 10 is expected for an LST");
+  const mint = jupsol.checks.find((c: any) => c.name === "mint_authority");
+  assert.equal(mint.result, "info", "an established token's mint authority (here the stake pool) is expected");
+  assert.match(mint.detail, /established token .*trading since 20\d\d-/, "and the detail says why and who you trust");
+});
+
+test("the established-token rule needs 90 days of trading: the same token traded for a week keeps its warnings", async () => {
+  const f = loadFixture("token-verdict-lst");
+  const weekOld = new Date(Date.now() - 7 * 864e5).toISOString();
+  const rec = JSON.parse(JSON.stringify(f.recording.http).replace(/"createdAt":"[^"]+"/g, `"createdAt":"${weekOld}"`));
+  clearJupCache();
+  const r: any = await tokenVerdict.run(z.object(tokenVerdict.inputs).parse(f.args), replayContext({ ...f, recording: { ...f.recording, http: rec } }));
+  assert.equal(r.checks.find((c: any) => c.name === "mint_authority").result, "warn");
+  assert.equal(r.verdict, "CAUTION");
 });

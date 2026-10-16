@@ -142,6 +142,7 @@ export function liquidityPullCheck(r: RugReport, verified: boolean): Omit<Check,
 // Wallets that RugCheck links by funding or transfers: one person spreading the supply over many wallets to look like
 // many holders, then selling them all at once. The top-10 check misses this when no single wallet is large.
 export const MAX_INSIDER_NETWORK = 500;
+export const ESTABLISHED_DAYS = 90;
 export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name" | "source"> | null {
   const networks = r.insiderNetworks ?? [];
   const wallets = networks.reduce((a, n) => a + (n.size ?? 0), 0);
@@ -218,7 +219,7 @@ export const tokenVerdict: ToolDef = {
     { field: "about.creator / creator_tokens_launched", type: "string | number | null", is: "The wallet that created the token, and how many tokens it has launched.", howWorkedOut: "Jupiter token data." },
     { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "RugCheck's report of the token's metadata." },
     { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
-    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers. Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%, counting only networks of up to 500 wallets; unknown (info) when RugCheck's numbers add up to more than the whole supply. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin." },
+    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers, info for established tokens (Jupiter-verified and trading 90+ days). Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%, counting only networks of up to 500 wallets; unknown (info) when RugCheck's numbers add up to more than the whole supply. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (established tokens: info up to 80%, warn over; info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin or an established token (Jupiter-verified and trading 90+ days), where they are info and name who holds them." },
     { field: "checks[].detail", type: "string", is: "The fact behind the result, in plain words.", howWorkedOut: "Built from the data." },
     { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
   ],
@@ -227,6 +228,7 @@ export const tokenVerdict: ToolDef = {
     "It can't catch everything, such as a team abandoning a project or insiders it has no data on, and SAFE says nothing about whether the price will rise or fall.",
     "The sell test sells about $20 from a real holder's wallet in a simulation only: nothing is sent, and no funds move.",
     "Top-holder share counts accounts, which can include exchanges and liquidity pools.",
+    "Established tokens (Jupiter-verified and trading for 90+ days) are judged on traps, not on how they're run: a mint or freeze authority, unlocked liquidity and a big treasury show up as info naming who holds them, because bridges, issuers and market makers run real tokens that way. New tokens get the strict checks, since that's when liquidity gets pulled.",
   ],
   example: async () => ({ token: BONK_MINT }),
   run: async ({ token, network }, ctx) => {
@@ -242,6 +244,13 @@ export const tokenVerdict: ToolDef = {
     const j = jupList.find((t) => t.id === mintAddress);
     const stable = KNOWN_STABLECOINS[mintAddress] ?? null;
     const verified = j?.isVerified === true;
+    const firstPoolAt = j?.firstPool?.createdAt ?? null;
+    // Established: Jupiter-verified and trading for ESTABLISHED_DAYS or more. For these, a mint or freeze authority, unlocked
+    // liquidity and a big treasury are how bridges, issuers and market makers normally run a token (WBTC, cbBTC, ETH, RAY),
+    // not a trap: in the Oct 2026 audit they kept 36 of 61 well-known tokens from SAFE. The checks stay strict for new
+    // tokens because that's when liquidity gets pulled (LIBRA, Feb 2025, within hours of launch).
+    const established = verified && !!firstPoolAt && (Date.now() - Date.parse(firstPoolAt)) / 864e5 >= ESTABLISHED_DAYS;
+    const expected = established ? ` Expected for an established token (Jupiter-verified, trading since ${firstPoolAt!.slice(0, 10)}); you are trusting whoever holds it.` : "";
     const extensions: any[] = info.extensions ?? [];
     const checks: Check[] = [];
     const add = (name: string, result: Check["result"], detail: string, source: Check["source"]) => checks.push({ name, result, detail, source });
@@ -249,8 +258,8 @@ export const tokenVerdict: ToolDef = {
     if (stable) add("known_stablecoin", "info", `${stable}: issuer powers below are expected for a regulated stablecoin.`, "on-chain");
     if (!market.ok) add("market_data", "warn", "Market data (Jupiter) is unavailable right now, so verification, liquidity, holder concentration and age were not checked. Retry for a full verdict.", "jupiter");
     else add("verified", j?.isVerified ? "pass" : "warn", j?.isVerified ? "Listed as verified by Jupiter." : j ? "Not verified by Jupiter. Many scam tokens are unverified." : "Jupiter has no data on this token; it may be brand new or untraded.", "jupiter");
-    add("mint_authority", info.mintAuthority ? (stable ? "info" : "warn") : "pass", info.mintAuthority ? `${info.mintAuthority} can mint unlimited new tokens, diluting holders.` : "Mint authority revoked: supply is fixed.", "on-chain");
-    add("freeze_authority", info.freezeAuthority ? (stable ? "info" : "warn") : "pass", info.freezeAuthority ? `${info.freezeAuthority} can freeze any holder's tokens.` : "Freeze authority revoked: nobody can freeze holders.", "on-chain");
+    add("mint_authority", info.mintAuthority ? (stable || established ? "info" : "warn") : "pass", info.mintAuthority ? `${info.mintAuthority} can mint unlimited new tokens, diluting holders.${stable ? "" : expected}` : "Mint authority revoked: supply is fixed.", "on-chain");
+    add("freeze_authority", info.freezeAuthority ? (stable || established ? "info" : "warn") : "pass", info.freezeAuthority ? `${info.freezeAuthority} can freeze any holder's tokens.${stable ? "" : expected}` : "Freeze authority revoked: nobody can freeze holders.", "on-chain");
     for (const ext of extensions) {
       const rule = EXTENSION_RULES[ext.extension];
       const result = rule?.(ext, stable);
@@ -268,9 +277,9 @@ export const tokenVerdict: ToolDef = {
       // pools) selling can't crash it the way they crash a memecoin. Only verified ones, so a fake can't claim the tag.
       // 27 of 29 LSTs judged AVOID in the Oct 2026 audit failed on this check alone or with low liquidity.
       else if (verified && j?.tags?.includes("lst")) add("holder_concentration", "info", `Top 10 holders own ${top.toFixed(1)}% of supply. Jupiter lists it as a verified liquid staking token, which can be redeemed for its staked SOL, so a few big holders selling is not the crash risk it is for other tokens.`, "jupiter");
+      else if (established && top > 50) add("holder_concentration", top > 80 ? "warn" : "info", `Top 10 holders own ${top.toFixed(1)}% of supply.${top > 80 ? " A few wallets selling could crash the price." : " Usually treasuries, vesting, exchanges and pools for an established token (Jupiter-verified, trading 90+ days)."}`, "jupiter");
       else add("holder_concentration", top > 80 ? "fail" : top > 50 ? "warn" : "pass", `Top 10 holders own ${top.toFixed(1)}% of supply.${top > 50 ? " A few wallets selling could crash the price." : ""}`, "jupiter");
     }
-    const firstPoolAt = j?.firstPool?.createdAt ?? null;
     if (firstPoolAt) {
       const ageHours = (Date.now() - Date.parse(firstPoolAt)) / 3.6e6;
       add("age", ageHours < 24 ? "warn" : "pass", ageHours < 24 ? `First traded ${Math.max(Math.round(ageHours), 0)} hour(s) ago. Most rug pulls happen in the first day.` : `Trading since ${firstPoolAt.slice(0, 10)}.`, "jupiter");
@@ -283,7 +292,7 @@ export const tokenVerdict: ToolDef = {
     if (!rug.ok && !stable) add("rugcheck_data", verified ? "info" : "warn", `RugCheck is unavailable for this token right now, so liquidity locks, insider wallets and the creator's rug history were not checked.${verified ? "" : " Retry for a full verdict."}`, "rugcheck");
     if (rug.report && !stable) {
       const pull = liquidityPullCheck(rug.report, verified);
-      if (pull) add("liquidity_pull", pull.result, pull.detail, "rugcheck");
+      if (pull) add("liquidity_pull", established && pull.result === "warn" ? "info" : pull.result, `${pull.detail}${established && pull.result === "warn" ? expected : ""}`, "rugcheck");
       const insiders = insiderCheck(rug.report, BigInt(info.supply));
       if (insiders) add("insiders", insiders.result, insiders.detail, "rugcheck");
     }
