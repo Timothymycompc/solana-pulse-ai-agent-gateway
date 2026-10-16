@@ -10,7 +10,7 @@ export const pool = new Pool({
 // A tool run: a tool call over HTTP or MCP. Other /mcp traffic is connections, tool listings and uptime pings.
 export const TOOL_RUN_SQL = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%')`;
 
-// The gateway keeps eight tables. No wallets, keys or balances are stored: payments settle on chain via x402.
+// The gateway keeps nine tables. No wallets, keys or balances are stored: payments settle on chain via x402.
 export async function ensureSchema() {
   // Free calls per paid tool, counted per caller network per UTC day (keyed hash, never the raw IP).
   await pool.query(`
@@ -121,6 +121,32 @@ export async function ensureSchema() {
     CREATE TABLE IF NOT EXISTS owner_networks (
       caller_hash TEXT PRIMARY KEY,
       last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  // token_safety measured against what really happened (accuracy.ts). One row per token per cohort: the verdict and
+  // market numbers when it was checked, then, for sampled new tokens, whether it rugged a week later. Token
+  // addresses and public market data only.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accuracy_tokens (
+      cohort TEXT NOT NULL,
+      mint TEXT NOT NULL,
+      added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      checked_at TIMESTAMPTZ,
+      verdict TEXT,
+      failed_checks TEXT[],
+      warned_checks TEXT[],
+      verified BOOLEAN,
+      liquidity_then DOUBLE PRECISION,
+      price_then DOUBLE PRECISION,
+      follow_up_due TIMESTAMPTZ,
+      followed_at TIMESTAMPTZ,
+      rugcheck_rugged BOOLEAN,
+      liquidity_now DOUBLE PRECISION,
+      price_now DOUBLE PRECISION,
+      error TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (cohort, mint)
     );
   `);
 

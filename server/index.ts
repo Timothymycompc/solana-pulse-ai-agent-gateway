@@ -27,6 +27,7 @@ import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 import { VERSION } from "./version";
+import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
@@ -324,6 +325,25 @@ async function startServer() {
       console.error("owner overview failed:", error);
       res.status(503).json({ error: "The dashboard data is temporarily unavailable." });
     }
+  });
+
+  // token_safety measured against real outcomes (accuracy.ts). Cloud Scheduler calls tick every 10 minutes.
+  const ownerOnly = (req: any, res: any) => (isOwnerKey(keyFromReq(req)) ? true : (res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." }), false));
+  const safetyVerdict = async (mint: string) => (await TOOLS_BY_NAME.get("token_safety")!.run({ token: mint, network: "mainnet-beta" }, ctx)) as any;
+  app.post("/api/owner/accuracy/tick", noCache, async (req, res) => {
+    if (!ownerOnly(req, res)) return;
+    try { res.json(await accuracyTick(ctx, safetyVerdict)); }
+    catch (error: any) { console.error("Accuracy tick failed:", error); res.status(500).json({ error: String(error?.message ?? error).slice(0, 400) }); }
+  });
+  app.post("/api/owner/accuracy/add", noCache, async (req, res) => {
+    if (!ownerOnly(req, res)) return;
+    const cohort = String(req.body?.cohort ?? "").trim();
+    if (!/^[\w.-]{1,60}$/.test(cohort) || !Array.isArray(req.body?.mints)) return res.status(400).json({ error: "Send { cohort: \"name\", mints: [addresses] }." });
+    res.json({ queued: await addToQueue(cohort, req.body.mints.slice(0, 2000)) });
+  });
+  app.get("/api/owner/accuracy", noCache, async (req, res) => {
+    if (!ownerOnly(req, res)) return;
+    res.json(await accuracyReport());
   });
 
   // Posts the next item to the Pulse X account (x.ts). Cloud Scheduler calls it three times a week;

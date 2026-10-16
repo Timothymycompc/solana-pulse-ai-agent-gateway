@@ -7,7 +7,7 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 - Pull the shared plumbing (payments, free calls, usage log, secrets, MCP and HTTP server, owner dashboard) out of Solana Pulse into a small starter each new chain begins from.
 
 ## Solana Pulse
-- Measure token_safety on real rugs: record verdicts on ~100 new tokens, check a week later which ones rugged, publish the catch rate and false-alarm rate. Next up once the 2026-10-16 rule changes are deployed, so the recorded verdicts use them.
+- Publish the accuracy test's catch rate and false-alarm rate (README, site) once its first 100 tokens are followed up (built 2026-10-16: server/accuracy.ts).
 - token_safety metadata check: a Token-2022 token whose metadata update authority is 1111…1111 (none) is reported as "can still be changed by 11111111111111111111111111111111" (Tesla xStock, 2026-10-16). It should read as locked.
 - Coinbase Bazaar: confirm the tools get listed now that its checker and indexer receive 402; add output examples to the listings (Bazaar ranks complete listings higher).
 - Accept payments on Base as well as Solana.

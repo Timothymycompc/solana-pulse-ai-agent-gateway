@@ -17,6 +17,8 @@
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
     "set-jupiter-key": "bash scripts/set-jupiter-key.sh",
+    "accuracy-setup": "bash scripts/accuracy-setup.sh",
+    "accuracy": "curl -s -H \"x-api-key: $(gcloud secrets versions access latest --secret=OWNER_API_KEY)\" https://solana-pulse-gateway-1021990235790.us-central1.run.app/api/owner/accuracy | python3 -m json.tool",
     "secure-db": "bash scripts/secure-db.sh",
     "x-setup": "bash scripts/x-setup.sh",
     "x-key-1": "bash scripts/x-key.sh 1",
