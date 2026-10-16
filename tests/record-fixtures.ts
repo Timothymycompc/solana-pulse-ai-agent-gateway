@@ -60,6 +60,10 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "token-verdict-jup", tool: tokenVerdict, args: async () => ({ token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" }) },
   // A brand-new pump.fun token whose creator has rugged before (RugCheck, 2026-10-14).
   { name: "token-verdict-rugger", tool: tokenVerdict, args: async () => ({ token: "G2YQ1fjjKTXqcDDQNAnCuWp3K2pdjtmhWWG4FTFDpump" }) },
+  // A verified liquid staking token whose top holders own most of the supply (Jupiter's JupSOL, 2026-10-16 audit).
+  { name: "token-verdict-lst", tool: tokenVerdict, args: async () => ({ token: "jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v" }) },
+  // A tokenized stock whose permanent delegate is its issuer, xStocks (Tesla xStock, 2026-10-16 audit).
+  { name: "token-verdict-xstock", tool: tokenVerdict, args: async () => ({ token: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB" }) },
 ];
 
 // Name scenarios to record only those (`npm run test:record -- token-verdict-jup`); with none, all are recorded.

@@ -26,13 +26,14 @@ import { runXPost } from "./x";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
+import { VERSION } from "./version";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 
 async function startServer() {
   await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET", "CDP_API_KEY_ID", "CDP_API_KEY_SECRET",
-    "X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"]);
+    "X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET", "JUPITER_API_KEY"]);
   await ensureSchema();
   void clearOldToolIo();
   setInterval(() => void clearOldToolIo(), 6 * 60 * 60 * 1000).unref();
@@ -123,6 +124,9 @@ async function startServer() {
     "mainnet-beta": new Connection(process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl("mainnet-beta"), "confirmed"),
     devnet: new Connection(process.env.SOLANA_DEVNET_RPC_URL || clusterApiUrl("devnet"), "confirmed"),
   };
+  // The Jupiter key goes only to Jupiter's keyed host, never to any other site a tool fetches.
+  const jupiterKeyHeader = (url: string): Record<string, string> =>
+    process.env.JUPITER_API_KEY && new URL(url).host === "api.jup.ag" ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
   const ctx: ToolContext = {
     connection: (network) => {
       const conn = connections[network as keyof typeof connections];
@@ -130,12 +134,12 @@ async function startServer() {
       return conn;
     },
     fetchJson: async (url, timeoutMs = 8000) => {
-      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json" } });
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", ...jupiterKeyHeader(url) } });
       if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
       return res.json();
     },
     postJson: async (url, body, timeoutMs = 8000) => {
-      const res = await fetch(url, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch(url, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", "content-type": "application/json", ...jupiterKeyHeader(url) }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
       return res.json();
     },
@@ -374,7 +378,7 @@ async function startServer() {
   // the tool's result.
   type CallNote = { via?: string; paymentTx?: string; output?: unknown };
   const createMcpServer = (caller: { apiKey?: string; ip: string; userAgent?: string; note?: (n: CallNote) => void }) => {
-    const server = new McpServer({ name: "solana-pulse-gateway", version: "2.0.0" });
+    const server = new McpServer({ name: "solana-pulse-gateway", version: VERSION });
     for (const tool of TOOLS) {
       const price = priceOf(tool.name);
       const handler = async (args: any) => {
@@ -446,8 +450,8 @@ async function startServer() {
 
   app.get("/.well-known/mcp.json", noCache, (_req, res) => {
     res.json({
-      name: "Solana Pulse AI Agent Gateway",
-      version: "2.0.0",
+      name: "Solana Pulse",
+      version: VERSION,
       description: "An intelligence layer between Solana and AI agents: checks transactions before signing, verifies they match intent, gives token safety verdicts and explains failures.",
       instructions: `Connect with POST /mcp (Streamable HTTP) or /mcp/sse. ${pricingSummary} Paid calls follow the x402 v2 MCP transport: an unpaid call returns a PaymentRequired result and the client retries with _meta["x402/payment"]. No account or API key is needed. Field-by-field docs for every tool: GET /api/tools/<name>.`,
       payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET },
@@ -477,7 +481,7 @@ async function startServer() {
       const tools = TOOLS.filter((t) => t.category === category);
       return tools.length ? `## ${heading}\n${tools.map((t) => `- ${t.name} (${priceText(t.name)}): ${t.useWhen} Inputs: ${t.inputDocs.map((i) => `${i.name}${i.required ? "" : "?"}`).join(", ")}.`).join("\n")}\n` : "";
     };
-    res.type("text/plain").send(`# Solana Pulse AI Agent Gateway
+    res.type("text/plain").send(`# Solana Pulse
 
 An intelligence layer between Solana and AI agents. It checks transactions before signing, verifies a transaction matches what the agent meant to do, gives token safety verdicts, explains failures, and converts amounts with real decimals, so agents stop losing money to hallucinated values.
 

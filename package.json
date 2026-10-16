@@ -1,7 +1,7 @@
 {
   "name": "solana-pulse-gateway",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
+    "set-jupiter-key": "bash scripts/set-jupiter-key.sh",
     "secure-db": "bash scripts/secure-db.sh",
     "x-setup": "bash scripts/x-setup.sh",
     "x-key-1": "bash scripts/x-key.sh 1",

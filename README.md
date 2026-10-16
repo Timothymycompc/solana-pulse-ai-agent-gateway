@@ -18,7 +18,7 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 |---|---|---|
 | `check_tx` | Signing a drainer or a transaction that will fail: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
 | `tx_matches` | A transaction that differs from what was asked ("send 5 USDC to X"): compares token, exact amount, recipient and sender, and flags anything extra | $0.02 |
-| `token_safety` | Buying scam tokens: SAFE / CAUTION / AVOID from mint and freeze powers, Token-2022 traps, verification, liquidity, who holds it and age | $0.02 |
+| `token_safety` | Buying scam tokens: SAFE / CAUTION / AVOID from a simulated sale by a real holder, whether the liquidity can be pulled, the creator's rug record, insider wallet networks, mint and freeze powers, Token-2022 traps, verification, liquidity, who holds it and age | $0.02 |
 | `explain_tx` | Guessing from logs: real balance changes by wallet, programs used, and why it failed | $0.01 |
 | `find_token` | Copycat tickers: the verified token address for a ticker, with copycats counted | $0.01 |
 | `fee` | Fee unit mistakes: cheap, normal and fast prices in micro-lamports per compute unit, plus the exact cost in SOL | $0.01 |
@@ -27,7 +27,10 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 | `why_failed` | Blind retries: Solana error codes in plain words, with a fix | $0.01 |
 | `whats_this` | Sending to the wrong kind of address: wallet, token account, token, program and more | $0.01 |
 | `token_account` | Wrong token accounts: Token-2022 aware address, whether it exists, and what creating it costs | $0.01 |
-| `balance`, `tokens`, `history`, `blockhash` | Stale or made-up data: live reads (tokens ranked by value with spam flagged; blockhash with seconds left) | $0.01 |
+| `balance` | A balance remembered from earlier in a chat: the live SOL balance | $0.01 |
+| `tokens` | Fake holdings: tokens held, ranked by USD value, with unverified (often spam) tokens flagged | $0.01 |
+| `history` | Made-up transaction IDs: a wallet's recent transactions, real and checkable | $0.01 |
+| `blockhash` | Expired blockhashes: a fresh one with the seconds it has left | $0.01 |
 
 Every input and returned field is documented in plain words: what an input is looking for and where to get it, what each returned value is and how it's worked out (`GET /api/tools/<name>`). The tools and their fields were renamed in October 2026 to short, plain names (`preflight_transaction` became `check_tx`, `transaction` became `tx`, `walletChanges` became `balance_changes`). The old tool names and input names still work.
 
@@ -103,7 +106,7 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 24 tests, offline, about 15 seconds
+npm test               # 84 tests, offline, about 35 seconds
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 ```
 

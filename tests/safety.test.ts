@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import { checkTransactionIntent, preflightTransaction } from "../server/tools/transactions";
-import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
+import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
 import { loadFixture, replayContext } from "./helpers/replay";
@@ -180,4 +180,35 @@ test("find_token doesn't offer unverified copies as choices when no verified tok
   assert.equal(r.best, null);
   assert.match(r.next_step, /Ask the user for the exact token address/);
   assert.doesNotMatch(r.next_step, /which one they mean/);
+});
+
+// Decided 2026-10-16 from the same audit.
+test("insiders: networks of over 500 wallets are left out, small ones still count", () => {
+  const supply = 1_000_000n;
+  // TRUMP's shape: one 1,566-wallet network holding 38.9%.
+  const big = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }] }, supply);
+  assert.equal(big?.result, "pass");
+  assert.match(big!.detail, /not counted/);
+  const mixed = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }, { size: 40, currentHolding: 350_000 }] }, supply);
+  assert.equal(mixed?.result, "fail", "a small network holding 35% still fails next to a big one");
+  assert.match(mixed!.detail, /^40 linked insider wallets hold 35\.0%/);
+  assert.equal(insiderCheck({ insiderNetworks: [{ size: 500, currentHolding: 400_000 }] }, supply)?.result, "fail", "500 wallets still counts");
+});
+
+test("a known issuer's permanent delegate warns and names the issuer; anyone else's fails", () => {
+  const xstocks = permanentDelegateRule("5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq", null);
+  assert.equal(xstocks.result, "warn");
+  assert.match(xstocks.detail, /xStocks/);
+  assert.equal(permanentDelegateRule("WV9PJN7XTmTLVwbutCLFxp8TyePee6Xq5mRq6Fti5Wc", null).result, "fail", "PreStocks still fails");
+  assert.equal(permanentDelegateRule(undefined, null).result, "fail");
+  assert.equal(permanentDelegateRule("2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk", "USDG (Paxos, Global Dollar)").result, "info");
+});
+
+test("token_safety on real tokens: a tokenized stock and a liquid staking token are CAUTION, not AVOID", async () => {
+  const tsla = await replay(tokenVerdict, "token-verdict-xstock");
+  assert.equal(tsla.verdict, "CAUTION");
+  assert.ok(tsla.checks.some((c: any) => c.name === "extension:permanentDelegate" && c.result === "warn" && /xStocks/.test(c.detail)));
+  const jupsol = await replay(tokenVerdict, "token-verdict-lst");
+  assert.equal(jupsol.verdict, "CAUTION", "its mint authority (the stake pool) still warns");
+  assert.ok(jupsol.checks.some((c: any) => c.name === "holder_concentration" && c.result === "info"), "59.8% in the top 10 is expected for an LST");
 });

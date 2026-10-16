@@ -2,10 +2,10 @@
 // into SOL for that wallet, and simulates the sale on mainnet without sending it. A token whose settings look fine can
 // still block selling (a transfer hook, frozen accounts, a broken pool), and only a real attempt shows that.
 import { Connection, PublicKey, VersionedTransaction } from "@solana/web3.js";
-import { NATIVE_MINT } from "./lib";
+import { jupiterHost, NATIVE_MINT } from "./lib";
 import type { ToolContext } from "./types";
 
-const JUP = "https://lite-api.jup.ag/swap/v1";
+const JUP = () => `${jupiterHost()}/swap/v1`;
 const MIN_FEE_LAMPORTS = 3_000_000; // 0.003 SOL: fees plus the temporary SOL account a swap opens and closes
 const SALE_USD = 20;
 
@@ -45,7 +45,7 @@ export async function sellCheck(ctx: ToolContext, conn: Connection, mint: string
     const amount = wanted > 0n && wanted < holder.raw ? wanted : holder.raw / 2n || holder.raw;
     let quote;
     try {
-      quote = await ctx.fetchJson(`${JUP}/quote?inputMint=${mint}&outputMint=${NATIVE_MINT}&amount=${amount}&slippageBps=2000&restrictIntermediateTokens=true`, 10_000);
+      quote = await ctx.fetchJson(`${JUP()}/quote?inputMint=${mint}&outputMint=${NATIVE_MINT}&amount=${amount}&slippageBps=2000&restrictIntermediateTokens=true`, 10_000);
     } catch (e: any) {
       if (/HTTP 400/.test(String(e?.message))) return { result: "warn", detail: "Jupiter found no route to sell this token for SOL. You may not be able to sell it." };
       return { result: "info", detail: "Sell test skipped: Jupiter's quote service could not be reached." };
@@ -53,7 +53,7 @@ export async function sellCheck(ctx: ToolContext, conn: Connection, mint: string
     if (!quote?.outAmount) return { result: "warn", detail: "Jupiter found no route to sell this token for SOL. You may not be able to sell it." };
     let built;
     try {
-      built = await ctx.postJson(`${JUP}/swap`, { quoteResponse: quote, userPublicKey: holder.owner.toBase58(), wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true }, 10_000);
+      built = await ctx.postJson(`${JUP()}/swap`, { quoteResponse: quote, userPublicKey: holder.owner.toBase58(), wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true }, 10_000);
     } catch { return { result: "info", detail: "Sell test skipped: Jupiter could not build the sale right now." }; }
     if (typeof built?.swapTransaction !== "string") return { result: "info", detail: "Sell test skipped: Jupiter could not build the sale right now." };
     const tx = VersionedTransaction.deserialize(Buffer.from(built.swapTransaction, "base64"));

@@ -85,6 +85,8 @@ export type JupToken = {
   firstPool?: { id?: string; createdAt?: string };
   dev?: string;
 };
+// Jupiter's keyed API when a JUPITER_API_KEY is set (its own rate limit), otherwise the shared keyless one.
+export const jupiterHost = () => (process.env.JUPITER_API_KEY ? "https://api.jup.ag" : "https://lite-api.jup.ag");
 const jupCache = new Map<string, { at: number; value: JupToken[] }>();
 // ok is false when Jupiter could not be reached, so callers can tell "no data" from "no answer".
 export async function jupLookup(ctx: ToolContext, query: string): Promise<{ tokens: JupToken[]; ok: boolean }> {
@@ -95,7 +97,7 @@ export async function jupLookup(ctx: ToolContext, query: string): Promise<{ toke
   // the Oct 2026 audit, find_token returned 503s and token_safety fell back to CAUTION (market data unavailable).
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const result = await ctx.fetchJson(`https://lite-api.jup.ag/tokens/v2/search?query=${encodeURIComponent(key)}`, 8000);
+      const result = await ctx.fetchJson(`${jupiterHost()}/tokens/v2/search?query=${encodeURIComponent(key)}`, 8000);
       const value: JupToken[] = Array.isArray(result) ? result : [];
       jupCache.set(key, { at: Date.now(), value });
       if (jupCache.size > 500) jupCache.clear();

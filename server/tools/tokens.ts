@@ -90,8 +90,25 @@ export function safeSummary(checks: Check[]): string {
   ].filter(Boolean).join(" ");
 }
 
+// Permanent delegates that belong to a known issuer of tokenized stocks or gold, matched by the delegate wallet itself,
+// so a copycat token reusing the name still fails. The power is real (the issuer can take or burn any holder's tokens),
+// so it stays a warning: holding the token means trusting that issuer. In the Oct 2026 audit these two wallets were
+// the only failing check on 96 tokens. PreStocks (pre-IPO tokens) is left out on purpose and still fails.
+export const KNOWN_ISSUER_DELEGATES: Record<string, string> = {
+  "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq": "xStocks (Backed Finance), the issuer of every xStock token",
+  "2cVYpagTt7ZGc3mmTXBa7fAznUtx5DUu6aCq8uVDaf4a": "Backpack Securities, the issuer of Backpack's stock tokens",
+  "2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk": "Paxos, the issuer of USDG, USDP, PYUSD and PAX Gold",
+};
+export function permanentDelegateRule(delegate: string | undefined, stable: string | null): Omit<Check, "name" | "source"> {
+  const power = `A permanent delegate (${delegate ?? "set"}) can transfer or burn anyone's tokens at any time.`;
+  if (stable) return { result: "info", detail: `${power} Expected for ${stable}, a regulated stablecoin.` };
+  const issuer = delegate ? KNOWN_ISSUER_DELEGATES[delegate] : undefined;
+  if (issuer) return { result: "warn", detail: `${power} It belongs to ${issuer}, so holding this token means trusting that issuer not to take it.` };
+  return { result: "fail", detail: power };
+}
+
 const EXTENSION_RULES: Record<string, (ext: any, stable: string | null) => Omit<Check, "name" | "source"> | null> = {
-  permanentDelegate: (e, stable) => ({ result: stable ? "info" : "fail", detail: `A permanent delegate (${e.state?.delegate ?? "set"}) can transfer or burn anyone's tokens at any time.${stable ? ` Expected for ${stable}, a regulated stablecoin.` : ""}` }),
+  permanentDelegate: (e, stable) => permanentDelegateRule(e.state?.delegate, stable),
   transferHook: (e) => (e.state?.programId ? { result: "warn", detail: `Every transfer calls program ${e.state.programId}, which can block or alter transfers.` } : null),
   transferFeeConfig: (e) => {
     const bps = Number(e.state?.newerTransferFee?.transferFeeBasisPoints ?? e.state?.olderTransferFee?.transferFeeBasisPoints ?? 0);
@@ -124,6 +141,7 @@ export function liquidityPullCheck(r: RugReport, verified: boolean): Omit<Check,
 
 // Wallets that RugCheck links by funding or transfers: one person spreading the supply over many wallets to look like
 // many holders, then selling them all at once. The top-10 check misses this when no single wallet is large.
+export const MAX_INSIDER_NETWORK = 500;
 export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name" | "source"> | null {
   const networks = r.insiderNetworks ?? [];
   const wallets = networks.reduce((a, n) => a + (n.size ?? 0), 0);
@@ -133,10 +151,19 @@ export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name
   // RugCheck sometimes reports networks holding more than the whole supply (dogwifhat: 312%, USDG: 3,393%, Oct 2026),
   // which can't be true, so its insider data for that token can't be trusted either way. Unknown, not a verdict.
   if (pct > 100) return { result: "info", detail: `Insider wallets: unknown. RugCheck's data for this token says linked wallets hold ${Math.round(pct)}% of the supply, which is impossible, so it was not used.` };
-  const shown = pct < 0.1 ? "under 0.1" : pct.toFixed(1);
-  if (pct > 30) return { result: "fail", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them and could sell together.` };
-  if (pct > 10) return { result: "warn", detail: `${wallets} linked insider wallets hold ${shown}% of the supply between them.` };
-  return { result: "pass", detail: `${wallets} linked wallets found, holding ${shown}% of the supply: too little to crash the price.` };
+  // RugCheck links wallets that share a funder, so a network of thousands is usually an exchange or an airdrop paying
+  // many people, not one person splitting a supply (TRUMP 1,566, RAY 2,560, PYTH 8,466 wallets in the Oct 2026 audit,
+  // all failing on it). The insider trick spreads a supply over tens to a few hundred wallets, so only those count.
+  const counted = networks.filter((n) => (n.size ?? 0) <= MAX_INSIDER_NETWORK);
+  const left = networks.length - counted.length;
+  const leftNote = left ? ` ${left} network${left === 1 ? "" : "s"} of over ${MAX_INSIDER_NETWORK} linked wallets ${left === 1 ? "was" : "were"} not counted: groups that big are usually an exchange or an airdrop, not one person.` : "";
+  const countedWallets = counted.reduce((a, n) => a + (n.size ?? 0), 0);
+  if (!countedWallets) return { result: "pass", detail: `No networks of linked insider wallets detected.${leftNote}` };
+  const countedPct = (counted.reduce((a, n) => a + (Number(n.currentHolding) || 0), 0) / Number(rawSupply)) * 100;
+  const shown = countedPct < 0.1 ? "under 0.1" : countedPct.toFixed(1);
+  if (countedPct > 30) return { result: "fail", detail: `${countedWallets} linked insider wallets hold ${shown}% of the supply between them and could sell together.${leftNote}` };
+  if (countedPct > 10) return { result: "warn", detail: `${countedWallets} linked insider wallets hold ${shown}% of the supply between them.${leftNote}` };
+  return { result: "pass", detail: `${countedWallets} linked wallets found, holding ${shown}% of the supply: too little to crash the price.${leftNote}` };
 }
 
 // The creator's track record: a wallet that has rugged before, or one that launches tokens by the hundred and
@@ -191,7 +218,7 @@ export const tokenVerdict: ToolDef = {
     { field: "about.creator / creator_tokens_launched", type: "string | number | null", is: "The wallet that created the token, and how many tokens it has launched.", howWorkedOut: "Jupiter token data." },
     { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "RugCheck's report of the token's metadata." },
     { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
-    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers. Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (info for known stablecoins). Age: warn under 24 hours. Permanent delegate, frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin." },
+    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers. Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%, counting only networks of up to 500 wallets; unknown (info) when RugCheck's numbers add up to more than the whole supply. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin." },
     { field: "checks[].detail", type: "string", is: "The fact behind the result, in plain words.", howWorkedOut: "Built from the data." },
     { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
   ],
@@ -214,6 +241,7 @@ export const tokenVerdict: ToolDef = {
     const info = parsed.info;
     const j = jupList.find((t) => t.id === mintAddress);
     const stable = KNOWN_STABLECOINS[mintAddress] ?? null;
+    const verified = j?.isVerified === true;
     const extensions: any[] = info.extensions ?? [];
     const checks: Check[] = [];
     const add = (name: string, result: Check["result"], detail: string, source: Check["source"]) => checks.push({ name, result, detail, source });
@@ -236,6 +264,10 @@ export const tokenVerdict: ToolDef = {
     if (typeof top === "number") {
       // Stablecoins are redeemable at the issuer, so concentration in exchange and treasury wallets is not a price risk.
       if (stable) add("holder_concentration", "info", `Top 10 holders own ${top.toFixed(1)}% of supply, mostly exchanges and issuer treasury; normal for a redeemable stablecoin.`, "jupiter");
+      // A liquid staking token can be redeemed for its staked SOL at the stake pool, so big holders (lending vaults,
+      // pools) selling can't crash it the way they crash a memecoin. Only verified ones, so a fake can't claim the tag.
+      // 27 of 29 LSTs judged AVOID in the Oct 2026 audit failed on this check alone or with low liquidity.
+      else if (verified && j?.tags?.includes("lst")) add("holder_concentration", "info", `Top 10 holders own ${top.toFixed(1)}% of supply. Jupiter lists it as a verified liquid staking token, which can be redeemed for its staked SOL, so a few big holders selling is not the crash risk it is for other tokens.`, "jupiter");
       else add("holder_concentration", top > 80 ? "fail" : top > 50 ? "warn" : "pass", `Top 10 holders own ${top.toFixed(1)}% of supply.${top > 50 ? " A few wallets selling could crash the price." : ""}`, "jupiter");
     }
     const firstPoolAt = j?.firstPool?.createdAt ?? null;
@@ -246,7 +278,6 @@ export const tokenVerdict: ToolDef = {
 
     // The deeper checks: who can pull the liquidity, the creator's record, insider networks, the name and logo, and a
     // real sale. Stablecoins skip the ones that don't apply to a redeemable, regulated token.
-    const verified = j?.isVerified === true;
     // RugCheck sometimes can't build a report for very large tokens. For a verified token that's a note, since Jupiter's
     // verification already screens out most scams; for an unverified one, the missing checks matter, so it's a warning.
     if (!rug.ok && !stable) add("rugcheck_data", verified ? "info" : "warn", `RugCheck is unavailable for this token right now, so liquidity locks, insider wallets and the creator's rug history were not checked.${verified ? "" : " Retry for a full verdict."}`, "rugcheck");
