@@ -58,7 +58,7 @@ const Segmented = <T extends string>({ label, value, options, onChange, tone = '
 export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
   const { tools, freeCallsPerTool } = index;
   const [name, setName] = useState(() => {
-    const asked = new URLSearchParams(window.location.search).get('tool');
+    const asked = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tool');
     return tools.some((t) => t.name === asked) ? asked! : tools[0].name;
   });
   const tool = tools.find((t) => t.name === name) ?? tools[0];

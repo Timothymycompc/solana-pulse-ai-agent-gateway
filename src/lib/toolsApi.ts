@@ -15,7 +15,12 @@ export type ToolDoc = {
 export type ToolsIndex = { freeCallsPerTool: number; payments: { network: string; asset: string; payTo: string }; tools: ToolDoc[] };
 
 let indexPromise: Promise<ToolsIndex> | null = null;
+// The tool list the server put into the page (src/ssr.tsx), so the first render has it without a request.
+export const preloadedTools = (): ToolsIndex | null => (typeof window !== 'undefined' && (window as any).__PULSE_TOOLS__) || null;
+
 export function loadTools(): Promise<ToolsIndex> {
+  const preloaded = preloadedTools();
+  if (preloaded) indexPromise ??= Promise.resolve(preloaded);
   indexPromise ??= fetch('/api/tools').then((r) => {
     if (!r.ok) throw new Error(`Could not load tools (HTTP ${r.status})`);
     return r.json();

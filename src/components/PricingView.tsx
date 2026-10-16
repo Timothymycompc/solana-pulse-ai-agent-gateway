@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { FREE_CALLS_TEXT, TOOL_PRICES } from '../../server/pricing';
 import { H2, PageHeader } from './docs/DocParts';
+import { siteOrigin } from '../nav';
 
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
@@ -16,7 +17,7 @@ const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
 });
 
 const res = await fetchWithPayment(
-  "${typeof window !== 'undefined' ? window.location.origin : ''}/api/tools/token_safety",
+  "${siteOrigin()}/api/tools/token_safety",
   { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: "<token address>" }) }
 );
 console.log(await res.json());`;
@@ -32,7 +33,7 @@ const client = createx402MCPClient({
   autoPayment: true,
 });
 await client.connect(new StreamableHTTPClientTransport(
-  new URL("${typeof window !== 'undefined' ? window.location.origin : ''}/mcp")
+  new URL("${siteOrigin()}/mcp")
 ));
 const result = await client.callTool("check_tx", { tx: "<base64>" });`;
 

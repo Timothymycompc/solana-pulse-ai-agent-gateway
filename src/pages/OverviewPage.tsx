@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from '../router';
-import { CATEGORY_ORDER, SAFETY_CHECKS, toolPath } from '../nav';
+import { CATEGORY_ORDER, SAFETY_CHECKS, siteOrigin, toolPath } from '../nav';
 import { CATEGORY_LABELS, type ToolsIndex } from '../lib/toolsApi';
 import { CodeBlock } from '../components/docs/DocParts';
 import { button } from '../components/ui/button';
@@ -87,7 +87,7 @@ const Pipeline: React.FC<{ priceOf: (name: string) => string }> = ({ priceOf }) 
 };
 
 export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) => {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const origin = siteOrigin();
   const priceOf = (name: string) => index?.tools.find((t) => t.name === name)?.price ?? '$0.02';
   return (
     <div className="space-y-28">

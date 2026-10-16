@@ -16,12 +16,15 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
   x-edits.ts       the owner's edits to upcoming queue posts (saved in the database, no deploy needed)
   x-manual.ts      posts the owner writes by hand (npm run x-post), with pictures or a video
   x-queue.ts       the queue of X posts (only approved ones go out) and the list pull requests to announce
+  pages.ts         serves each website page with its text already in the HTML (for readers without JavaScript)
+  mcp-accept.ts    lets /mcp clients with a bare Accept header in (the MCP library would answer 406)
   auth.ts          reads the owner key from a request
   secrets.ts       loads secrets from Google Secret Manager
 src/               the website (React + Tailwind)
   index.css        colors and shared styles
   components/ui/   shared UI helpers (button styles, verdict stamps and check lines)
-  pages/           one file per page type (OwnerPage.tsx is the dashboard at /owner)
+  pages/           one file per page type (OwnerPage.tsx is the dashboard at /owner); route.tsx picks the page for a path
+  ssr.tsx          renders a page on the server, used by server/pages.ts
   nav.ts           sidebar sections and links
 scripts/           deploy, RPC key setup, tool check
 tests/             safety, metering and unit tests; fixtures/ holds recorded mainnet data

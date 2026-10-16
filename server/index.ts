@@ -10,6 +10,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { acceptMcpResponses } from "./mcp-accept";
+import { pageHandler } from "./pages";
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { callerNotes } from "./notes";
 import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./outreach";
@@ -162,13 +164,13 @@ async function startServer() {
   const paidRoute = paidRouteMiddleware(x402.httpMiddleware);
 
   // ---------- Tool API ----------
-  app.get("/api/tools", noCache, (_req, res) => {
-    res.json({
-      freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET,
-      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET },
-      tools: TOOLS.map(toolDoc),
-    });
+  // The tool list, also put into every rendered page (pages.ts) so the site starts with it.
+  const toolsIndex = () => ({
+    freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET,
+    payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET },
+    tools: TOOLS.map(toolDoc),
   });
+  app.get("/api/tools", noCache, (_req, res) => res.json(toolsIndex()));
 
   const requireTool = (req: any, res: any, next: any) => {
     const tool = TOOLS_BY_NAME.get(req.params.name);
@@ -429,6 +431,7 @@ async function startServer() {
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {
+      acceptMcpResponses(req);
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch {
@@ -508,8 +511,8 @@ ${section("reference", "Reference")}`);
     const vite = await createViteServer({ server: { allowedHosts: true, middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(distPath));
-    app.use((_req, res) => res.sendFile(path.join(distPath, "index.html")));
+    app.use(express.static(distPath, { index: false })); // "/" is a rendered page too, not the bare index.html
+    app.use(pageHandler(distPath, toolsIndex));
   }
 
   app.listen(PORT, "0.0.0.0", () => console.log(`Solana Pulse running on port ${PORT} with ${TOOLS.length} tools`));

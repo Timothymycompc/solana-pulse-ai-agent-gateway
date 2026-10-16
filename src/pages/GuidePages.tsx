@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from '../router';
-import { toolPath } from '../nav';
+import { siteOrigin, toolPath } from '../nav';
 import { Code, CodeBlock, H2, P, PageHeader, Table } from '../components/docs/DocParts';
 import { PricingView } from '../components/PricingView';
 import { ServiceUsagePanel } from '../components/ServiceUsagePanel';
 
-const origin = () => (typeof window !== 'undefined' ? window.location.origin : '');
+const origin = siteOrigin;
 const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
 const NextLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (

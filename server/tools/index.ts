@@ -7,7 +7,24 @@ import { WALLET_TOOLS } from "./wallet";
 import type { ToolDef } from "./types";
 import { FREE_CALLS_TEXT, priceOf } from "../pricing";
 
-export const TOOLS: ToolDef[] = [...TRANSACTION_TOOLS, ...TOKEN_TOOLS, ...WALLET_TOOLS, ...BASIC_TOOLS];
+// Each input's schema carries its plain-words description from inputDocs, so the MCP tool list and the JSON
+// schema in /api/tools explain every field (agents and directories read them there). A nested input such as
+// "expected" gets its documented fields joined into one description. The tool object itself is updated, so code
+// that holds a tool (tests, TOOLS_BY_NAME) and the registry share one object.
+function withInputDescriptions(tool: ToolDef): ToolDef {
+  const inputs: Record<string, any> = {};
+  for (const [key, schema] of Object.entries(tool.inputs)) {
+    const exact = tool.inputDocs.find((d) => d.name === key);
+    const nested = tool.inputDocs.filter((d) => d.name.startsWith(`${key}.`) || d.name.startsWith(`${key}[`));
+    const text = exact ? `${exact.lookingFor} ${exact.whereToGet}`
+      : nested.map((d) => `${d.name.slice(key.length + 1)}: ${d.lookingFor}`).join(" ");
+    inputs[key] = text.trim() ? (schema as any).describe(text.trim()) : schema;
+  }
+  tool.inputs = inputs;
+  return tool;
+}
+
+export const TOOLS: ToolDef[] = [...TRANSACTION_TOOLS, ...TOKEN_TOOLS, ...WALLET_TOOLS, ...BASIC_TOOLS].map(withInputDescriptions);
 // Looks a tool up by its current name or the name it had before the October 2026 rename.
 export const TOOLS_BY_NAME = new Map(TOOLS.flatMap((t) => [[t.name, t], [t.oldName, t]] as [string, ToolDef][]));
 

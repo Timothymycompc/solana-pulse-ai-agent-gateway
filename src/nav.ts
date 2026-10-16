@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { CATEGORY_LABELS, loadTools, type ToolDoc, type ToolsIndex } from './lib/toolsApi';
+import { CATEGORY_LABELS, loadTools, preloadedTools, type ToolDoc, type ToolsIndex } from './lib/toolsApi';
 
 export type NavItem = { title: string; path: string; badge?: string; keywords?: string; external?: boolean };
 export type NavSection = { title: string; items: NavItem[] };
 
 export const REPO_URL = 'https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway';
+// The site's address for code examples: the browser's own, or the public one when the server renders the page.
+export const PUBLIC_URL = 'https://solana-pulse-gateway-1021990235790.us-central1.run.app';
+export const siteOrigin = () => (typeof window !== 'undefined' ? window.location.origin : PUBLIC_URL);
 
 const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
@@ -64,7 +67,7 @@ export function buildSections(tools: ToolDoc[] | null): NavSection[] {
 
 // Loads the tool registry once and shares it.
 export function useToolsIndex() {
-  const [index, setIndex] = useState<ToolsIndex | null>(null);
+  const [index, setIndex] = useState<ToolsIndex | null>(preloadedTools);
   const [error, setError] = useState('');
   useEffect(() => { loadTools().then(setIndex).catch((e) => setError(e.message)); }, []);
   return { index, error };
