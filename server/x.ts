@@ -14,9 +14,10 @@ const POST_URL = "https://api.x.com/2/tweets";
 export const MAX_POST_CHARS = 280;
 
 export type XKeys = { consumerKey: string; consumerSecret: string; token: string; tokenSecret: string };
-export type XPost = { key: string; kind: "milestone" | "stats" | "queue"; text: string; video?: string };
+export type XPost = { key: string; kind: "milestone" | "stats" | "queue" | "manual"; text: string; media?: string[] };
 
-// The tool videos, read with the Cloud Run service account (granted by scripts/x-setup.sh).
+// The tool videos and the owner's uploaded pictures and videos (uploads/), read with the Cloud Run service account
+// (granted by scripts/x-videos.sh).
 export const VIDEO_BUCKET = "x300-506418-pulse-videos";
 const MEDIA_URL = "https://api.x.com/2/media/upload";
 const CHUNK_BYTES = 4 * 1024 * 1024; // X allows up to 5 MB per chunk
@@ -57,42 +58,68 @@ async function xCall(fetcher: typeof fetch, keys: XKeys, method: string, url: st
   return body;
 }
 
-// Uploads a video in chunks (initialize, append, finalize), waits for X to process it, and returns the media id.
-export async function uploadVideo(bytes: Uint8Array, keys: XKeys, fetcher: typeof fetch = fetch,
+// The files X takes, by extension, with X's size limit for each kind.
+export const MEDIA_TYPES: Record<string, { type: string; kind: "image" | "gif" | "video"; maxBytes: number }> = {
+  jpg: { type: "image/jpeg", kind: "image", maxBytes: 5 * 1024 * 1024 },
+  jpeg: { type: "image/jpeg", kind: "image", maxBytes: 5 * 1024 * 1024 },
+  png: { type: "image/png", kind: "image", maxBytes: 5 * 1024 * 1024 },
+  webp: { type: "image/webp", kind: "image", maxBytes: 5 * 1024 * 1024 },
+  gif: { type: "image/gif", kind: "gif", maxBytes: 15 * 1024 * 1024 },
+  mp4: { type: "video/mp4", kind: "video", maxBytes: 512 * 1024 * 1024 },
+  mov: { type: "video/quicktime", kind: "video", maxBytes: 512 * 1024 * 1024 },
+};
+export const mediaInfo = (name: string) => MEDIA_TYPES[name.split(".").pop()?.toLowerCase() ?? ""];
+
+// What X allows on one post: up to 4 pictures, or a single video or GIF. Null when the list is fine.
+export function mediaProblem(names: string[]): string | null {
+  const infos = names.map(mediaInfo);
+  const bad = names.find((_, i) => !infos[i]);
+  if (bad) return `${bad} is not a file X takes (${Object.keys(MEDIA_TYPES).join(", ")}).`;
+  if (names.length > 4) return "X allows at most 4 pictures on one post.";
+  if (names.length > 1 && infos.some((m) => m.kind !== "image")) return "A video or GIF has to be the only file on its post.";
+  return null;
+}
+
+// Uploads a picture, GIF or video in chunks (initialize, append, finalize), waits for X to process it, and returns
+// the media id.
+export async function uploadMedia(bytes: Uint8Array, mediaType: string, keys: XKeys, fetcher: typeof fetch = fetch,
   wait = (ms: number) => new Promise((r) => setTimeout(r, ms))): Promise<string> {
+  const category = mediaType === "image/gif" ? "tweet_gif" : mediaType.startsWith("video/") ? "tweet_video" : "tweet_image";
   const init = await xCall(fetcher, keys, "POST", `${MEDIA_URL}/initialize`,
-    { json: { media_type: "video/mp4", total_bytes: bytes.length, media_category: "tweet_video" } });
+    { json: { media_type: mediaType, total_bytes: bytes.length, media_category: category } });
   const id = String(init?.data?.id ?? "");
   if (!id) throw new Error(`X gave no media id: ${JSON.stringify(init).slice(0, 200)}`);
   for (let start = 0, segment = 0; start < bytes.length; start += CHUNK_BYTES, segment++) {
     const form = new FormData();
     form.append("segment_index", String(segment));
-    form.append("media", new Blob([bytes.subarray(start, start + CHUNK_BYTES)], { type: "video/mp4" }), "video.mp4");
+    form.append("media", new Blob([bytes.subarray(start, start + CHUNK_BYTES)], { type: mediaType }), "media");
     await xCall(fetcher, keys, "POST", `${MEDIA_URL}/${id}/append`, { form });
   }
   let info = (await xCall(fetcher, keys, "POST", `${MEDIA_URL}/${id}/finalize`))?.data?.processing_info;
   for (let tries = 0; info && info.state !== "succeeded"; tries++) {
-    if (info.state === "failed" || tries >= 30) throw new Error(`X could not process the video: ${JSON.stringify(info).slice(0, 200)}`);
+    if (info.state === "failed" || tries >= 30) throw new Error(`X could not process the file: ${JSON.stringify(info).slice(0, 200)}`);
     await wait(Math.min(Number(info.check_after_secs) || 2, 10) * 1000);
     info = (await xCall(fetcher, keys, "GET", MEDIA_URL, { query: { command: "STATUS", media_id: id } }))?.data?.processing_info;
   }
   return id;
 }
 
-// A video from the bucket, read with the service account's token from the Cloud Run metadata server.
-async function readVideo(name: string): Promise<Uint8Array> {
+// A file from the bucket, read with the service account's token from the Cloud Run metadata server.
+async function readMedia(name: string): Promise<Uint8Array> {
   const tokenRes = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
     { headers: { "Metadata-Flavor": "Google" } });
-  if (!tokenRes.ok) throw new Error(`No Google token for reading the video (${tokenRes.status}).`);
+  if (!tokenRes.ok) throw new Error(`No Google token for reading ${name} (${tokenRes.status}).`);
   const token = ((await tokenRes.json()) as any).access_token;
   const res = await fetch(`https://storage.googleapis.com/storage/v1/b/${VIDEO_BUCKET}/o/${encodeURIComponent(name)}?alt=media`,
     { headers: { authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error(`Video ${name} could not be read from ${VIDEO_BUCKET} (${res.status}).`);
+  if (!res.ok) throw new Error(`${name} could not be read from ${VIDEO_BUCKET} (${res.status}).`);
   return new Uint8Array(await res.arrayBuffer());
 }
 
-async function postToX(text: string, keys: XKeys, video?: string): Promise<string> {
-  const media = video ? { media_ids: [await uploadVideo(await readVideo(video), keys)] } : undefined;
+export async function postToX(text: string, keys: XKeys, files: string[] = []): Promise<string> {
+  const ids: string[] = [];
+  for (const name of files) ids.push(await uploadMedia(await readMedia(name), mediaInfo(name)?.type ?? "video/mp4", keys));
+  const media = ids.length ? { media_ids: ids } : undefined;
   const body = await xCall(fetch, keys, "POST", POST_URL, { json: media ? { text, media } : { text } });
   return String(body?.data?.id ?? "");
 }
@@ -138,7 +165,7 @@ export function statsText(overview: { callers: { id: string; kind: string; runs:
 export type XDeps = {
   overview: () => Promise<any>;
   prMerged: (repo: string, number: number) => Promise<boolean>;
-  post: (text: string, keys: XKeys, video?: string) => Promise<string>;
+  post: (text: string, keys: XKeys, media?: string[]) => Promise<string>;
   now: () => Date;
 };
 const defaultDeps: XDeps = { overview: () => ownerOverview({ days: 7 }), prMerged, post: postToX, now: () => new Date() };
@@ -168,7 +195,7 @@ async function nextPost(done: Set<string>, d: XDeps): Promise<XPost | null> {
     if (text) return { key: weekKey, kind: "stats", text };
   }
   const next = QUEUE.find((q) => q.approved && !done.has(`queue:${q.key}`));
-  return next ? { key: `queue:${next.key}`, kind: "queue", text: next.text, video: next.video } : null;
+  return next ? { key: `queue:${next.key}`, kind: "queue", text: next.text, media: next.video ? [next.video] : undefined } : null;
 }
 
 export type XRunResult = { posted: boolean; dryRun?: boolean; reason?: string; postId?: string } & Partial<XPost>;
@@ -191,7 +218,7 @@ export async function runXPost(opts: { dryRun?: boolean; deps?: Partial<XDeps> }
   if (opts.dryRun) return { posted: false, dryRun: true, ...pick };
   const keys = xKeys();
   if (!keys) return { posted: false, reason: "The X keys are not set. Run scripts/x-setup.sh, then deploy.", ...pick };
-  const postId = await d.post(pick.text, keys, pick.video);
+  const postId = await d.post(pick.text, keys, pick.media);
   await pool.query(`INSERT INTO x_posts (key, kind, text, post_id) VALUES ($1, $2, $3, $4) ON CONFLICT (key) DO NOTHING`,
     [pick.key, pick.kind, pick.text, postId]);
   return { posted: true, postId, ...pick };

@@ -21,6 +21,7 @@ import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_P
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
 import { runXPost } from "./x";
+import { postManual } from "./x-manual";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
@@ -326,6 +327,19 @@ async function startServer() {
       res.json(await runXPost({ dryRun: req.query.dry === "1" }));
     } catch (error: any) {
       console.error("X post failed:", error);
+      res.status(502).json({ posted: false, error: String(error?.message ?? error).slice(0, 400) });
+    }
+  });
+
+  // A post the owner writes by hand (scripts/x-post.ts): { text, media: bucket file names }. ?dry=1 only checks it.
+  app.post("/api/owner/x/post", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const media = Array.isArray(req.body?.media) ? req.body.media.map(String) : [];
+    if (media.some((m: string) => !m.startsWith("uploads/") || m.includes(".."))) return res.status(400).json({ posted: false, reason: "Files must be in uploads/." });
+    try {
+      res.json(await postManual({ text: String(req.body?.text ?? ""), media, dryRun: req.query.dry === "1" }));
+    } catch (error: any) {
+      console.error("X manual post failed:", error);
       res.status(502).json({ posted: false, error: String(error?.message ?? error).slice(0, 400) });
     }
   });

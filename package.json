@@ -23,6 +23,9 @@
     "x-key-3": "bash scripts/x-key.sh 3",
     "x-key-4": "bash scripts/x-key.sh 4",
     "x-check": "tsx scripts/x-check.ts",
+    "x-times": "tsx scripts/x-times.ts",
+    "x-next": "tsx scripts/x-post.ts --next",
+    "x-post": "tsx scripts/x-post.ts",
     "x-videos": "bash scripts/x-videos.sh"
   },
   "dependencies": {

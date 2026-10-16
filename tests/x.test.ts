@@ -4,7 +4,8 @@ import { test, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
-import { isoWeek, MAX_POST_CHARS, oauthHeader, runXPost, statsText, uploadVideo, type XDeps } from "../server/x";
+import { isoWeek, MAX_POST_CHARS, mediaProblem, oauthHeader, runXPost, statsText, uploadMedia, type XDeps } from "../server/x";
+import { postManual } from "../server/x-manual";
 import { QUEUE } from "../server/x-queue";
 import { TOOLS } from "../server/tools";
 
@@ -101,7 +102,7 @@ test("every tool has exactly one video post, and every video post names a real t
 
 test("queue posts carry their video to the poster", async () => {
   let sent: string | undefined;
-  const d = deps({ post: async (_t, _k, video) => { sent = video; return "1"; } });
+  const d = deps({ post: async (_t, _k, media) => { sent = media?.join(); return "1"; } });
   await runXPost({ deps: d }); // the weekly stats
   const r = await runXPost({ deps: d });
   assert.equal(r.key, "queue:video:check_tx");
@@ -117,7 +118,7 @@ test("a video upload goes initialize, append in chunks, finalize, then waits on 
     return new Response(JSON.stringify(replies[calls.length - 1]), { status: 200 });
   }) as unknown as typeof fetch;
   const keys = { consumerKey: "a", consumerSecret: "b", token: "c", tokenSecret: "d" };
-  const id = await uploadVideo(new Uint8Array(5 * 1024 * 1024), keys, fakeFetch, async () => {});
+  const id = await uploadMedia(new Uint8Array(5 * 1024 * 1024), "video/mp4", keys, fakeFetch, async () => {});
   assert.equal(id, "m1");
   assert.deepEqual(calls.map((c) => `${c.method} ${c.url.replace("https://api.x.com/2/media/upload", "")}`),
     ["POST /initialize", "POST /m1/append", "POST /m1/append", "POST /m1/finalize", "GET ?command=STATUS&media_id=m1"]);
@@ -140,4 +141,45 @@ test("without X keys it says so instead of posting", async () => {
   const r = await runXPost({ deps: { ...deps(), post: undefined as any } });
   assert.equal(r.posted, false);
   assert.match(r.reason!, /X keys are not set/);
+});
+
+test("media rules: up to 4 pictures, or one video or GIF alone, and only files X takes", () => {
+  assert.equal(mediaProblem(["a.jpg", "b.PNG", "c.webp", "d.jpeg"]), null);
+  assert.equal(mediaProblem(["clip.mp4"]), null);
+  assert.match(mediaProblem(["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg"])!, /at most 4/);
+  assert.match(mediaProblem(["clip.mp4", "a.jpg"])!, /only file/);
+  assert.match(mediaProblem(["a.gif", "b.gif"])!, /only file/);
+  assert.match(mediaProblem(["notes.pdf"])!, /not a file X takes/);
+});
+
+test("a picture uploads as tweet_image and a GIF as tweet_gif", async () => {
+  const bodies: any[] = [];
+  const fakeFetch = (async (_url: string, init: any) => {
+    bodies.push(init.body);
+    return new Response(JSON.stringify(bodies.length === 1 ? { data: { id: "p1" } } : {}), { status: 200 });
+  }) as unknown as typeof fetch;
+  const keys = { consumerKey: "a", consumerSecret: "b", token: "c", tokenSecret: "d" };
+  await uploadMedia(new Uint8Array(10), "image/png", keys, fakeFetch, async () => {});
+  assert.equal(JSON.parse(bodies[0]).media_category, "tweet_image");
+  bodies.length = 0;
+  await uploadMedia(new Uint8Array(10), "image/gif", keys, fakeFetch, async () => {});
+  assert.equal(JSON.parse(bodies[0]).media_category, "tweet_gif");
+});
+
+test("a manual post is checked, previewed without posting, then posted with its files and recorded", async () => {
+  for (const k of ["X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"]) process.env[k] = "test";
+  const sent: { text: string; media?: string[] }[] = [];
+  const post = async (text: string, _k: unknown, media?: string[]) => { sent.push({ text, media }); return "777"; };
+  const now = () => new Date("2026-10-16T10:00:00Z");
+  assert.match((await postManual({ text: "x".repeat(MAX_POST_CHARS + 1), post })).reason!, /X allows/);
+  assert.match((await postManual({ text: "hi", media: ["uploads/a.mp4", "uploads/b.jpg"], post })).reason!, /only file/);
+  assert.match((await postManual({ text: "  ", post })).reason!, /no text and no files/);
+  const dry = await postManual({ text: "hello", media: ["uploads/a.jpg"], dryRun: true, post, now });
+  assert.equal(dry.dryRun, true);
+  assert.equal(sent.length, 0);
+  const r = await postManual({ text: "hello", media: ["uploads/a.jpg", "uploads/b.png"], post, now });
+  assert.equal(r.posted, true);
+  assert.deepEqual(sent, [{ text: "hello", media: ["uploads/a.jpg", "uploads/b.png"] }]);
+  const row = (await db.query(`SELECT kind, text, post_id FROM x_posts WHERE key = 'manual:2026-10-16T10:00:00.000Z'`)).rows[0] as any;
+  assert.deepEqual(row, { kind: "manual", text: "hello", post_id: "777" });
 });
