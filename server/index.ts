@@ -20,13 +20,15 @@ import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, 
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
+import { runXPost } from "./x";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 
 async function startServer() {
-  await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET", "CDP_API_KEY_ID", "CDP_API_KEY_SECRET"]);
+  await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET", "CDP_API_KEY_ID", "CDP_API_KEY_SECRET",
+    "X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"]);
   await ensureSchema();
   void clearOldToolIo();
   setInterval(() => void clearOldToolIo(), 6 * 60 * 60 * 1000).unref();
@@ -313,6 +315,18 @@ async function startServer() {
     } catch (error) {
       console.error("owner overview failed:", error);
       res.status(503).json({ error: "The dashboard data is temporarily unavailable." });
+    }
+  });
+
+  // Posts the next item to the Pulse X account (x.ts). Cloud Scheduler calls it three times a week;
+  // ?dry=1 only shows what would be posted.
+  app.post("/api/owner/x/run", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    try {
+      res.json(await runXPost({ dryRun: req.query.dry === "1" }));
+    } catch (error: any) {
+      console.error("X post failed:", error);
+      res.status(502).json({ posted: false, error: String(error?.message ?? error).slice(0, 400) });
     }
   });
 

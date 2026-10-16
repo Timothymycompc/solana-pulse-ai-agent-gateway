@@ -16,7 +16,14 @@
     "preview": "vite preview",
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
-    "secure-db": "bash scripts/secure-db.sh"
+    "secure-db": "bash scripts/secure-db.sh",
+    "x-setup": "bash scripts/x-setup.sh",
+    "x-key-1": "bash scripts/x-key.sh 1",
+    "x-key-2": "bash scripts/x-key.sh 2",
+    "x-key-3": "bash scripts/x-key.sh 3",
+    "x-key-4": "bash scripts/x-key.sh 4",
+    "x-check": "tsx scripts/x-check.ts",
+    "x-videos": "bash scripts/x-videos.sh"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

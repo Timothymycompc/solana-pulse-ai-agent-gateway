@@ -12,6 +12,8 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
   db.ts            database tables and inserts
   callers.ts       sorts callers into bots, AI apps, scripts and browsers by user agent
   owner.ts         owner dashboard data: revenue per tool, callers, visitors
+  x.ts             posts to the Pulse X account: milestones, weekly stats, then the queue
+  x-queue.ts       the queue of X posts (only approved ones go out) and the list pull requests to announce
   auth.ts          reads the owner key from a request
   secrets.ts       loads secrets from Google Secret Manager
 src/               the website (React + Tailwind)
@@ -49,6 +51,10 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | `npm run deploy` | Back up, deploy hidden, test, then go live |
 | `npm run set-rpc-key` | Store a new Helius (or other) RPC key |
 | `npm run secure-db` | New database passwords (old one not needed), backups on, unused secrets removed |
+| `npm run x-setup` | Store the X keys and schedule the X poster (Tue, Thu, Sat at 16:00 UTC) |
+| `npm run x-key-1` … `x-key-4` | Replace one X key (1 API Key, 2 API Key Secret, 3 Access Token, 4 Access Token Secret); refuses a wrong-shaped paste |
+| `npm run x-check` | Test the stored X keys against X without printing them; READY means they can post |
+| `npm run x-videos` | Upload the tool videos (from ~/pulse-video/clips.py) for the X poster's video posts |
 | `bash scripts/go-live.sh` | Send all visitors to the newest version (if the site is stuck on an old one) |
 
 ## Add a tool
