@@ -26,6 +26,7 @@ export const getSolanaBalance: ToolDef = {
   category: "wallets",
   benefit: { kind: "accuracy", text: "Reads the live balance, not one remembered from earlier in a chat, so the agent never builds a transfer the wallet can't cover." },
   useWhen: "Run before sending SOL or paying fees, to confirm the wallet really has enough. Never trust a balance remembered from earlier in a chat.",
+  usage: '{"wallet": "<your agent\'s wallet>"}',
   description: "Reads a wallet's SOL balance straight from the chain.",
   inputs: { wallet: z.string(), network: NETWORK },
   inputDocs: [WALLET_DOC("SOL balance"), NETWORK_DOC],
@@ -52,6 +53,7 @@ export const getTokenAccounts: ToolDef = {
   category: "wallets",
   benefit: { kind: "accuracy", text: "Ranks holdings by USD value and flags unverified tokens, so an agent doesn't report a wallet's spam airdrops as real money." },
   useWhen: "Run when you need to know which tokens a wallet holds and how much. Ranked by USD value, with unverified (often spam airdrop) tokens flagged so you don't report fake holdings.",
+  usage: '{"wallet": "<address>", "how_many": 10}',
   description: "Lists a wallet's tokens (SPL Token and Token-2022) with exact amounts, whether each is verified, and its USD value where there's a price.",
   inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(100).optional().default(25), include_empty: z.boolean().optional().default(false), network: NETWORK },
   inputDocs: [
@@ -121,6 +123,7 @@ export const getRecentTransactions: ToolDef = {
   category: "wallets",
   benefit: { kind: "accuracy", text: "Gives real transaction IDs. Models can make up realistic-looking fake ones, and every lookup after that fails." },
   useWhen: "Run to see a wallet's recent activity, or to get a real transaction ID to look into. Never make up a transaction ID; get one here.",
+  usage: '{"wallet": "<address>", "how_many": 5}',
   description: "Lists a wallet's latest transactions, newest first, with whether each worked and a plain error name for failures.",
   inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(50).optional().default(10), network: NETWORK },
   inputDocs: [WALLET_DOC("transactions"), HOW_MANY_DOC(50, 10, "transactions"), NETWORK_DOC],
@@ -154,6 +157,7 @@ export const getSolanaBlockhash: ToolDef = {
   category: "network",
   benefit: { kind: "money", text: "Says how many seconds the blockhash has left. A transaction built on an expired one gets rejected after the agent has done all the work." },
   useWhen: "Run right before building a transaction you'll sign. Blockhashes expire after about 60-90 seconds; this tells you how long is left.",
+  usage: '{}',
   description: "Gives a fresh blockhash plus how many blocks, and roughly how many seconds, are left before it expires.",
   inputs: { network: NETWORK },
   inputDocs: [NETWORK_DOC],
@@ -192,6 +196,7 @@ export const findAta: ToolDef = {
   category: "tokens",
   benefit: { kind: "money", text: "Works out the token account with the token's real program and prices creating it, so tokens aren't sent to a made-up or wrong-program address." },
   useWhen: "Run before sending a token to someone. Tokens go to the recipient's token account, not their wallet, and models can't work this address out in their heads.",
+  usage: '{"wallet": "<recipient>", "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"} finds where their USDC goes',
   description: "Works out the recipient's token account (ATA) for a wallet and token using the token's real program, checks whether it exists, and prices creating it if not.",
   inputs: { wallet: z.string(), token: z.string(), network: NETWORK },
   inputDocs: [
@@ -242,6 +247,7 @@ export const inspectAddress: ToolDef = {
   category: "reference",
   benefit: { kind: "money", text: "Tells a normal wallet from a token, program or token account. SOL sent to a token or program address by mistake is stuck." },
   useWhen: "Run when you're not sure what an address is, before sending to it or passing it to another tool. SOL sent to a token or program address can be stuck for good.",
+  usage: '{"address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"} is the USDC token, not a wallet',
   description: "Says what any address is: a normal wallet, token account, token, program, stake account and more, with the key facts for each.",
   inputs: { address: z.string(), network: NETWORK },
   inputDocs: [{ name: "address", type: "string (base58 address)", required: true, lookingFor: "Any Solana address.", whereToGet: "Whatever address you're about to use." }, NETWORK_DOC],
@@ -300,6 +306,7 @@ export const convertAmount: ToolDef = {
   category: "tokens",
   benefit: { kind: "money", text: "5 USDC is 5,000,000 raw units because USDC has 6 decimals. Get the decimals wrong and you send 1,000 times too much or too little." },
   useWhen: 'Run before putting any token amount into a transaction. "5 USDC" is 5,000,000 raw units; wrong decimals send 1,000x too much or too little.',
+  usage: '{"token": "SOL", "amount": "0.5"} gives 500000000',
   description: "Converts between normal amounts and raw units using the token's real on-chain decimals.",
   inputs: { token: z.string(), amount: z.string(), to: TO, network: NETWORK },
   inputDocs: [
@@ -342,6 +349,7 @@ export const explainErrorTool: ToolDef = {
   category: "reference",
   benefit: { kind: "money", text: "Explains the failure before the agent retries. 0x1771 from Jupiter means the price moved past the slippage limit, and a blind retry won't fix that." },
   useWhen: "Run whenever a Solana transaction or dry run fails, before retrying. Retrying without knowing why just burns fees.",
+  usage: '{"error": "custom program error: 0x1771", "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"}',
   description: "Turns a Solana error (hex code, log line or RPC error object) into the plain cause and the fix. Works offline, no chain call.",
   inputs: { error: z.union([z.string(), z.record(z.string(), z.unknown())]), program: z.string().optional() },
   inputDocs: [

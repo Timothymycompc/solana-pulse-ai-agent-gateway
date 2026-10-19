@@ -75,6 +75,7 @@ export const preflightTransaction: ToolDef = {
   category: "transactions",
   benefit: { kind: "money", text: "Catches a drainer approval or a transaction that will fail, before you sign. Failed transactions still cost fees. One hidden approval can empty a wallet." },
   useWhen: "Run on every transaction before you sign it. Shows what each wallet gains and loses, blocks drainer tricks, and catches failures and expired blockhashes before you pay a fee.",
+  usage: '{"tx": "<base64 from your wallet SDK, before signing>"}',
   description: "Decodes every step, dry-runs the transaction on live mainnet, works out each wallet's SOL and token changes, and answers OK, REVIEW or BLOCK with the reasons.",
   inputs: { tx: z.string().min(20), network: NETWORK },
   inputDocs: [TX_DOC, NETWORK_DOC],
@@ -145,6 +146,7 @@ export const checkTransactionIntent: ToolDef = {
   category: "transactions",
   benefit: { kind: "accuracy", text: "Asked to send 5 USDC, an agent can build a transaction for 50 (a decimals slip) or to a made-up address. This says MISMATCH and names the exact field." },
   useWhen: 'Run right before signing a transfer your agent built from a request like "send 5 USDC to X". Confirms it moves exactly that token, amount and recipient and nothing else. Catches made-up amounts, wrong decimals and sneaked-in steps.',
+  usage: '"send 1 USDC to X" is {"tx": "<base64>", "expected": {"token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "1", "to": "X"}}',
   description: "Compares the transaction with what you asked for, field by field (token, exact amount, recipient, sender), flags every step that isn't part of the transfer, and checks the dry-run balances so money moved any other way is caught.",
   inputs: {
     tx: z.string().min(20),
@@ -258,6 +260,7 @@ export const explainTransaction: ToolDef = {
   category: "transactions",
   benefit: { kind: "accuracy", text: "Reports the real balance changes from chain data, not a model's guess from raw logs. For failures it names the program and the reason." },
   useWhen: "Run after a transaction lands (or fails) to report what really happened, instead of guessing from logs. For failures it names the program that failed and the fix.",
+  usage: '{"tx_id": "<signature you got back when sending, or from history>"}',
   description: "Reads a confirmed transaction and returns whether it worked, the fee, every SOL and token balance change by wallet, the programs used, and why it failed.",
   inputs: { tx_id: z.string().min(64).max(100), network: NETWORK },
   inputDocs: [{ name: "tx_id", type: "string (base58)", required: true, lookingFor: "The transaction's ID (its signature).", whereToGet: "You get it back when you send a transaction, or from history. Never make one up." }, NETWORK_DOC],
@@ -334,6 +337,7 @@ export const feeAdvice: ToolDef = {
   category: "network",
   benefit: { kind: "money", text: "Prices are in micro-lamports per compute unit, the unit setComputeUnitPrice takes. Mixing that up with lamports overpays a million times." },
   useWhen: "Run before setting a priority fee. Gives the price in the exact unit Compute Budget expects (micro-lamports per compute unit) and the total cost in SOL, so a unit mix-up never overpays.",
+  usage: '{} for the network-wide price, or {"tx": "<base64>"} to price your own transaction',
   description: "Turns recent on-chain priority fees into three prices: cheap, normal and fast. Pass your transaction to get its compute limit and exact cost at each price.",
   inputs: { tx: z.string().min(20).optional(), network: NETWORK },
   inputDocs: [

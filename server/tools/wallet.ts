@@ -11,6 +11,7 @@ export const walletSnapshot: ToolDef = {
   category: "wallets",
   benefit: { kind: "accuracy", text: "Keeps priced and unpriced, verified and unverified holdings apart, so spam airdrops don't inflate what a wallet is worth." },
   useWhen: "Run when asked what a wallet holds or is worth. One call instead of balance + tokens + history, and spam is kept out of the total.",
+  usage: '{"wallet": "<address the user gave you>"}',
   description: "SOL balance, top tokens with USD values, estimated total worth, and recent activity, in one answer.",
   inputs: { wallet: z.string(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta") },
   inputDocs: [

@@ -27,6 +27,7 @@ export const resolveToken: ToolDef = {
   category: "tokens",
   benefit: { kind: "money", text: "Copycats reuse popular tickers: a search for BONK finds several unverified fakes. This gives the verified token address so the agent doesn't buy a fake." },
   useWhen: 'Run whenever a user names a token by ticker or name ("buy BONK"). Tickers aren\'t unique and copycats reuse them. Never pick a token address from memory.',
+  usage: '{"name": "BONK"}',
   description: "Finds the real token address for a ticker or name, ranks the matches by verification and liquidity, and warns when copycats share the ticker.",
   inputs: { name: z.string().min(1).max(80) },
   inputDocs: [{ name: "name", type: "string", required: true, lookingFor: 'The token\'s ticker, name or address, e.g. "BONK", "Jupiter", "USDC".', whereToGet: "The token name exactly as the user wrote it." }],
@@ -199,6 +200,7 @@ export const tokenVerdict: ToolDef = {
   category: "tokens",
   benefit: { kind: "money", text: "Flags tokens you can't sell, liquidity the creator can pull, creators who have rugged before, hidden insider wallets and issuers who can freeze or take your tokens, before you buy. Regulated stablecoins' powers count as expected." },
   useWhen: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with the exact reasons, from on-chain and market data.",
+  usage: '{"token": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"} checks BONK',
   description: "Simulates a real holder selling, checks whether the liquidity can be pulled, the creator's record, insider wallet networks, what the issuer can do (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, and turns that into one verdict.",
   inputs: { token: z.string(), network: NETWORK },
   inputDocs: [

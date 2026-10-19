@@ -52,10 +52,10 @@ export const priceText = (name: string) => {
   return price ? `${FREE_CALLS_TEXT}, then ${price} USDC per call (x402)` : "Free (rate-limited)";
 };
 
-// What an MCP client sees: use-when line first, then what it does, inputs, and cost.
+// What an MCP client sees: use-when line first, then what it does, an example call, and cost. Each input is
+// described once, in the input schema; repeating them here doubled every tool's share of the agent's context.
 export function mcpDescription(tool: ToolDef): string {
-  const inputs = tool.inputDocs.map((i) => `${i.name}${i.required ? "" : " (optional)"}: ${i.lookingFor}`).join(" ");
-  return `${tool.useWhen} ${tool.description} Inputs: ${inputs} Cost: ${priceText(tool.name)}. Full field-by-field docs: GET /api/tools/${tool.name}.`;
+  return `${tool.useWhen} ${tool.description} Example: ${tool.usage}. Cost: ${priceText(tool.name)}. Output fields: GET /api/tools/${tool.name}.`;
 }
 
 // Public documentation for one tool (everything except the code).

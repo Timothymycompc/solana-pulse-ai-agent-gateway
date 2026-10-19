@@ -42,6 +42,8 @@ export interface ToolDef {
   benefit: { kind: "money" | "accuracy"; text: string };
   // One line telling an agent when to call this tool. Most paid listings lack this; ours always have it.
   useWhen: string;
+  // One real example call, shown to MCP clients (directories score tools on having one).
+  usage: string;
   description: string;
   inputs: z.ZodRawShape;
   inputDocs: InputDoc[];
