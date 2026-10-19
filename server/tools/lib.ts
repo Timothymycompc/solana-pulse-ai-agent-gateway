@@ -45,6 +45,7 @@ export const PROGRAM_LABELS: Record<string, string> = {
   Stake11111111111111111111111111111111111111: "Stake Program",
   Vote111111111111111111111111111111111111111: "Vote Program",
   AddressLookupTab1e1111111111111111111111111: "Address Lookup Table",
+  BPFLoaderUpgradeab1e11111111111111111111111: "BPF Upgradeable Loader (built in: deploys and upgrades programs)",
   L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95: "Lighthouse (wallet assertions)",
   Ed25519SigVerify111111111111111111111111111: "Ed25519 signature check (built in)",
   KeccakSecp256k11111111111111111111111111111: "Secp256k1 signature check (built in)",
@@ -52,6 +53,20 @@ export const PROGRAM_LABELS: Record<string, string> = {
 };
 
 export const labelFor = (programId: string) => PROGRAM_LABELS[programId] ?? null;
+
+// Every exchange program Jupiter routes swaps through (107 on 2026-10-19), by its name, from Jupiter's own list. In
+// the everyday test, 6 of the 21 programs check_tx didn't recognize were on it (PumpSwap, Meteora DAMM v2 and more).
+// Read once a day; if Jupiter can't be reached the list is empty and only PROGRAM_LABELS count.
+let dexCache: { at: number; value: Map<string, string> } | null = null;
+export async function jupiterDexes(ctx: ToolContext): Promise<Map<string, string>> {
+  if (dexCache && Date.now() - dexCache.at < 86_400_000) return dexCache.value;
+  try {
+    const labels = await ctx.fetchJson(`${jupiterHost()}/swap/v1/program-id-to-label`, 5000);
+    if (!labels || typeof labels !== "object") return new Map();
+    dexCache = { at: Date.now(), value: new Map(Object.entries(labels).map(([id, name]) => [id, String(name)])) };
+    return dexCache.value;
+  } catch { return new Map(); }
+}
 
 export function assertAddress(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) throw new ToolError(400, `${field} is required.`, `Pass a base58 Solana address in "${field}".`);
@@ -134,7 +149,7 @@ export async function rugReport(ctx: ToolContext, mint: string): Promise<{ repor
 }
 
 // Tests reset the caches so each recorded scenario makes its own Jupiter and RugCheck calls.
-export const clearJupCache = () => { jupCache.clear(); rugCache.clear(); };
+export const clearJupCache = () => { jupCache.clear(); rugCache.clear(); dexCache = null; };
 
 // For display-only data (symbols, prices), where a Jupiter outage just leaves fields empty.
 export const jupSearch = async (ctx: ToolContext, query: string): Promise<JupToken[]> => (await jupLookup(ctx, query)).tokens;

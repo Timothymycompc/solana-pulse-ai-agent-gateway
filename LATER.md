@@ -20,6 +20,10 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
 
 - Post to more places, the X poster's way (same pick of what to post, one small sender per platform, all in the pulsex menu). Asked 2026-10-16. Open questions for Tim: which channels (Discord webhook into his own server; Telegram bot into his own channel; Bluesky with an app password; Farcaster, which usually needs paid Neynar), and whether alerts should reach him (Telegram DM recommended: first payment, new real caller, site down, failed post; also covers the uptime alerts CLAUDE.md asks for). Automated posts only in places he owns; other communities get a prepared post he shares by hand.
 - Weekly X stats must not mislead: name the share from the biggest single client (week of 2026-10-12: algebra-executor made 940 of 1,226 calls) and say the owner's own tests from unrecognised networks may be included.
+- tx_matches swaps (2026-10-19): take an optional minimum the agent's quote promised and check received against it, so a route that pays far less than quoted is caught. Today it says what arrives but doesn't judge the price.
+- Done 2026-10-19 (Tim chose: up to 1% is a fee note): tips and fees in swaps, measured by the everyday test.
+- check_tx unknown programs: 58 of 70 "other" everyday transactions got REVIEW for programs check_tx doesn't know (42 programs: perps, games, bots). A sourced list could name more of them, e.g. programs with a verified build (OtterSec's verify API), each named with its source. Measure the REVIEW rate before and after with npm run everyday.
+- Run npm run everyday:record on Google Cloud (a Cloud Run job), not the phone: one phone run died on a DNS drop at 149 of 200.
 
 ## Next projects
 - EVM token safety (Base first, then Ethereum, BNB, Arbitrum, Polygon), its own repo, 8-15 tools.

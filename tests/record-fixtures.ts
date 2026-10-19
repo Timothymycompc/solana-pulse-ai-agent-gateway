@@ -7,7 +7,8 @@ import "dotenv/config";
 import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
 import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { tokenVerdict } from "../server/tools/tokens";
-import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "../server/tools/lib";
+import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, NATIVE_MINT, USDC_MINT } from "../server/tools/lib";
+import { jupiterSwap } from "../benchmark/cases";
 import type { ToolDef } from "../server/tools";
 import { recordingContext, saveFixture } from "./helpers/replay";
 
@@ -15,6 +16,7 @@ const RPC = process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl("mainnet-beta");
 const payer = new PublicKey(EXAMPLE_WALLET);
 const recipient = new PublicKey(EXAMPLE_RECIPIENT);
 const usdc = new PublicKey(USDC_MINT);
+const JUP = "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN";
 // A fresh address standing in for an attacker; it is fixed into each recorded transaction.
 const stranger = Keypair.generate().publicKey;
 const fromUsdc = getAssociatedTokenAddressSync(usdc, payer, true);
@@ -77,6 +79,16 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   {
     name: "intent-usdc-extra-transfer", tool: checkTransactionIntent,
     args: async (c) => ({ tx: await build(c, [...sendUsdc(toUsdc, recipient, 1_000_000n), ...sendUsdc(strangerUsdc, stranger, 5_000_000n)]), expected: intent(USDC_MINT, "1") }),
+  },
+  // Real Jupiter swaps that do what was asked: the bought token comes back to the wallet. Selling SOL wraps and
+  // unwraps it, so the SOL path is checked too.
+  {
+    name: "intent-swap-usdc-jup-match", tool: checkTransactionIntent,
+    args: async (c) => ({ tx: await jupiterSwap(c, { sell: USDC_MINT, buy: JUP, amount: 1_000_000n }), expected: { action: "swap", sell: USDC_MINT, amount: "1", buy: JUP, from: EXAMPLE_WALLET } }),
+  },
+  {
+    name: "intent-swap-sol-usdc-match", tool: checkTransactionIntent,
+    args: async (c) => ({ tx: await jupiterSwap(c, { sell: NATIVE_MINT, buy: USDC_MINT, amount: 10_000_000n }), expected: { action: "swap", sell: "SOL", amount: "0.01", buy: USDC_MINT, from: EXAMPLE_WALLET } }),
   },
   { name: "preflight-v1-sol-transfer", tool: preflightTransaction, args: async (c) => ({ tx: await buildV1(c) }) },
   { name: "intent-v1-sol-match", tool: checkTransactionIntent, args: async (c) => ({ tx: await buildV1(c), expected: intent("SOL", "0.01") }) },

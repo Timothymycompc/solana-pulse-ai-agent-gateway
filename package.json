@@ -1,7 +1,7 @@
 {
   "name": "solana-pulse-gateway",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,6 +13,8 @@
     "check": "tsc --noEmit && tsx scripts/check-tools.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:record": "tsx tests/record-fixtures.ts",
+    "benchmark": "tsx benchmark/run.ts",
+    "benchmark:record": "tsx benchmark/record.ts",
     "preview": "vite preview",
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
@@ -32,6 +34,8 @@
     "x-next": "tsx scripts/x-post.ts --next",
     "x-post": "tsx scripts/x-post.ts",
     "x-videos": "bash scripts/x-videos.sh",
+    "everyday": "tsx benchmark/everyday-run.ts",
+    "everyday:record": "tsx benchmark/everyday-run.ts record",
     "trial-key": "tsx scripts/trial-key.ts"
   },
   "dependencies": {

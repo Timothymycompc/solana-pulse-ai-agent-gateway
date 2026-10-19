@@ -17,7 +17,7 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 | Tool | Prevents | Price |
 |---|---|---|
 | `check_tx` | Signing a drainer or a transaction that will fail: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
-| `tx_matches` | A transaction that differs from what was asked ("send 5 USDC to X"): compares token, exact amount, recipient and sender, and flags anything extra | $0.02 |
+| `tx_matches` | A transaction that differs from what was asked ("send 5 USDC to X", or "swap 1 USDC for JUP"): compares token, exact amount, recipient and sender, checks a swap pays the bought token back to you, and flags anything extra | $0.02 |
 | `token_safety` | Buying scam tokens: SAFE / CAUTION / AVOID from a simulated sale by a real holder, whether the liquidity can be pulled, the creator's rug record, insider wallet networks, mint and freeze powers, Token-2022 traps, verification, liquidity, who holds it and age | $0.02 |
 | `explain_tx` | Guessing from logs: real balance changes by wallet, programs used, and why it failed | $0.01 |
 | `find_token` | Copycat tickers: the verified token address for a ticker, with copycats counted | $0.01 |
@@ -106,9 +106,14 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 90 tests, offline, about 35 seconds
+npm test               # 104 tests, offline, about a minute
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
+npm run benchmark      # score the 10 attack cases
+npm run everyday       # replay the 200 everyday transactions
 ```
+
+- **Solana Agent Safety Benchmark** ([benchmark/README.md](benchmark/README.md), `tests/benchmark.test.ts`): 10 cases built from real mainnet accounts and simulated against live mainnet state: a correct transfer (must pass), wrong recipient, wrong amount, wrong token, extra instruction, hidden transfer, malicious program, balance drain, expired transaction and replayed payment (all must fail). Solana Pulse catches 9 of 9 attacks for the right reason, with no false alarm. `benchmark/score.ts` scores any checker on the same cases.
+- **False alarms on 200 real transactions** (`benchmark/everyday.ts`, `tests/everyday.test.ts`): 200 ordinary transactions that really worked, from the newest mainnet blocks, checked the way a wallet hands them over before signing. No BLOCK; 80 of 80 transfers OK and MATCH; 26 of 27 swaps MATCH (the other paid a trading bot 1.54%); the REVIEWs are transactions calling programs check_tx doesn't recognize. Building it found that version 1 transactions couldn't be read and that fees without a compute limit were wrong; both are fixed, and fees now match what mainnet charged for all 200.
 
 - **Safety checks** (`tests/safety.test.ts`) run against real mainnet transactions recorded in `tests/fixtures/`: a drainer token approval (BLOCK), SOL moved by a hidden extra instruction, a 10x decimals slip, an extra USDC transfer to a stranger (all MISMATCH), plus clean transfers that must pass, including one that creates the recipient's token account.
 - **Free-call metering** (`tests/meter.test.ts`) runs the real SQL on an in-memory Postgres (PGlite): the daily allowance, refunds for failed calls, the daily reset and percent-encoded tool names.

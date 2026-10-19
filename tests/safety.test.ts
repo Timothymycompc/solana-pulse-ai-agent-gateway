@@ -35,6 +35,7 @@ test("check_tx passes a plain SOL transfer and reports what the wallet sends", a
   const r = await replay(preflightTransaction, "preflight-sol-transfer");
   assert.equal(r.verdict, "OK");
   assert.equal(r.simulation.worked, true);
+  assert.ok(!r.checks.some((c: any) => c.name === "already_landed"), "an unsigned transaction has no ID to look up");
   assert.ok(r.checks.some((c: any) => c.name === "outflow" && c.detail.includes("SOL")));
 });
 
@@ -86,6 +87,23 @@ test("tx_matches catches an extra USDC transfer to someone else", async () => {
   assert.equal(r.verdict, "MISMATCH");
   assert.ok(r.unexpected.some((e: string) => e.startsWith("Extra transfer")));
   assert.ok(r.unexpected.some((e: string) => e.includes("loses 6 USDC")));
+});
+
+// The recorded wallet is busy: between reading its balance and the dry run it moved 0.000015 SOL elsewhere. The
+// dry run's own before-balances keep that from showing up as a loss.
+test("tx_matches matches a real Jupiter swap that pays the bought token back to the wallet", async () => {
+  const r = await replay(checkTransactionIntent, "intent-swap-usdc-jup-match");
+  assert.equal(r.verdict, "MATCH", r.summary);
+  assert.deepEqual(r.unexpected, []);
+  assert.equal(r.compared.find((c: any) => c.what === "amount").actual, "sells 1 (1000000 raw)");
+  assert.ok(BigInt(r.received.raw_amount) > 0n);
+});
+
+// Jupiter wraps the SOL, swaps it, then closes the wallet's wrapped-SOL account, which hands back everything it held.
+test("tx_matches matches a real swap that sells SOL, counting wrapped SOL as the wallet's own", async () => {
+  const r = await replay(checkTransactionIntent, "intent-swap-sol-usdc-match");
+  assert.equal(r.verdict, "MATCH", r.summary);
+  assert.equal(r.compared.find((c: any) => c.what === "amount").actual, "sells 0.01 (10000000 raw)");
 });
 
 test("token_safety treats a regulated stablecoin's issuer powers as expected", async () => {

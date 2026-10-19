@@ -186,6 +186,15 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
   const changes: WalletChange[] = [];
   // Raw lamport change of every watched account, token accounts included (e.g. the deposit that creates one).
   const lamportDeltas = new Map<string, bigint>();
+  // Owner and mint of every watched token account, so a wallet's own token accounts can be counted as its own.
+  const tokenAccounts = new Map<string, { owner: string; mint: string }>();
+  // Newer nodes report the balances before the dry run from the same moment as the ones after. Reading them
+  // separately can catch a busy wallet mid-change and show a loss that isn't this transaction's.
+  const sameMoment = Array.isArray((value as any).preBalances) && (value as any).preBalances.length === loaded.keys.length;
+  const preLamports: number[] | null = sameMoment ? (value as any).preBalances : null;
+  const preTokenAmounts: Map<number, bigint> | null = sameMoment && Array.isArray((value as any).preTokenBalances)
+    ? new Map((value as any).preTokenBalances.map((t: any) => [t.accountIndex, BigInt(t.uiTokenAmount.amount)])) : null;
+  const keyIndex = new Map(loaded.keys.map((k, i) => [k, i]));
   if (!value.err && value.accounts) {
     const tokenDeltas = new Map<string, { wallet: string; mint: string; before: bigint; after: bigint }>();
     watched.forEach((address, i) => {
@@ -193,7 +202,8 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
       const pre = preRaw ? readState(preRaw.lamports, preRaw.owner.toBase58(), Buffer.from(preRaw.data)) : null;
       const postRaw = value.accounts![i];
       const post = postRaw ? readState(postRaw.lamports, postRaw.owner, Buffer.from(postRaw.data[0], "base64")) : null;
-      const before = pre?.lamports ?? 0n;
+      const index = keyIndex.get(address)!;
+      const before = preLamports ? BigInt(preLamports[index]) : pre?.lamports ?? 0n;
       const after = post?.lamports ?? 0n;
       lamportDeltas.set(address, after - before);
       const isTokenAccount = Boolean(pre?.token || post?.token);
@@ -202,9 +212,10 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
       }
       const token = post?.token ?? pre?.token;
       if (token) {
+        tokenAccounts.set(address, { owner: token.owner, mint: token.mint });
         const key = `${token.owner}:${token.mint}`;
         const entry = tokenDeltas.get(key) ?? { wallet: token.owner, mint: token.mint, before: 0n, after: 0n };
-        entry.before += pre?.token?.amount ?? 0n;
+        entry.before += preTokenAmounts ? preTokenAmounts.get(index) ?? 0n : pre?.token?.amount ?? 0n;
         entry.after += post?.token?.amount ?? 0n;
         tokenDeltas.set(key, entry);
       }
@@ -221,7 +232,7 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
   }
   return {
     success: value.err === null, error: value.err ?? null, unitsConsumed: value.unitsConsumed ?? null,
-    logs: (value.logs ?? []).slice(-25), changes, lamportDeltas, watchedAccounts: watched.length, totalWritable: loaded.writable.length,
+    logs: (value.logs ?? []).slice(-25), changes, lamportDeltas, tokenAccounts, watchedAccounts: watched.length, totalWritable: loaded.writable.length,
   };
 }
 
