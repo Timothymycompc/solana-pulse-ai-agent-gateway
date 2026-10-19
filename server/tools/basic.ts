@@ -360,7 +360,7 @@ export const explainErrorTool: ToolDef = {
     { field: "next_step", type: "string", is: "The one thing to do next.", howWorkedOut: "The first explanation's fix, or how to find the failing program when the error is unknown." },
   ],
   notes: ["Custom codes 6000 and up are defined by each program. Without program we say so instead of guessing."],
-  example: async () => ({ error: "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4 failed: custom program error: 0x1771", program: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4" }),
+  example: async () => ({ error: "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 failed: custom program error: 0x1771", program: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4" }),
   run: async ({ error, program: programInput }) => {
     const program = programInput ? assertAddress(programInput, "program") : (typeof error === "string" ? error.match(/Program ([1-9A-HJ-NP-Za-km-z]{32,44}) failed/)?.[1] : undefined);
     const { matches, instructionIndex } = explainError(error, program);

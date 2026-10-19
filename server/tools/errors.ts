@@ -85,7 +85,7 @@ const ANCHOR: Record<number, [string, string]> = {
   3012: ["AccountNotInitialized", "The account has not been initialized yet."],
 };
 
-const JUPITER_V6 = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4";
+const JUPITER_V6 = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
 const PROGRAM_SPECIFIC: Record<string, Record<number, [string, string, string, string]>> = {
   [JUPITER_V6]: {
     6001: ["SlippageToleranceExceeded", "The swap would return less than the minimum you allowed.", "The price moved between quoting and execution, common on thin or volatile tokens.", "Get a fresh quote and retry, or raise slippage carefully. Check liquidity first (token_safety)."],

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { AuthorityType, createApproveInstruction, createCloseAccountInstruction, createSetAuthorityInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { formatUnits, parseUnits, USDC_MINT } from "../server/tools/lib";
+import { formatUnits, labelFor, parseUnits, USDC_MINT } from "../server/tools/lib";
 import { explainError } from "../server/tools/errors";
 import { feeBreakdown, loadTransaction } from "../server/tools/decode";
 import { ToolError } from "../server/tools";
@@ -24,8 +24,14 @@ test("amounts the token can't represent are rejected, not rounded", () => {
 });
 
 test("Jupiter's 0x1771 is explained as a slippage limit", () => {
-  const { matches } = explainError("Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4 failed: custom program error: 0x1771", "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4");
+  const { matches } = explainError("Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 failed: custom program error: 0x1771", "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4");
   assert.equal(matches[0]?.name, "SlippageToleranceExceeded");
+});
+
+// The address used to read JUP6…tLUJoi5…, which isn't on chain, so every real Jupiter swap was flagged as an unknown
+// program (found by the benchmark's swap case, 2026-10-19). The real one is checked against mainnet in that case.
+test("Jupiter's real program address is recognized", () => {
+  assert.equal(labelFor("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"), "Jupiter Aggregator v6");
 });
 
 test("an unknown program's custom code is not guessed", () => {

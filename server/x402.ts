@@ -32,7 +32,7 @@ const fitDescription = (text: string) => {
 // unsigned 0.01 SOL transfer recorded from mainnet (tests/fixtures/intent-sol-match.json) and, for
 // explain_tx, a confirmed swap by the payout wallet.
 const SOL_TRANSFER = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEEtNEWetTmK6RLkue8tADNy8eH6av+X5ckYlACi5O/AAQICAAEMAgAAAICWmAAAAAAAAA==";
-const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUJoi5QNyVTaV4";
+const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
 export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   balance: { wallet: EXAMPLE_WALLET },
   tokens: { wallet: EXAMPLE_WALLET, how_many: 10 },
