@@ -31,7 +31,8 @@
     "x-times": "tsx scripts/x-times.ts",
     "x-next": "tsx scripts/x-post.ts --next",
     "x-post": "tsx scripts/x-post.ts",
-    "x-videos": "bash scripts/x-videos.sh"
+    "x-videos": "bash scripts/x-videos.sh",
+    "trial-key": "tsx scripts/trial-key.ts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

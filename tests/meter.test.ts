@@ -127,6 +127,12 @@ test("a free pass lets its caller run paid tools free until it ends, without usi
   assert.ok(freePassFor("algebra-executor/1", until - 1000));
   assert.equal(freePassFor("algebra-executor/1", until + 1000), null, "it ends on time");
   assert.equal(freePassFor("someone-else/1", until - 1000), null);
+  const { trialKeyFor } = await import("../server/meter");
+  const keySha256 = (await import("crypto")).createHash("sha256").update("pulse_trial_example").digest("hex");
+  const keys = [{ name: "a builder", keySha256, until: "2026-12-01T00:00:00Z", why: "test" }];
+  assert.ok(trialKeyFor("pulse_trial_example", Date.parse("2026-11-01"), keys), "a trial key runs free");
+  assert.equal(trialKeyFor("pulse_trial_example", Date.parse("2026-12-02"), keys), null, "and stops on time");
+  assert.equal(trialKeyFor("pulse_trial_other", Date.parse("2026-11-01"), keys), null, "only that exact key");
   if (Date.now() < until) {
     for (let i = 0; i < 30; i++) assert.deepEqual(await admitCall({ tool: "token_safety", ip: "192.0.2.77", hasPayment: false, userAgent: "algebra-executor/1" }), { via: "free_pass" });
     assert.equal((await getFreeCallStatus("192.0.2.77")).token_safety, undefined, "daily free calls untouched");

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { keyFromReq } from "./auth";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { pool } from "./db";
@@ -70,6 +70,17 @@ export const FREE_PASSES: { userAgent: RegExp; until: string; why: string }[] = 
 export const freePassFor = (userAgent: string | undefined, now = Date.now()) =>
   FREE_PASSES.find((p) => p.userAgent.test(userAgent ?? "") && now < Date.parse(p.until)) ?? null;
 
+// Trial keys for builders who take up the free-trial offer: the key (sent as x-api-key, over HTTP or MCP) runs every
+// tool free until the date given. Only the key's SHA-256 is kept, so the code can be public; each trial is on record
+// here with who it is for. Make one with `npm run trial-key -- <name>`.
+export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: string }[] = [];
+const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
+export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys = TRIAL_KEYS) => {
+  if (!apiKey) return null;
+  const hash = sha256(apiKey);
+  return keys.find((k) => k.keySha256 === hash && now < Date.parse(k.until)) ?? null;
+};
+
 // How a call is admitted before any payment is asked for.
 export type Admission =
   | { via: "free_tool" }
@@ -81,7 +92,7 @@ export type Admission =
 export async function admitCall(o: { tool: string; ip: string; apiKey?: string; hasPayment: boolean; userAgent?: string }): Promise<Admission> {
   if (!priceOf(o.tool)) return { via: "free_tool" };
   if (isOwnerKey(o.apiKey)) return { via: "owner" };
-  if (!o.hasPayment && freePassFor(o.userAgent)) return { via: "free_pass" };
+  if (!o.hasPayment && (freePassFor(o.userAgent) || trialKeyFor(o.apiKey))) return { via: "free_pass" };
   // A caller that already attached an x402 payment pays; free calls are not spent on it.
   if (!o.hasPayment && o.ip && o.ip !== "unknown") {
     const used = await reserveFreeCall(o.ip, o.tool);
