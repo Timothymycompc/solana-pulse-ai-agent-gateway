@@ -74,7 +74,7 @@ export const preflightTransaction: ToolDef = {
   title: "Safe to sign?",
   category: "transactions",
   benefit: { kind: "money", text: "Catches a drainer approval or a transaction that will fail, before you sign. Failed transactions still cost fees. One hidden approval can empty a wallet." },
-  useWhen: "Run on every transaction before signing. Shows what each wallet gains and loses, blocks drainer tricks, and catches failures and expired blockhashes before you pay.",
+  useWhen: "Run on every transaction before signing. Shows what each wallet gains and loses, blocks drainer tricks, and catches failures and expired blockhashes before you pay a fee.",
   usage: '{"tx": "<base64, before signing>"}',
   description: "Decodes each step, dry-runs it on live mainnet, finds each wallet's SOL and token changes, and answers OK, REVIEW or BLOCK with reasons.",
   inputs: { tx: z.string().min(20), network: NETWORK },

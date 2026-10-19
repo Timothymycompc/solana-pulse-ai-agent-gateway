@@ -201,7 +201,7 @@ export const tokenVerdict: ToolDef = {
   benefit: { kind: "money", text: "Flags tokens you can't sell, liquidity the creator can pull, creators who have rugged before, hidden insider wallets and issuers who can freeze or take your tokens, before you buy. Regulated stablecoins' powers count as expected." },
   useWhen: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with exact reasons from chain and market data.",
   usage: '{"token": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"} checks BONK',
-  description: "Simulates a holder selling, then checks if liquidity can be pulled, the creator's record, insider wallet networks, issuer powers (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, for one verdict.",
+  description: "Simulates a real holder selling, then checks if liquidity can be pulled, the creator's record, insider wallet networks, issuer powers (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, for one verdict.",
   inputs: { token: z.string(), network: NETWORK },
   inputDocs: [
     { name: "token", type: "string (token address)", required: true, lookingFor: "The token's address.", whereToGet: "From find_token (for a ticker) or tokens (for a wallet's tokens)." },
