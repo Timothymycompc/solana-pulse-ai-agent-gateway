@@ -38,6 +38,7 @@ export type LoadedTransaction = {
   usesLookupTables: boolean;
 };
 
+const SIGNATURE_PROGRAMS = new Set(["Ed25519SigVerify111111111111111111111111111", "KeccakSecp256k11111111111111111111111111111", "Secp256r1SigVerify1111111111111111111111111"]);
 const u64 = (data: Buffer, offset: number) => data.readBigUInt64LE(offset).toString();
 const TOKEN_PROGRAMS = new Set([TOKEN_PROGRAM, TOKEN_2022_PROGRAM]);
 const AUTHORITY_TYPES = ["MintTokens", "FreezeAccount", "AccountOwner", "CloseAccount"];
@@ -79,6 +80,8 @@ function decodeInstruction(index: number, programId: string, accounts: string[],
     if (programId === ATA_PROGRAM) {
       return { ...base, type: data.length && data[0] === 1 ? "create_token_account_idempotent" : data.length && data[0] === 2 ? "recover_nested_token_account" : "create_token_account", info: { payer: accounts[0], tokenAccount: accounts[1], owner: accounts[2], mint: accounts[3], tokenProgram: accounts[5] ?? null } };
     }
+    // The built-in signature checks: the first byte is how many signatures it verifies, each charged like a signer's.
+    if (SIGNATURE_PROGRAMS.has(programId) && data.length >= 1) return { ...base, type: "signature_check", info: { signatures: data[0] } };
     if (programId.startsWith("Memo")) return { ...base, type: "memo", info: { text: data.toString("utf8").slice(0, 200) } };
   } catch { /* fall through to unknown */ }
   return { ...base, type: labelFor(programId) ? "other" : "unknown_program", info: { dataBytes: data.length } };
@@ -126,22 +129,38 @@ export async function loadTransaction(conn: Connection, base64: string): Promise
   return { tx, version: tx.version, config: null, keys, writable, signers, feePayer: keys[0], recentBlockhash: msg.recentBlockhash, instructions, usesLookupTables: lookups.length > 0 };
 }
 
+// Built-in programs, which the runtime gives 3,000 compute units per step by default instead of 200,000 (SIMD-0170).
+// Checked against the fees 200 real mainnet transactions paid on 2026-10-19: with the old 200,000-per-step rule, every
+// transaction without a compute limit came out wrong (one plain SOL send: 95,000 lamports instead of 7,700).
+// The signature-check precompiles count as 200,000 here: none of those 200 used one without setting a limit, so how the
+// runtime counts them is untested.
+const BUILTIN_PROGRAMS = new Set([
+  SYSTEM_PROGRAM, COMPUTE_BUDGET_PROGRAM, "Stake11111111111111111111111111111111111111", "Vote111111111111111111111111111111111111111",
+  "Config1111111111111111111111111111111111111", "AddressLookupTab1e1111111111111111111111111", "BPFLoaderUpgradeab1e11111111111111111111111",
+  "BPFLoader1111111111111111111111111111111111", "BPFLoader2111111111111111111111111111111111", "LoaderV411111111111111111111111111111111111",
+  "ZkE1Gama1Proof11111111111111111111111111111",
+]);
+const defaultComputeLimit = (instructions: DecodedInstruction[]) =>
+  Math.min(instructions.reduce((sum, i) => sum + (BUILTIN_PROGRAMS.has(i.programId) ? 3_000 : 200_000), 0), 1_400_000);
+
 // Fees as charged by the runtime: base fee per signature, plus priority fee on the requested compute limit. A v1
 // transaction states both in its config, and its priority fee is a lamport total.
 export function feeBreakdown(loaded: LoadedTransaction) {
   const limitIx = loaded.instructions.find((i) => i.type === "set_compute_unit_limit");
   const priceIx = loaded.instructions.find((i) => i.type === "set_compute_unit_price");
-  const nonBudget = loaded.instructions.filter((i) => i.programId !== COMPUTE_BUDGET_PROGRAM).length;
   const v1Limit = loaded.config?.computeUnitLimit;
-  const computeUnitLimit = v1Limit !== undefined ? v1Limit : limitIx ? Number(limitIx.info.units) : Math.min(200_000 * Math.max(nonBudget, 1), 1_400_000);
+  const computeUnitLimit = v1Limit !== undefined ? v1Limit : limitIx ? Number(limitIx.info.units) : defaultComputeLimit(loaded.instructions);
   const v1Fee = loaded.config?.priorityFeeLamports;
   const microLamportsPerComputeUnit = v1Fee !== undefined ? (computeUnitLimit ? (BigInt(v1Fee) * 1_000_000n) / BigInt(computeUnitLimit) : 0n)
     : priceIx ? BigInt(String(priceIx.info.microLamportsPerComputeUnit)) : 0n;
   const priorityLamports = v1Fee !== undefined ? BigInt(v1Fee) : (microLamportsPerComputeUnit * BigInt(computeUnitLimit) + 999_999n) / 1_000_000n;
-  const baseLamports = BigInt(BASE_FEE_LAMPORTS_PER_SIGNATURE * loaded.signers.length);
+  // Every signature costs the base fee: the signers', and each one a built-in signature check verifies (3 of the 200
+  // real transactions in the everyday test used one, and the fee they paid counted them).
+  const checked = loaded.instructions.filter((i) => i.type === "signature_check").reduce((sum, i) => sum + Number(i.info.signatures), 0);
+  const baseLamports = BigInt(BASE_FEE_LAMPORTS_PER_SIGNATURE * (loaded.signers.length + checked));
   return {
     baseLamports: baseLamports.toString(), priorityLamports: priorityLamports.toString(), totalLamports: (baseLamports + priorityLamports).toString(),
-    totalSol: lamportsToSol(baseLamports + priorityLamports), computeUnitLimit, computeUnitLimitSource: v1Limit !== undefined ? "set in transaction config (v1)" : limitIx ? "set in transaction" : "runtime default (200,000 per instruction)",
+    totalSol: lamportsToSol(baseLamports + priorityLamports), computeUnitLimit, computeUnitLimitSource: v1Limit !== undefined ? "set in transaction config (v1)" : limitIx ? "set in transaction" : "runtime default (3,000 per built-in program step, 200,000 per other step)",
     microLamportsPerComputeUnit: microLamportsPerComputeUnit.toString(),
   };
 }

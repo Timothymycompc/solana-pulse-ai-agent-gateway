@@ -1,8 +1,8 @@
 // Exact amount math, error explanations and instruction decoding. No network.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { AuthorityType, createApproveInstruction, createCloseAccountInstruction, createSetAuthorityInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction, type TransactionInstruction as Ix } from "@solana/web3.js";
+import { AuthorityType, createApproveInstruction, createAssociatedTokenAccountIdempotentInstruction, createCloseAccountInstruction, createSetAuthorityInstruction, createTransferCheckedInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { formatUnits, labelFor, parseUnits, USDC_MINT } from "../server/tools/lib";
 import { explainError } from "../server/tools/errors";
 import { feeBreakdown, loadTransaction } from "../server/tools/decode";
@@ -65,4 +65,36 @@ test("drainer-style instructions are decoded, and fees use the transaction's com
   const fee = feeBreakdown(loaded);
   assert.equal(fee.priorityLamports, "200"); // ceil(10,000 micro-lamports x 20,000 units / 1,000,000)
   assert.equal(fee.totalLamports, "5200");
+});
+
+// The three shapes from the everyday test, with the fee each real transaction paid on mainnet on 2026-10-19.
+async function feeOf(payer: PublicKey, instructions: Ix[]) {
+  const message = new TransactionMessage({ payerKey: payer, recentBlockhash: Keypair.generate().publicKey.toBase58(), instructions }).compileToV0Message();
+  return feeBreakdown(await loadTransaction({} as any, Buffer.from(new VersionedTransaction(message).serialize()).toString("base64")));
+}
+
+test("with no compute limit set, built-in program steps get 3,000 units and others 200,000, as real fees show", async () => {
+  const [from, to] = [Keypair.generate().publicKey, Keypair.generate().publicKey];
+  // Like 4bS1AMZe39: a priced SOL send. Real fee 7,700 (2 built-in steps = 6,000 units); the old rule said 95,000.
+  const send = await feeOf(from, [ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 450_000 }), SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports: 1 })]);
+  assert.equal(send.computeUnitLimit, 6_000);
+  assert.equal(send.totalLamports, "7700");
+  // Like 6VqjM58ADG: price, open the recipient's account, send USDC. Real fee 9,030 (3,000 + 200,000 + 200,000 units).
+  const usdc = new PublicKey(USDC_MINT);
+  const toAccount = getAssociatedTokenAddressSync(usdc, to);
+  const token = await feeOf(from, [
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000 }),
+    createAssociatedTokenAccountIdempotentInstruction(from, toAccount, to, usdc),
+    createTransferCheckedInstruction(getAssociatedTokenAddressSync(usdc, from), usdc, toAccount, from, 1n, 6),
+  ]);
+  assert.equal(token.totalLamports, "9030");
+});
+
+test("each signature a built-in signature check verifies costs the base fee, like a signer's", async () => {
+  // Like 3Vhqf6VRAy: a compute limit, no priority price, and an Ed25519 check of 1 signature. Real fee 10,000.
+  const fee = await feeOf(Keypair.generate().publicKey, [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: 53_529 }),
+    new TransactionInstruction({ programId: new PublicKey("Ed25519SigVerify111111111111111111111111111"), keys: [], data: Buffer.from([1, 0]) }),
+  ]);
+  assert.equal(fee.totalLamports, "10000");
 });

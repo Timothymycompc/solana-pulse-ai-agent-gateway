@@ -46,6 +46,9 @@ export const PROGRAM_LABELS: Record<string, string> = {
   Vote111111111111111111111111111111111111111: "Vote Program",
   AddressLookupTab1e1111111111111111111111111: "Address Lookup Table",
   L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95: "Lighthouse (wallet assertions)",
+  Ed25519SigVerify111111111111111111111111111: "Ed25519 signature check (built in)",
+  KeccakSecp256k11111111111111111111111111111: "Secp256k1 signature check (built in)",
+  Secp256r1SigVerify1111111111111111111111111: "Secp256r1 signature check (built in)",
 };
 
 export const labelFor = (programId: string) => PROGRAM_LABELS[programId] ?? null;
