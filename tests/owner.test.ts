@@ -126,3 +126,23 @@ test("tool inputs and results are kept, capped, and cleared after 30 days", asyn
   assert.deepEqual([cleared.input, cleared.output], [null, null]);
   assert.ok((await pool.query(`SELECT 1 FROM service_usage WHERE endpoint = '/api/tools/find_token' AND input IS NOT NULL`)).rows.length);
 });
+
+test("payments made under a tool's old name add to its total, and the total shows each name's part", async () => {
+  await recordPayment({ txSignature: "tx-old-name", tool: "token_verdict", payer: MY_WALLET, amountBaseUnits: "10000", asset: "USDC", network: "solana" });
+  const verdict = (await ownerOverview({ days: 7 })).tools.find((t) => t.tool === "token_safety")!;
+  assert.equal(verdict.oldName, "token_verdict");
+  assert.equal(verdict.revenueUsdc, 0.03);
+  assert.deepEqual(verdict.byName, [
+    { name: "token_safety", payments: 1, revenueUsdc: 0.02 },
+    { name: "token_verdict", payments: 1, revenueUsdc: 0.01 },
+  ]);
+});
+
+test("a caller's runs under a tool's old name count as the tool's current name", async () => {
+  await recordServiceUsage({ endpoint: "/api/tools/token_verdict", method: "POST", status: 200, callerHash: hashIp(AGENT_IP), client: "node", via: "free_call" });
+  const o = await ownerOverview({ days: 7 });
+  const agent = o.callers.find((c) => c.name === "Claude Code")!;
+  assert.deepEqual(agent.tools, [{ tool: "token_safety", runs: 3 }]);
+  assert.equal(o.recentRuns[0].tool, "token_safety");
+  assert.equal(o.tools.find((t) => t.tool === "token_verdict"), undefined);
+});

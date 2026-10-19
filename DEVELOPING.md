@@ -23,7 +23,8 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
 src/               the website (React + Tailwind)
   index.css        colors and shared styles
   components/ui/   shared UI helpers (button styles, verdict stamps and check lines)
-  pages/           one file per page type (OwnerPage.tsx is the dashboard at /owner); route.tsx picks the page for a path
+  pages/           one file per page type; route.tsx picks the page for a path
+  pages/owner/     the owner dashboard's tabs (Overview, Money, Tools, Callers, Visitors, Runs); OwnerPage.tsx holds them
   ssr.tsx          renders a page on the server, used by server/pages.ts
   nav.ts           sidebar sections and links
 scripts/           deploy, RPC key setup, tool check

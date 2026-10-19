@@ -3,10 +3,12 @@
 export type Kind = 'you' | 'bot' | 'ai_app' | 'script' | 'browser' | 'other' | 'unknown';
 
 export type ToolStats = {
-  tool: string; known: boolean; price: string | null;
+  tool: string; known: boolean; oldName: string | null; price: string | null;
   runs: number; http: number; mcp: number; errors: number; freeCalls: number; ownerCalls: number; paymentAsked: number;
   byKind: Record<Kind, number>; callers: number; lastRunAt: string | null;
   payments: number; revenueUsdc: number; paymentsWindow: number; revenueWindowUsdc: number; revenueOthersUsdc: number; otherPayers: number;
+  // All-time payments under each name the tool was paid as: its current name first, then its pre-October-2026 name.
+  byName: { name: string; payments: number; revenueUsdc: number }[];
 };
 
 export type CallerRef = { id: string; kind: Kind; name: string; network: string | null };
