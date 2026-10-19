@@ -1,0 +1,113 @@
+{
+ "name": "explain-v1",
+ "recordedAt": "2026-10-19T21:50:18.556Z",
+ "args": {
+  "tx_id": "4nh2hRWKbWLdzJijZWgZv3Fgmh1bMrBUho5fWJFGJYAZkv7d9x3Yz2qMhAG5o2i6Qfd9AeRakKC88aqwtvg5Mr8H"
+ },
+ "recording": {
+  "calls": {
+   "getParsedTransaction": [
+    {
+     "__error": "failed to get transaction: Transaction version (1) is not supported by the requesting client. Please try the request again with the following configuration parameter: \"maxSupportedTransactionVersion\": 1"
+    }
+   ],
+   "_rpcRequest": [
+    {
+     "jsonrpc": "2.0",
+     "id": "20ac2b81-1fd1-46db-b7d2-1f6b8e0c13c0",
+     "result": {
+      "transaction": {
+       "signatures": [
+        "4nh2hRWKbWLdzJijZWgZv3Fgmh1bMrBUho5fWJFGJYAZkv7d9x3Yz2qMhAG5o2i6Qfd9AeRakKC88aqwtvg5Mr8H"
+       ],
+       "message": {
+        "accountKeys": [
+         {
+          "pubkey": "AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy",
+          "writable": true,
+          "signer": true,
+          "source": "transaction"
+         },
+         {
+          "pubkey": "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+          "writable": true,
+          "signer": false,
+          "source": "transaction"
+         },
+         {
+          "pubkey": "11111111111111111111111111111111",
+          "writable": false,
+          "signer": false,
+          "source": "transaction"
+         },
+         {
+          "pubkey": "GALNhCCshCRxiig2CovAQM3XputMBH27daKPPeLZZquH",
+          "writable": false,
+          "signer": false,
+          "source": "transaction"
+         }
+        ],
+        "recentBlockhash": "DsrEoRe7kA71KUWwvQ9aoF9DNSDTb7ep7xq81HAKT4WM",
+        "instructions": [
+         {
+          "program": "system",
+          "programId": "11111111111111111111111111111111",
+          "parsed": {
+           "info": {
+            "destination": "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+            "lamports": 9945,
+            "source": "AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy"
+           },
+           "type": "transfer"
+          },
+          "stackHeight": 1
+         }
+        ],
+        "transactionConfig": {
+         "priorityFee": null,
+         "computeUnitLimit": 150,
+         "loadedAccountsDataSizeLimit": 8192,
+         "heapSize": null
+        }
+       }
+      },
+      "meta": {
+       "err": null,
+       "status": {
+        "Ok": null
+       },
+       "fee": 5000,
+       "preBalances": [
+        4311624606,
+        735794,
+        1,
+        0
+       ],
+       "postBalances": [
+        4311609661,
+        745739,
+        1,
+        0
+       ],
+       "innerInstructions": [],
+       "logMessages": [
+        "Program 11111111111111111111111111111111 invoke [1]",
+        "Program 11111111111111111111111111111111 success"
+       ],
+       "preTokenBalances": [],
+       "postTokenBalances": [],
+       "rewards": [],
+       "computeUnitsConsumed": 150,
+       "costUnits": 1481
+      },
+      "version": 1,
+      "slot": 458986187,
+      "transactionIndex": 315,
+      "blockTime": 1792446153
+     }
+    }
+   ]
+  },
+  "http": {}
+ }
+}

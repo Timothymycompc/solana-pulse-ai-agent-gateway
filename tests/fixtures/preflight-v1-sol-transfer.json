@@ -1,0 +1,114 @@
+{
+ "name": "preflight-v1-sol-transfer",
+ "recordedAt": "2026-10-19T21:50:53.572Z",
+ "args": {
+  "tx": "gQEAAQ8AAAATQH4qmEVEX5TkM8ib8UkDJX2uzC3lPX8pFPeI323sGgEDSMAbUFkAVFXZ3LDGvOzctPtbLqvBqagrVzkrqqQPBOahWCggsw5DURh89qY740gz4MU16VoKmDlUuAK9beZsnwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6AMAAAAAAADCAQAAAAABAAICDAAAAQIAAACAlpgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+ },
+ "recording": {
+  "calls": {
+   "getMultipleAccountsInfo": [
+    [
+     {
+      "lamports": 1396466196793843,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     null
+    ]
+   ],
+   "simulateTransaction": [
+    {
+     "context": {
+      "apiVersion": "4.3.2",
+      "slot": 458988468
+     },
+     "value": {
+      "accounts": [
+       {
+        "data": [
+         "",
+         "base64"
+        ],
+        "executable": false,
+        "lamports": 1396466186787843,
+        "owner": "11111111111111111111111111111111",
+        "rentEpoch": 18446744073709552000,
+        "space": 0
+       },
+       {
+        "data": [
+         "",
+         "base64"
+        ],
+        "executable": false,
+        "lamports": 10000000,
+        "owner": "11111111111111111111111111111111",
+        "rentEpoch": 18446744073709552000,
+        "space": 0
+       }
+      ],
+      "err": null,
+      "fee": 6000,
+      "innerInstructions": null,
+      "loadedAccountsDataSize": 149,
+      "loadedAddresses": {
+       "readonly": [],
+       "writable": []
+      },
+      "logs": [
+       "Program 11111111111111111111111111111111 invoke [1]",
+       "Program 11111111111111111111111111111111 success"
+      ],
+      "postBalances": [
+       1396466186787843,
+       10000000,
+       1
+      ],
+      "postTokenBalances": [],
+      "preBalances": [
+       1396466196793843,
+       0,
+       1
+      ],
+      "preTokenBalances": [],
+      "replacementBlockhash": {
+       "blockhash": "9ugKbc2az6TSwYsSaw66Be52q418gqcPpZ8EBSPszxx6",
+       "lastValidBlockHeight": 437023751
+      },
+      "returnData": null,
+      "unitsConsumed": 150
+     }
+    }
+   ],
+   "getMultipleParsedAccounts": [
+    {
+     "context": {
+      "slot": 458988471,
+      "apiVersion": "4.3.0-alpha.2"
+     },
+     "value": []
+    }
+   ],
+   "getBalance": [
+    1396459490945723
+   ],
+   "isBlockhashValid": [
+    {
+     "context": {
+      "apiVersion": "4.3.2",
+      "slot": 458988473
+     },
+     "value": true
+    }
+   ]
+  },
+  "http": {}
+ }
+}

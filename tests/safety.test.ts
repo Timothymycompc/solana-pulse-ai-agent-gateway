@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { checkTransactionIntent, preflightTransaction } from "../server/tools/transactions";
+import { checkTransactionIntent, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
@@ -42,6 +42,23 @@ test("tx_matches matches a plain SOL transfer", async () => {
   const r = await replay(checkTransactionIntent, "intent-sol-match");
   assert.equal(r.verdict, "MATCH");
   assert.deepEqual(r.unexpected, []);
+});
+
+// Version 1 transactions were 40% of non-vote transactions in a mainnet block on 2026-10-19, and web3.js can't read them.
+test("check_tx and tx_matches read a version 1 transaction, with its fee from the v1 config", async () => {
+  const r = await replay(preflightTransaction, "preflight-v1-sol-transfer");
+  assert.equal(r.verdict, "OK");
+  assert.equal(r.fee.priority_lamports, "1000", "a v1 priority fee is a lamport total");
+  assert.equal(r.fee.compute_unit_limit, 450);
+  assert.equal((await replay(checkTransactionIntent, "intent-v1-sol-match")).verdict, "MATCH");
+});
+
+test("fee gives v1 advice for a v1 transaction, and explain_tx reads a landed v1 transaction", async () => {
+  assert.match((await replay(feeAdvice, "fee-v1")).how_to_use, /version 1 transaction: set computeUnitLimit to \d+ and priorityFeeLamports/);
+  const e = await replay(explainTransaction, "explain-v1");
+  assert.equal(e.result, "success");
+  assert.equal(e.programs[0].address, "11111111111111111111111111111111");
+  assert.ok(e.sol_changes.some((c: any) => c.raw_change === "9945"));
 });
 
 test("tx_matches catches SOL moved by an extra instruction", async () => {

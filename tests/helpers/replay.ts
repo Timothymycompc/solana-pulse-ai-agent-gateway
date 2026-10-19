@@ -46,7 +46,13 @@ export function recordingContext(rpcUrl: string) {
       const member = Reflect.get(target, prop, receiver);
       if (typeof member !== "function") return member;
       return async (...args: unknown[]) => {
-        const result = await member.apply(target, args);
+        let result;
+        try { result = await member.apply(target, args); }
+        catch (error: any) {
+          // Errors are answers too (the code may handle one), so they replay as the same error.
+          (recording.calls[String(prop)] ??= []).push({ __error: String(error?.message ?? error) });
+          throw error;
+        }
         (recording.calls[String(prop)] ??= []).push(encode(result));
         return result;
       };
@@ -82,7 +88,9 @@ export function replayContext(fixture: Fixture, options: { httpDown?: boolean } 
       return async () => {
         const queue = queues[String(prop)];
         if (!queue?.length) throw new Error(`Fixture ${fixture.name} has no recorded ${String(prop)} response`);
-        return decode(queue.shift());
+        const next: any = queue.shift();
+        if (next && typeof next.__error === "string") throw new Error(next.__error);
+        return decode(next);
       };
     },
   }) as Connection;

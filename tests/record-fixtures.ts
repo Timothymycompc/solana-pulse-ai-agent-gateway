@@ -4,7 +4,8 @@ import { clusterApiUrl, ComputeBudgetProgram, Connection, Keypair, PublicKey, Sy
 import { createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
 import "dotenv/config";
-import { checkTransactionIntent, exampleTransaction, preflightTransaction } from "../server/tools/transactions";
+import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
+import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { tokenVerdict } from "../server/tools/tokens";
 import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "../server/tools/lib";
 import type { ToolDef } from "../server/tools";
@@ -30,6 +31,28 @@ const sendUsdc = (to: PublicKey, owner: PublicKey, baseUnits: bigint) => [
   createAssociatedTokenAccountIdempotentInstruction(payer, to, owner, usdc),
   createTransferCheckedInstruction(fromUsdc, usdc, to, payer, baseUnits, 6),
 ];
+// A version 1 transaction: 0.01 SOL, with its compute limit and priority fee in the config. Neither web3.js nor kit
+// 6.10 builds v1 yet, so the compiled message is written out field by field (the layout kit decodes v1 with).
+async function buildV1(conn: Connection) {
+  const { blockhash } = await conn.getLatestBlockhash("confirmed");
+  const data = Buffer.alloc(12);
+  data.writeUInt32LE(2, 0);
+  data.writeBigUInt64LE(10_000_000n, 4);
+  const message = {
+    version: 1, header: { numSignerAccounts: 1, numReadonlySignerAccounts: 0, numReadonlyNonSignerAccounts: 1 },
+    // Priority fee, compute limit and loaded-data limit, as real v1 transactions set them (without a data limit the
+    // network rejects it: MaxLoadedAccountsDataSizeExceeded).
+    configMask: 3 | 4 | 8, configValues: [{ kind: "u64", value: 1000n }, { kind: "u32", value: 450 }, { kind: "u32", value: 65_536 }],
+    lifetimeToken: blockhash, numInstructions: 1, numStaticAccounts: 3,
+    staticAccounts: [EXAMPLE_WALLET, EXAMPLE_RECIPIENT, SystemProgram.programId.toBase58()],
+    instructionHeaders: [{ programAccountIndex: 2, numInstructionAccounts: 2, numInstructionDataBytes: 12 }],
+    instructionPayloads: [{ instructionAccountIndices: [0, 1], instructionData: new Uint8Array(data) }],
+  };
+  const messageBytes = getCompiledTransactionMessageEncoder().encode(message as any);
+  return Buffer.from(getTransactionEncoder().encode({ messageBytes, signatures: { [EXAMPLE_WALLET]: null } } as any)).toString("base64");
+}
+// A real v1 SOL transfer that landed on mainnet on 2026-10-19.
+const V1_SIGNATURE = "4nh2hRWKbWLdzJijZWgZv3Fgmh1bMrBUho5fWJFGJYAZkv7d9x3Yz2qMhAG5o2i6Qfd9AeRakKC88aqwtvg5Mr8H";
 const intent = (token: string, amount: string) => ({ token, amount, to: EXAMPLE_RECIPIENT });
 
 const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Promise<Record<string, unknown>> }[] = [
@@ -55,6 +78,10 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
     name: "intent-usdc-extra-transfer", tool: checkTransactionIntent,
     args: async (c) => ({ tx: await build(c, [...sendUsdc(toUsdc, recipient, 1_000_000n), ...sendUsdc(strangerUsdc, stranger, 5_000_000n)]), expected: intent(USDC_MINT, "1") }),
   },
+  { name: "preflight-v1-sol-transfer", tool: preflightTransaction, args: async (c) => ({ tx: await buildV1(c) }) },
+  { name: "intent-v1-sol-match", tool: checkTransactionIntent, args: async (c) => ({ tx: await buildV1(c), expected: intent("SOL", "0.01") }) },
+  { name: "fee-v1", tool: feeAdvice, args: async (c) => ({ tx: await buildV1(c) }) },
+  { name: "explain-v1", tool: explainTransaction, args: async () => ({ tx_id: V1_SIGNATURE }) },
   { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ token: USDC_MINT }) },
   // An established token that should pass every check, sell test included.
   { name: "token-verdict-jup", tool: tokenVerdict, args: async () => ({ token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" }) },

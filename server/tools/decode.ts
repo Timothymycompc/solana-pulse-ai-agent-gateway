@@ -1,5 +1,6 @@
 // Transaction decoding and simulation shared by check_tx, tx_matches and fee.
 import { AddressLookupTableAccount, Connection, PublicKey, VersionedTransaction } from "@solana/web3.js";
+import { getCompiledTransactionMessageDecoder, getTransactionDecoder, decompileTransactionMessage } from "@solana/kit";
 import { AccountLayout } from "@solana/spl-token";
 import {
   ATA_PROGRAM, BASE_FEE_LAMPORTS_PER_SIGNATURE, COMPUTE_BUDGET_PROGRAM, formatUnits, labelFor, lamportsToSol,
@@ -16,8 +17,18 @@ export type DecodedInstruction = {
   info: Record<string, string | number | null>;
 };
 
+// Version 1 transactions (on mainnet since 2026; 40% of non-vote transactions in a block on 2026-10-19) are newer than
+// web3.js, which reads only legacy and v0. They are decoded with @solana/kit and carry their own bytes: simulateTransaction
+// only calls serialize() on what it is given, so a v1 transaction is passed as its bytes behind that one method.
+type WireTransaction = { message: unknown; signatures: Uint8Array[]; serialize(): Uint8Array };
+// A v1 transaction sets its compute limit and priority fee (in lamports, not per compute unit) in its header config
+// instead of Compute Budget steps.
+export type V1Config = { computeUnitLimit?: number; priorityFeeLamports?: bigint; loadedAccountsDataSizeLimit?: number; heapSize?: number };
+
 export type LoadedTransaction = {
   tx: VersionedTransaction;
+  version: "legacy" | 0 | 1;
+  config: V1Config | null;
   keys: string[];
   writable: string[];
   signers: string[];
@@ -73,10 +84,30 @@ function decodeInstruction(index: number, programId: string, accounts: string[],
   return { ...base, type: labelFor(programId) ? "other" : "unknown_program", info: { dataBytes: data.length } };
 }
 
+const DECODE_FAILED = () => new ToolError(400, "Could not decode the transaction.", "Pass the full serialized transaction (legacy, v0 or v1) as base64, e.g. Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64').");
+
+function loadV1(bytes: Buffer): LoadedTransaction {
+  const decoded = getTransactionDecoder().decode(bytes);
+  const m: any = getCompiledTransactionMessageDecoder().decode(decoded.messageBytes);
+  if (m.version !== 1) throw DECODE_FAILED();
+  const keys: string[] = m.staticAccounts.map(String);
+  const { numSignerAccounts: signerCount, numReadonlySignerAccounts: readonlySigners, numReadonlyNonSignerAccounts: readonlyOthers } = m.header;
+  const writable = keys.filter((_, i) => (i < signerCount ? i < signerCount - readonlySigners : i < keys.length - readonlyOthers));
+  const signers = keys.slice(0, signerCount);
+  const instructions = m.instructionHeaders.map((h: any, i: number) => decodeInstruction(i, keys[h.programAccountIndex], m.instructionPayloads[i].instructionAccountIndices.map((k: number) => keys[k]), Buffer.from(m.instructionPayloads[i].instructionData)));
+  const config: V1Config = { ...(decompileTransactionMessage(m) as { config?: V1Config }).config };
+  const signatures = signers.map((k) => new Uint8Array((decoded.signatures as Record<string, Uint8Array | null>)[k] ?? new Uint8Array(64)));
+  const tx: WireTransaction = { message: m, signatures, serialize: () => new Uint8Array(bytes) };
+  return { tx: tx as unknown as VersionedTransaction, version: 1, config, keys, writable, signers, feePayer: keys[0], recentBlockhash: String(m.lifetimeToken), instructions, usesLookupTables: false };
+}
+
 export async function loadTransaction(conn: Connection, base64: string): Promise<LoadedTransaction> {
+  const bytes = Buffer.from(String(base64).trim(), "base64");
   let tx: VersionedTransaction;
-  try { tx = VersionedTransaction.deserialize(Buffer.from(String(base64).trim(), "base64")); }
-  catch { throw new ToolError(400, "Could not decode the transaction.", "Pass the full serialized transaction (legacy or v0) as base64, e.g. Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64')."); }
+  try { tx = VersionedTransaction.deserialize(bytes); }
+  catch {
+    try { return loadV1(bytes); } catch { throw DECODE_FAILED(); }
+  }
   const msg = tx.message;
   const lookups = msg.addressTableLookups ?? [];
   let tables: AddressLookupTableAccount[] = [];
@@ -92,21 +123,25 @@ export async function loadTransaction(conn: Connection, base64: string): Promise
   const writable = keys.filter((_, i) => msg.isAccountWritable(i));
   const signers = keys.slice(0, msg.header.numRequiredSignatures);
   const instructions = msg.compiledInstructions.map((ix, i) => decodeInstruction(i, keys[ix.programIdIndex], ix.accountKeyIndexes.map((k) => keys[k]), Buffer.from(ix.data)));
-  return { tx, keys, writable, signers, feePayer: keys[0], recentBlockhash: msg.recentBlockhash, instructions, usesLookupTables: lookups.length > 0 };
+  return { tx, version: tx.version, config: null, keys, writable, signers, feePayer: keys[0], recentBlockhash: msg.recentBlockhash, instructions, usesLookupTables: lookups.length > 0 };
 }
 
-// Fees as charged by the runtime: base fee per signature, plus priority fee on the requested compute limit.
+// Fees as charged by the runtime: base fee per signature, plus priority fee on the requested compute limit. A v1
+// transaction states both in its config, and its priority fee is a lamport total.
 export function feeBreakdown(loaded: LoadedTransaction) {
   const limitIx = loaded.instructions.find((i) => i.type === "set_compute_unit_limit");
   const priceIx = loaded.instructions.find((i) => i.type === "set_compute_unit_price");
   const nonBudget = loaded.instructions.filter((i) => i.programId !== COMPUTE_BUDGET_PROGRAM).length;
-  const computeUnitLimit = limitIx ? Number(limitIx.info.units) : Math.min(200_000 * Math.max(nonBudget, 1), 1_400_000);
-  const microLamportsPerComputeUnit = priceIx ? BigInt(String(priceIx.info.microLamportsPerComputeUnit)) : 0n;
-  const priorityLamports = (microLamportsPerComputeUnit * BigInt(computeUnitLimit) + 999_999n) / 1_000_000n;
+  const v1Limit = loaded.config?.computeUnitLimit;
+  const computeUnitLimit = v1Limit !== undefined ? v1Limit : limitIx ? Number(limitIx.info.units) : Math.min(200_000 * Math.max(nonBudget, 1), 1_400_000);
+  const v1Fee = loaded.config?.priorityFeeLamports;
+  const microLamportsPerComputeUnit = v1Fee !== undefined ? (computeUnitLimit ? (BigInt(v1Fee) * 1_000_000n) / BigInt(computeUnitLimit) : 0n)
+    : priceIx ? BigInt(String(priceIx.info.microLamportsPerComputeUnit)) : 0n;
+  const priorityLamports = v1Fee !== undefined ? BigInt(v1Fee) : (microLamportsPerComputeUnit * BigInt(computeUnitLimit) + 999_999n) / 1_000_000n;
   const baseLamports = BigInt(BASE_FEE_LAMPORTS_PER_SIGNATURE * loaded.signers.length);
   return {
     baseLamports: baseLamports.toString(), priorityLamports: priorityLamports.toString(), totalLamports: (baseLamports + priorityLamports).toString(),
-    totalSol: lamportsToSol(baseLamports + priorityLamports), computeUnitLimit, computeUnitLimitSource: limitIx ? "set in transaction" : "runtime default (200,000 per instruction)",
+    totalSol: lamportsToSol(baseLamports + priorityLamports), computeUnitLimit, computeUnitLimitSource: v1Limit !== undefined ? "set in transaction config (v1)" : limitIx ? "set in transaction" : "runtime default (200,000 per instruction)",
     microLamportsPerComputeUnit: microLamportsPerComputeUnit.toString(),
   };
 }

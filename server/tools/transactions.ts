@@ -1,5 +1,5 @@
 // Transaction intelligence: check before signing, verify intent, explain what happened, and price fees correctly.
-import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction, type Connection } from "@solana/web3.js";
+import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction, type Connection, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { createApproveInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
 import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners, type DecodedInstruction, type LoadedTransaction } from "./decode";
@@ -13,7 +13,7 @@ import { ToolError, type ToolContext, type ToolDef } from "./types";
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
 const TX_DOC = {
   name: "tx", type: "string (base64)", required: true,
-  lookingFor: "Base64 transaction, signed or not, legacy or v0.",
+  lookingFor: "Base64 transaction, signed or not, legacy, v0 or v1.",
   whereToGet: "Before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or an aggregator's swap tx.",
 };
 const symbolsFor = (ctx: ToolContext) => async (mints: string[]) => {
@@ -252,6 +252,24 @@ export const checkTransactionIntent: ToolDef = {
   },
 };
 
+// web3.js rejects version 1 transactions (newer than it), so those are fetched raw and given the same shape:
+// PublicKeys where web3.js would put them.
+async function parsedTransaction(conn: Connection, signature: string): Promise<ParsedTransactionWithMeta | null> {
+  try {
+    return await conn.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
+  } catch (error: any) {
+    if (!/Transaction version \(1\)/.test(String(error?.message))) throw error;
+  }
+  const res: any = await (conn as any)._rpcRequest("getTransaction", [signature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 1, commitment: "confirmed" }]);
+  if (res.error) throw new Error(`failed to get transaction: ${res.error.message}`);
+  const tx = res.result;
+  if (!tx) return null;
+  const message = tx.transaction.message;
+  message.accountKeys = message.accountKeys.map((k: any) => ({ ...k, pubkey: new PublicKey(k.pubkey) }));
+  message.instructions = message.instructions.map((i: any) => ({ ...i, programId: new PublicKey(i.programId) }));
+  return tx;
+}
+
 export const explainTransaction: ToolDef = {
   name: "explain_tx",
   oldName: "explain_transaction",
@@ -283,7 +301,7 @@ export const explainTransaction: ToolDef = {
     return { tx_id: ok.signature };
   },
   run: async ({ tx_id, network }, ctx) => {
-    const tx = await ctx.connection(network).getParsedTransaction(String(tx_id).trim(), { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
+    const tx = await parsedTransaction(ctx.connection(network), String(tx_id).trim());
     if (!tx) throw new ToolError(404, "Transaction not found.", "Check the tx_id and network. Very new transactions can take a few seconds to appear; very old ones may be pruned by this RPC.");
     const meta = tx.meta!;
     const keys = tx.transaction.message.accountKeys.map((k) => k.pubkey.toBase58());
@@ -352,7 +370,7 @@ export const feeAdvice: ToolDef = {
     { field: "prices.*.priority_lamports / total_lamports / total_sol", type: "string", is: "What the transaction would pay at that price.", howWorkedOut: "priority = price x compute units / 1,000,000, rounded up. total = priority + 5000 lamports per signature." },
     { field: "compute_units", type: "number", is: "The compute units the costs are worked out for.", howWorkedOut: "With a transaction: dry-run units used + 10%. Without: 200,000 (a typical one-step default)." },
     { field: "compute_units_from", type: "string", is: "Whether compute_units came from a dry run or the default.", howWorkedOut: '"simulation" or "default".' },
-    { field: "how_to_use", type: "string", is: "The two Compute Budget steps to add.", howWorkedOut: "Built from the normal price and compute_units." },
+    { field: "how_to_use", type: "string", is: "The two Compute Budget steps to add (for a v1 transaction, the two config fields to set).", howWorkedOut: "Built from the normal price and compute_units." },
   ],
   example: async (ctx) => ({ tx: await exampleTransaction(ctx.connection("mainnet-beta"), "sol_transfer") }),
   run: async ({ tx, network }, ctx) => {
@@ -361,8 +379,10 @@ export const feeAdvice: ToolDef = {
     let computeUnits = 200_000;
     let computeUnitsSource = "default";
     let signatures = 1;
+    let v1 = false;
     if (tx) {
       const loaded = await loadTransaction(conn, tx);
+      v1 = loaded.version === 1;
       accounts = loaded.writable.slice(0, 128).map((a) => new PublicKey(a));
       signatures = loaded.signers.length;
       const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed" });
@@ -380,7 +400,9 @@ export const feeAdvice: ToolDef = {
       network, unit: "micro-lamports per compute unit", based_on: accounts.length ? `${accounts.length} writable account(s) in your transaction` : "network-wide",
       samples: fees.length, share_paying: fees.length ? Math.round((fees.filter((f) => f > 0).length / fees.length) * 100) / 100 : 0,
       prices, compute_units: computeUnits, compute_units_from: computeUnitsSource,
-      how_to_use: `Add ComputeBudgetProgram.setComputeUnitLimit({ units: ${computeUnits} }) and ComputeBudgetProgram.setComputeUnitPrice({ microLamports: ${prices.normal.compute_unit_price} }) as the first instructions.`,
+      how_to_use: v1
+        ? `This is a version 1 transaction: set computeUnitLimit to ${computeUnits} and priorityFeeLamports to ${prices.normal.priority_lamports} in its config. That fee is a lamport total, not a price per compute unit.`
+        : `Add ComputeBudgetProgram.setComputeUnitLimit({ units: ${computeUnits} }) and ComputeBudgetProgram.setComputeUnitPrice({ microLamports: ${prices.normal.compute_unit_price} }) as the first instructions.`,
     };
   },
 };
