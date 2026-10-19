@@ -7,7 +7,7 @@
 //   4. False alarms on well-known tokens: of established, liquid, verified tokens, how many does it call SAFE?
 // It runs on Google Cloud, not on anyone's computer: Cloud Scheduler calls POST /api/owner/accuracy/tick every
 // 10 minutes (scripts/accuracy-setup.sh). Each tick does a small, bounded amount of work:
-//   - Sample (questions 1-3): until SAMPLE_GOAL are recorded, take tokens under YOUNG_DAYS old with at least
+//   - Sample (questions 1-3): until SAMPLE_GOAL are recorded (not counting ones whose check gave up), take tokens under YOUNG_DAYS old with at least
 //     MIN_LIQUIDITY_USD of liquidity from Jupiter's activity lists, the tokens people are buying right now. Below that
 //     liquidity the liquidity rule alone decides. Record the verdict, every check's result, liquidity and price.
 //   - Queue (question 4): tokens added by hand (POST /api/owner/accuracy/add, e.g. npm run accuracy-rerun).
@@ -95,7 +95,9 @@ async function sampleCandidates(ctx: ToolContext): Promise<{ token: JupToken; li
 
 export async function accuracyTick(ctx: ToolContext, verdict: Verdict) {
   const done = { sampled: 0, checked: 0, followedUp: 0 };
-  const have = Number((await pool.query(`SELECT COUNT(*) AS n FROM accuracy_tokens WHERE cohort = $1`, [SAMPLE_COHORT])).rows[0].n);
+  // Tokens whose check gave up (3 tries) don't count toward the goal, so new ones replace them. In Oct 2026, 59 of the
+  // first 100 gave up because Jupiter's keyless API rate-limited token_safety (market data unavailable).
+  const have = Number((await pool.query(`SELECT COUNT(*) AS n FROM accuracy_tokens WHERE cohort = $1 AND (checked_at IS NOT NULL OR attempts < 3)`, [SAMPLE_COHORT])).rows[0].n);
   if (have < SAMPLE_GOAL) {
     for (const { token, list } of await sampleCandidates(ctx)) {
       if (done.sampled >= Math.min(PER_TICK.sample, SAMPLE_GOAL - have)) break;

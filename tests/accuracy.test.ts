@@ -121,3 +121,15 @@ test("a partial verdict (market data unavailable) is retried, not counted", asyn
   row = (await pool.query(`SELECT * FROM accuracy_tokens WHERE cohort = 'partial'`)).rows[0];
   assert.equal(row.verdict, "AVOID");
 });
+
+test("sampled tokens whose check gave up are replaced, so the goal counts real verdicts", async () => {
+  clearJupCache();
+  for (let i = 0; i < 98; i++) {
+    await pool.query(`INSERT INTO accuracy_tokens (cohort, mint, found_in, attempts, error) VALUES ($1, $2, 'toptraded/1h', 3, 'Partial verdict')`, [SAMPLE_COHORT, `gaveup${i}`]);
+  }
+  const N = "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNpump";
+  listed[N] = { id: N, liquidity: 30_000, usdPrice: 1, firstPool: { createdAt: hoursAgo(2) } };
+  const tick = await accuracyTick({ ...world, fetchJson: async (url: string) => url.includes("/tokens/v2/toptrending/5m") ? [listed[N]] : world.fetchJson(url) }, fakeVerdict);
+  assert.equal(tick.sampled, 1, "100 rows, but only 2 real verdicts: keep sampling");
+  assert.equal((await accuracyReport()).cohorts[SAMPLE_COHORT].errors, 98, "the ones that gave up are still reported");
+});
