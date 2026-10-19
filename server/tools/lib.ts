@@ -152,7 +152,7 @@ export const isoTime = (unixSeconds: number | null | undefined) => (unixSeconds 
 export const NETWORK_DOC = {
   name: "network", type: '"mainnet-beta" | "devnet"', required: false,
   lookingFor: 'Default "mainnet-beta" (real money).',
-  whereToGet: 'Use "devnet" only for test wallets.',
+  whereToGet: '"devnet" only for test wallets.',
 };
 
 // camelCase keys to snake_case, all the way down, so every output field reads the same way ("amountRaw" -> "amount_raw").
