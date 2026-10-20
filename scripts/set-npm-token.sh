@@ -8,7 +8,10 @@ CLIP=/data/data/com.termux/files/usr/bin/termux-clipboard-get
 if [ -t 0 ] || [ ! -x "$CLIP" ]; then
   read -rsp "Paste your npm token (input hidden), then press Enter: " KEY; echo
 else
-  KEY=$(timeout 15 "$CLIP" | tr -d '[:space:]'); echo "Read the token from the clipboard."
+  KEY=$(timeout 15 "$CLIP"); echo "Read the token from the clipboard."
+  # Copying a command to paste it replaces the token on the clipboard; say so instead of testing the command.
+  case "$KEY" in *" "*|"!"*|*"npm run"*|*pulse-*) echo "The clipboard holds a command, not the token. Copy the token again, then TYPE the command (don't paste it)."; exit 1;; esac
+  KEY=$(printf %s "$KEY" | tr -d '[:space:]')
 fi
 [ -z "$KEY" ] && { echo "No token entered."; exit 1; }
 echo "Testing the token..."

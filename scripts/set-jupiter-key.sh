@@ -9,7 +9,10 @@ CLIP=/data/data/com.termux/files/usr/bin/termux-clipboard-get
 if [ -t 0 ] || [ ! -x "$CLIP" ]; then
   read -rsp "Paste your Jupiter API key (input hidden), then press Enter: " KEY; echo
 else
-  KEY=$(timeout 15 "$CLIP" | tr -d '[:space:]'); echo "Read the key from the clipboard."
+  KEY=$(timeout 15 "$CLIP"); echo "Read the key from the clipboard."
+  # Copying a command to paste it replaces the key on the clipboard; say so instead of testing the command.
+  case "$KEY" in *" "*|"!"*|*"npm run"*|*pulse-*) echo "The clipboard holds a command, not the key. Copy the key again, then TYPE the command (don't paste it)."; exit 1;; esac
+  KEY=$(printf %s "$KEY" | tr -d '[:space:]')
 fi
 [ -z "$KEY" ] && { echo "No key entered."; exit 1; }
 echo "Testing the key..."
