@@ -36,7 +36,8 @@
     "x-videos": "bash scripts/x-videos.sh",
     "everyday": "tsx benchmark/everyday-run.ts",
     "everyday:record": "tsx benchmark/everyday-run.ts record",
-    "trial-key": "tsx scripts/trial-key.ts"
+    "trial-key": "tsx scripts/trial-key.ts",
+    "openapi": "tsx scripts/openapi.ts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

@@ -27,6 +27,7 @@ import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
 import { VERSION } from "./version";
+import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
@@ -496,6 +497,7 @@ async function startServer() {
     res.type("text/plain").send(`User-agent: *\nAllow: /\n\nSitemap: ${PUBLIC_URL}/sitemap.xml`);
   });
 
+  app.get("/openapi.json", noCache, (_req, res) => res.json(openApiDocument(PUBLIC_URL)));
   app.get("/llms.txt", noCache, (_req, res) => {
     const section = (category: string, heading: string) => {
       const tools = TOOLS.filter((t) => t.category === category);

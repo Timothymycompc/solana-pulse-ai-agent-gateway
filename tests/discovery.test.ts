@@ -42,3 +42,15 @@ test("HTTP and MCP listings pass the Bazaar schema check", () => {
     }
   }
 });
+
+test("the OpenAPI document lists every tool with a payment-prompt summary Pay.sh accepts", async () => {
+  const { openApiDocument } = await import("../server/openapi");
+  const { TOOLS } = await import("../server/tools");
+  const doc: any = openApiDocument("https://example.com");
+  assert.equal(Object.keys(doc.paths).length, TOOLS.length);
+  for (const tool of TOOLS) {
+    const op = doc.paths[`/api/tools/${tool.name}`].post;
+    assert.ok(op.summary.length >= 24, `${tool.name}: Pay.sh needs a summary of 24+ characters`);
+    assert.ok(op.requestBody.content["application/json"].schema.properties, `${tool.name} documents its inputs`);
+  }
+});
