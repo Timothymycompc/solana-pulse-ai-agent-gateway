@@ -1,0 +1,44 @@
+# Publishes the Solana Agent Kit plugin (agent-kit/) to npm whenever its version changes on main. No token: npm's
+# Trusted Publishing accepts GitHub's identity token (OIDC) for this repo and workflow, set up once on npmjs.com under
+# the package's Settings, Trusted Publisher. Releases carry provenance (npm shows they were built here).
+name: Publish Agent Kit plugin to npm
+on:
+  push:
+    branches: [main]
+    paths: [agent-kit/package.json]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Skip if this version is already published
+        id: check
+        working-directory: agent-kit
+        run: |
+          VERSION=$(jq -r .version package.json)
+          if npm view "solana-agent-kit-plugin-pulse@$VERSION" version >/dev/null 2>&1; then
+            echo "Version $VERSION is already on npm; bump agent-kit/package.json (and PLUGIN_VERSION in src/client.ts) to publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the tool list is current with the registry
+        if: steps.check.outputs.skip != 'true'
+        run: npm ci && npx tsx --test tests/agent-kit.test.ts
+      - name: Build, test and publish
+        if: steps.check.outputs.skip != 'true'
+        working-directory: agent-kit
+        run: |
+          npm install -g npm@latest
+          npm ci
+          npm run build
+          npm test
+          npm publish --access public --provenance
