@@ -77,7 +77,7 @@ test("percent-encoded and old tool names share the real tool's allowance", async
   }
 });
 
-test("Coinbase's Bazaar checker and indexer are asked to pay, not given a free call", async () => {
+test("Coinbase's Bazaar checker and indexer, and the pay tool, are asked to pay, not given a free call", async () => {
   const app = express();
   app.set("trust proxy", true);
   const payWall = (_req: any, res: any) => res.status(402).json({ x402Version: 2 });
@@ -90,6 +90,9 @@ test("Coinbase's Bazaar checker and indexer are asked to pay, not given a free c
     assert.equal(await call("Go-http-client/2.0"), 402);
     assert.equal(await call("CoinbaseBazaarDiscovery/1.0 (+/x402)"), 402);
     assert.equal(await call("my-agent/1.0 Go-http-client/1.1"), 200, "a Go app that names itself still gets free calls");
+    assert.equal(await call("pay/cli/0.29.0"), 402, "the Solana Foundation's pay tool, whose registry only lists tools that answer 402");
+    assert.equal(await call("pay/mcp/1.0.26"), 402);
+    assert.equal(await call("paycheck-bot/1.0"), 200);
   } finally {
     server.close();
   }

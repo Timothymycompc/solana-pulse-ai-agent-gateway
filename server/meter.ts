@@ -103,7 +103,9 @@ export async function admitCall(o: { tool: string; ip: string; apiKey?: string; 
 
 // Directory checkers must see "402 Payment Required" to list a paid tool, so they get no free calls over HTTP: Coinbase's
 // Bazaar validator (Go's default user agent and nothing else) and its indexer (CoinbaseBazaarDiscovery), which calls
-// each tool with its listed example after a payment. A Go app that names itself still gets free calls.
+// each tool with its listed example after a payment. A Go app that names itself still gets free calls. The Solana
+// Foundation's pay tool (pay/cli/<version>, pay/mcp/<version>) too: its registry (Pay.sh) only lists a tool that answers
+// 402, its checker calls with the same user agent as its users, and pay pays automatically, so its users pay from the first call.
 // Tools that cannot run without inputs; for these an empty body is a discovery probe (paidRouteMiddleware).
 // Tools whose inputs are all optional, like fee and blockhash, run on an empty body, so it is a real call.
 const needsInput = new Map<string, boolean>();
@@ -114,7 +116,7 @@ export function toolNeedsInput(tool: string): boolean {
   return needsInput.get(def.name)!;
 }
 
-export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$|^CoinbaseBazaarDiscovery\//;
+export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$|^CoinbaseBazaarDiscovery\/|^pay\/[a-z]+\/\d/;
 
 // HTTP gate for data routes: free tools, the owner key and free calls pass straight through; everything else goes to x402.
 export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHandler {

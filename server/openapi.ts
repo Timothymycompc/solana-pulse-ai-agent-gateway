@@ -48,7 +48,7 @@ export function openApiDocument(serverUrl: string) {
       post: {
         operationId: tool.name,
         summary: SUMMARIES[tool.name] ?? tool.title,
-        description: `${tool.useWhen} ${tool.description}${price ? ` Price: ${price} USDC per call on Solana (x402), after ${FREE_CALLS_PER_TOOL} free calls a day.` : " Free."}`,
+        description: `${tool.useWhen} ${tool.description}${price ? ` Price: ${price} USDC per call on Solana (x402), after ${FREE_CALLS_PER_TOOL} free calls a day (from the first call through the pay tool).` : " Free."}`,
         requestBody: { required: true, content: { "application/json": { schema: inputSchema(tool.inputs) } } },
         responses: {
           "200": { description: "The answer, every field explained.", content: { "application/json": { schema: { type: "object", properties } } } },
