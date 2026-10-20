@@ -37,7 +37,8 @@
     "everyday": "tsx benchmark/everyday-run.ts",
     "everyday:record": "tsx benchmark/everyday-run.ts record",
     "trial-key": "tsx scripts/trial-key.ts",
-    "openapi": "tsx scripts/openapi.ts"
+    "openapi": "tsx scripts/openapi.ts",
+    "agent-kit": "tsx scripts/agent-kit.ts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

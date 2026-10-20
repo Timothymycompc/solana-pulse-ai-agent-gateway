@@ -1,0 +1,60 @@
+{
+  "name": "solana-agent-kit-plugin-pulse",
+  "version": "0.1.0",
+  "description": "Solana Agent Kit plugin for Solana Pulse: check a transaction before signing (drainers, wrong recipient or amount, failures), token safety verdicts, fees and plain-words explanations, from live mainnet data with sources.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "solana-agent-kit",
+    "solana",
+    "sendai",
+    "safety",
+    "transaction-simulation",
+    "drainer",
+    "rug-check",
+    "mcp",
+    "x402"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway",
+    "directory": "agent-kit"
+  },
+  "homepage": "https://solana-pulse-gateway-1021990235790.us-central1.run.app",
+  "license": "MIT",
+  "peerDependencies": {
+    "solana-agent-kit": "^2.0.0"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "solana-agent-kit": "2.0.10",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true
+  }
+}

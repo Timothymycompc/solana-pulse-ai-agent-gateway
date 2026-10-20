@@ -8,3 +8,5 @@ dist/
 secrets.json
 secrets.json.enc
 updated/
+agent-kit/node_modules/
+agent-kit/dist/

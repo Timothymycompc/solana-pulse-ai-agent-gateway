@@ -63,6 +63,8 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 - **OpenCode** (`opencode.json`): `{ "mcp": { "solana-pulse": { "type": "remote", "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
 - **ElizaOS and Coinbase AgentKit**: setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
 
+Solana Agent Kit (SendAI): a plugin in [`agent-kit/`](agent-kit/README.md) (`solana-agent-kit-plugin-pulse`, not on npm yet) turns each tool into an action (`PULSE_CHECK_TX`, `PULSE_TOKEN_SAFETY`, ...) and a method (`agent.methods.pulseCheckTx(agent, { tx })`). Its tool list is generated from the same registry (`npm run agent-kit`), and `tests/agent-kit.test.ts` fails if it falls behind.
+
 ## Pricing and payments
 
 - All calls are rate-limited to 120 requests per minute per IP.
@@ -106,7 +108,7 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 104 tests, offline, about a minute
+npm test               # 107 tests, offline, about a minute
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 npm run benchmark      # score the 10 attack cases
 npm run everyday       # replay the 200 everyday transactions
