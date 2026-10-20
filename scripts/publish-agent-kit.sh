@@ -1,0 +1,17 @@
+#!/bin/bash
+# Publishes agent-kit/ (solana-agent-kit-plugin-pulse) to npm with the NPM_TOKEN from Secret Manager, after checking its
+# tool list is current and its tests pass. Bump agent-kit/package.json's version (and PLUGIN_VERSION in
+# agent-kit/src/client.ts) before publishing again: npm never accepts the same version twice.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+npx tsx --test tests/agent-kit.test.ts >/dev/null || { echo "The plugin's tool list is behind the registry. Run: npm run agent-kit"; exit 1; }
+TOKEN=$(gcloud secrets versions access latest --secret=NPM_TOKEN 2>/dev/null) || { echo "No NPM_TOKEN in Secret Manager. Run: npm run set-npm-token"; exit 1; }
+cd agent-kit
+[ -d node_modules ] || npm install --no-audit --no-fund
+npm run build
+npm test
+# The token goes in a throwaway npm config that is deleted when this script ends.
+RC=$(mktemp); trap 'rm -f "$RC"' EXIT
+printf '//registry.npmjs.org/:_authToken=%s\n' "$TOKEN" > "$RC"
+NPM_CONFIG_USERCONFIG="$RC" npm publish --access public
+echo "Published: https://www.npmjs.com/package/solana-agent-kit-plugin-pulse"
