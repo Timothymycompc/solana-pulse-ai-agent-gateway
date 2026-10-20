@@ -63,7 +63,7 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 - **OpenCode** (`opencode.json`): `{ "mcp": { "solana-pulse": { "type": "remote", "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
 - **ElizaOS and Coinbase AgentKit**: setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
 
-Solana Agent Kit (SendAI): a plugin in [`agent-kit/`](agent-kit/README.md) (`solana-agent-kit-plugin-pulse`, not on npm yet) turns each tool into an action (`PULSE_CHECK_TX`, `PULSE_TOKEN_SAFETY`, ...) and a method (`agent.methods.pulseCheckTx(agent, { tx })`). Its tool list is generated from the same registry (`npm run agent-kit`), and `tests/agent-kit.test.ts` fails if it falls behind.
+Solana Agent Kit (SendAI): a plugin in [`agent-kit/`](agent-kit/README.md) ([`solana-agent-kit-plugin-pulse`](https://www.npmjs.com/package/solana-agent-kit-plugin-pulse) on npm) turns each tool into an action (`PULSE_CHECK_TX`, `PULSE_TOKEN_SAFETY`, ...) and a method (`agent.methods.pulseCheckTx(agent, { tx })`). Its tool list is generated from the same registry (`npm run agent-kit`), and `tests/agent-kit.test.ts` fails if it falls behind.
 
 ## Pricing and payments
 

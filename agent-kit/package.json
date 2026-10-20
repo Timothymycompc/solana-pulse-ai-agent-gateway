@@ -35,7 +35,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway",
+    "url": "git+https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway.git",
     "directory": "agent-kit"
   },
   "homepage": "https://solana-pulse-gateway-1021990235790.us-central1.run.app",
