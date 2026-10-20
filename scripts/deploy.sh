@@ -46,9 +46,12 @@ for SECRET in DATABASE_URL OWNER_API_KEY SOLANA_MAINNET_RPC_URL; do
   elif [ $SECRET = DATABASE_URL ]; then stop "Secret DATABASE_URL is missing; the server cannot start without it." "Create it in Secret Manager."
   else warn "Secret $SECRET is missing (the site works, but $([ $SECRET = OWNER_API_KEY ] && echo 'you get no owner key' || echo 'it uses the slow public RPC'))."; fi
 done
-USDC=$(curl -s -m 15 https://api.mainnet-beta.solana.com -H 'content-type: application/json' \
-  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getTokenAccountsByOwner\",\"params\":[\"$PAYOUT_WALLET\",{\"mint\":\"$USDC_MINT\"},{\"encoding\":\"jsonParsed\"}]}" | grep -c '"pubkey"')
-[ "$USDC" -gt 0 ] && ok "Payout wallet can receive USDC" || warn "Payout wallet has no USDC account yet: x402 payments will fail until you send it any amount of USDC."
+USDC_REPLY=$(curl -s -m 15 https://api.mainnet-beta.solana.com -H 'content-type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getTokenAccountsByOwner\",\"params\":[\"$PAYOUT_WALLET\",{\"mint\":\"$USDC_MINT\"},{\"encoding\":\"jsonParsed\"}]}")
+# The public RPC sometimes times out or rate-limits; only a real answer with no accounts means the wallet can't receive USDC.
+if ! grep -q '"result"' <<< "$USDC_REPLY"; then warn "Could not check the payout wallet's USDC account (the public RPC didn't answer); the deploy goes on."
+elif grep -q '"pubkey"' <<< "$USDC_REPLY"; then ok "Payout wallet can receive USDC"
+else warn "Payout wallet has no USDC account yet: x402 payments will fail until you send it any amount of USDC."; fi
 [ -z "$(git status --porcelain)" ] && ok "No uncommitted changes" || warn "You have uncommitted changes; they will be deployed but are not saved in git."
 
 # ---------- 2. Local checks ----------
