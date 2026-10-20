@@ -108,7 +108,7 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 109 tests, offline, about a minute
+npm test               # 110 tests, offline, about a minute
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 npm run benchmark      # score the 10 attack cases
 npm run everyday       # replay the 200 everyday transactions
@@ -117,6 +117,7 @@ npm run everyday       # replay the 200 everyday transactions
 - **Solana Agent Safety Benchmark** ([benchmark/README.md](benchmark/README.md), `tests/benchmark.test.ts`): 10 cases built from real mainnet accounts and simulated against live mainnet state: a correct transfer (must pass), wrong recipient, wrong amount, wrong token, extra instruction, hidden transfer, malicious program, balance drain, expired transaction and replayed payment (all must fail). Solana Pulse catches 9 of 9 attacks for the right reason, with no false alarm. `benchmark/score.ts` scores any checker on the same cases.
 - **False alarms on 200 real transactions** (`benchmark/everyday.ts`, `tests/everyday.test.ts`): 200 ordinary transactions that really worked, from the newest mainnet blocks, checked the way a wallet hands them over before signing. No BLOCK; 80 of 80 transfers OK and MATCH; 26 of 27 swaps MATCH (the other paid a trading bot 1.54%); the REVIEWs are transactions calling programs check_tx doesn't recognize. Building it found that version 1 transactions couldn't be read and that fees without a compute limit were wrong; both are fixed, and fees now match what mainnet charged for all 200.
 
+- **628 tokens a real beginner bought** (`benchmark/first-wallet.ts`, `tests/first-wallet.test.ts`): what became of each, against token_safety. A mint or freeze power on the day of the buy marked 400 of the 413 tokens that later died and none of the 20 that kept their value (a small group). It also found that dead tokens were only CAUTION; they're now AVOID when Jupiter says they can't be traded.
 - **Safety checks** (`tests/safety.test.ts`) run against real mainnet transactions recorded in `tests/fixtures/`: a drainer token approval (BLOCK), SOL moved by a hidden extra instruction, a 10x decimals slip, an extra USDC transfer to a stranger (all MISMATCH), plus clean transfers that must pass, including one that creates the recipient's token account.
 - **Free-call metering** (`tests/meter.test.ts`) runs the real SQL on an in-memory Postgres (PGlite): the daily allowance, refunds for failed calls, the daily reset and percent-encoded tool names.
 - **Units** (`tests/units.test.ts`): exact amount math, error explanations and instruction decoding.

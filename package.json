@@ -40,7 +40,9 @@
     "openapi": "tsx scripts/openapi.ts",
     "agent-kit": "tsx scripts/agent-kit.ts",
     "set-npm-token": "bash scripts/set-npm-token.sh",
-    "publish-agent-kit": "bash scripts/publish-agent-kit.sh"
+    "publish-agent-kit": "bash scripts/publish-agent-kit.sh",
+    "first-wallet": "tsx benchmark/first-wallet.ts",
+    "first-wallet:refresh": "PULSE_OWNER_KEY=$(gcloud secrets versions access latest --secret=OWNER_API_KEY) tsx benchmark/first-wallet.ts refresh"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

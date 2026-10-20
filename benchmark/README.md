@@ -98,6 +98,32 @@ in two separate samples); and each signature a built-in signature check verifies
 `npm run everyday` replays the recording (benchmark/everyday.json.gz) and writes benchmark/everyday-results.json;
 tests/everyday.test.ts pins the counts. `npm run everyday:record` takes a new sample (needs SOLANA_MAINNET_RPC_URL).
 
+## The first-wallet test: 628 tokens a real beginner bought
+
+`first-wallet.json` holds every token one real person bought with their first Solana wallet, January 2023 to May 2026 (mostly 2023), with what became of each. The person agreed to share it. Only the token, its outcome and token_safety's checks are in the file: no wallet, dates, amounts or prices.
+
+The outcome comes from what was paid and what the token is worth now: **lost most** means its price is at most 10% of what was paid (the same line as the live accuracy test), **kept value** means above that, **no market today** means Jupiter no longer prices it, and **unknown** means there's no purchase price on record (bought with another token, or received).
+
+**Would token_safety have warned on the day of the buy?** Only a mint or freeze power, or a Token-2022 extension, can be dated that far back. A power can only be given up, never taken back, and extensions are fixed when the token is made, so if one is there today, it was there then. Everything else (liquidity, holders, insiders, the sell test) changes over time and isn't counted.
+
+| Outcome | Tokens | Warned on the day of the buy | token_safety today: SAFE / CAUTION / AVOID |
+|---|---|---|---|
+| No market today | 413 | 400 (96%) | 0 / 1 / 412 |
+| Lost most | 37 | 4 (10%) | 5 / 8 / 24 |
+| Kept value | 20 | 0 | 9 / 6 / 5 |
+| Unknown | 158 | 95 (60%) | 9 / 16 / 133 |
+
+On the 404 tokens that died or crashed and would have been flagged on the day of the buy, the buyer put in 57.1 SOL and got 12.2 back: a 44.9 SOL loss (about $910 at the time's SOL prices).
+
+What it does and doesn't show:
+
+- **A mint or freeze power on the day of the buy marked almost every token that later died, and none that kept their value.** But only 20 tokens kept their value, so treat this as a strong signal, not a measured false-alarm rate. Most 2023 memecoins kept those powers, so the warning was also common.
+- **Most crashes (33 of 37) had no warning that can be dated back.** Their traps (thin liquidity, liquidity that could be pulled, insider wallets) change over time; dating them needs historical market data.
+- **It found a gap, now fixed:** 305 of 315 tokens with no market left were only CAUTION. token_safety now asks Jupiter's router, and when it says a token isn't tradable, that's AVOID ("No market ... you likely can't sell it"). The rule never fired on a token that still has a market.
+- **Copycat tickers were really bought:** fake "BTC", "ARB" and "SBONK" are among the losers, which is what find_token's copycat warning is for.
+
+`npm run first-wallet` prints the scorecard; `tests/first-wallet.test.ts` fails if a change to token_safety moves it. `npm run first-wallet:refresh` re-runs token_safety on every token (owner key, one at a time).
+
 ## Still to do (Milestone 2)
 
 - The public test set: a scoring script any checker can run, and a way to run the cases live, since a recent blockhash
