@@ -4,7 +4,13 @@
 # turned away 27% of token checks under load in the Oct 2026 audit. Asks for the key so it never lands in shell history.
 set -uo pipefail
 SA="1021990235790-compute@developer.gserviceaccount.com"
-read -rsp "Paste your Jupiter API key (input hidden), then press Enter: " KEY; echo
+CLIP=/data/data/com.termux/files/usr/bin/termux-clipboard-get
+# The Claude Code "!" prompt has no keyboard input; there the key is read from the phone's clipboard (copy it first).
+if [ -t 0 ] || [ ! -x "$CLIP" ]; then
+  read -rsp "Paste your Jupiter API key (input hidden), then press Enter: " KEY; echo
+else
+  KEY=$(timeout 15 "$CLIP" | tr -d '[:space:]'); echo "Read the key from the clipboard."
+fi
 [ -z "$KEY" ] && { echo "No key entered."; exit 1; }
 echo "Testing the key..."
 CODE=$(curl -s -m 15 -o /dev/null -w '%{http_code}' "https://api.jup.ag/tokens/v2/search?query=USDC" -H "x-api-key: $KEY")
@@ -15,3 +21,5 @@ else
   printf %s "$KEY" | gcloud secrets create JUPITER_API_KEY --data-file=- || exit 1
 fi
 gcloud secrets add-iam-policy-binding JUPITER_API_KEY --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor >/dev/null && echo "Done: Cloud Run can read JUPITER_API_KEY. It takes effect on the next deploy."
+# Leave no copy of the key on the clipboard.
+[ -x /data/data/com.termux/files/usr/bin/termux-clipboard-set ] && printf '' | /data/data/com.termux/files/usr/bin/termux-clipboard-set

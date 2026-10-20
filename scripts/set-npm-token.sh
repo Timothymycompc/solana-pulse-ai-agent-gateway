@@ -3,7 +3,13 @@
 # Secret Manager as NPM_TOKEN, for publishing the Agent Kit plugin (npm run publish-agent-kit). Asks for the token so it
 # never lands in shell history or a file.
 set -uo pipefail
-read -rsp "Paste your npm token (input hidden), then press Enter: " KEY; echo
+CLIP=/data/data/com.termux/files/usr/bin/termux-clipboard-get
+# The Claude Code "!" prompt has no keyboard input; there the key is read from the phone's clipboard (copy it first).
+if [ -t 0 ] || [ ! -x "$CLIP" ]; then
+  read -rsp "Paste your npm token (input hidden), then press Enter: " KEY; echo
+else
+  KEY=$(timeout 15 "$CLIP" | tr -d '[:space:]'); echo "Read the token from the clipboard."
+fi
 [ -z "$KEY" ] && { echo "No token entered."; exit 1; }
 echo "Testing the token..."
 WHO=$(curl -s -m 15 https://registry.npmjs.org/-/whoami -H "authorization: Bearer $KEY" | sed -n 's/.*"username":"\([^"]*\)".*/\1/p')
@@ -14,3 +20,5 @@ else
   printf %s "$KEY" | gcloud secrets create NPM_TOKEN --data-file=- >/dev/null || exit 1
 fi
 echo "Done: saved the token for npm user $WHO. Publish with: npm run publish-agent-kit"
+# Leave no copy of the token on the clipboard.
+[ -x /data/data/com.termux/files/usr/bin/termux-clipboard-set ] && printf '' | /data/data/com.termux/files/usr/bin/termux-clipboard-set
