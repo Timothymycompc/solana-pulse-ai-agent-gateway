@@ -2,7 +2,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
 import { assertAddress, BONK_MINT, formatUnits, jupLookup, KNOWN_STABLECOINS, NETWORK_DOC, rugReport, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken, type RugReport } from "./lib";
-import { sellCheck } from "./sellcheck";
+import { jupiterSaysNotTradable, sellCheck } from "./sellcheck";
 import { ToolError, type ToolDef } from "./types";
 
 const NETWORK = z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta");
@@ -270,7 +270,14 @@ export const tokenVerdict: ToolDef = {
     if (typeof j?.liquidity === "number") {
       const liq = j.liquidity;
       add("liquidity", liq < 10_000 ? "fail" : liq < 100_000 ? "warn" : "pass", `About $${Math.round(liq).toLocaleString("en-US")} of DEX liquidity.${liq < 100_000 ? " Trades of a few hundred dollars can move the price sharply, and exits may be hard." : ""}`, "jupiter");
-    } else if (!stable && market.ok) add("liquidity", "warn", "No liquidity data; the token may be untradeable.", "jupiter");
+    } else if (!stable && market.ok) {
+      // No liquidity data is a warning unless Jupiter's router also says the token can't be traded: then it's a fact
+      // that there's no market to sell into. In a study of one real beginner's first wallet (Oct 2026, 598 tokens bought,
+      // mostly in 2023) 305 of 315 tokens with no market left were only CAUTION. Where Jupiter can't be asked, it stays a
+      // warning.
+      const dead = network === "mainnet-beta" ? await jupiterSaysNotTradable(ctx, mintAddress, BigInt(info.supply)) : null;
+      add("liquidity", dead ? "fail" : "warn", dead ? "No market: Jupiter has no liquidity for this token and says it is not tradable, so you likely can't sell it." : "No liquidity data; the token may be untradeable.", "jupiter");
+    }
     const top = j?.audit?.topHoldersPercentage;
     if (typeof top === "number") {
       // Stablecoins are redeemable at the issuer, so concentration in exchange and treasury wallets is not a price risk.

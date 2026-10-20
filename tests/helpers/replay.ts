@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { Connection, PublicKey } from "@solana/web3.js";
 import type { ToolContext } from "../../server/tools";
-import { clearJupCache } from "../../server/tools/lib";
+import { clearJupCache, httpError } from "../../server/tools/lib";
 
 export const FIXTURES = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "fixtures");
 
@@ -62,7 +62,8 @@ export function recordingContext(rpcUrl: string) {
     connection: () => connection,
     fetchJson: async (url) => {
       const res = await fetch(url, { headers: { accept: "application/json" } });
-      if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+      // Errors are answers too (a "not tradable" quote), so they replay as the same error.
+      if (!res.ok) { const error = await httpError(res, url); recording.http[url] = { __error: error.message }; throw error; }
       const body = await res.json();
       recording.http[url] = encode(body);
       return body;
@@ -100,7 +101,9 @@ export function replayContext(fixture: Fixture, options: { httpDown?: boolean } 
     fetchJson: async (url) => {
       if (options.httpDown) throw new Error("HTTP 503 from lite-api.jup.ag");
       if (!(url in fixture.recording.http)) throw new Error(`Fixture ${fixture.name} has no recorded response for ${url}`);
-      return decode(fixture.recording.http[url]);
+      const recorded: any = fixture.recording.http[url];
+      if (recorded && typeof recorded.__error === "string") throw new Error(recorded.__error);
+      return decode(recorded);
     },
     postJson: async (url, payload) => {
       if (options.httpDown) throw new Error("HTTP 503 from lite-api.jup.ag");

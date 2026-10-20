@@ -104,6 +104,13 @@ export type JupToken = {
   dev?: string;
 };
 // Jupiter's keyed API when a JUPITER_API_KEY is set (its own rate limit), otherwise the shared keyless one.
+// The error thrown for a failed outside HTTP call: the status and host, plus the service's own error code when it sends
+// one (Jupiter answers "TOKEN_NOT_TRADABLE" for a token with no market), so checks can tell "no" from "unreachable".
+export async function httpError(res: Response, url: string): Promise<Error> {
+  const code = await res.json().then((b: any) => (typeof b?.errorCode === "string" ? b.errorCode : null)).catch(() => null);
+  return new Error(`HTTP ${res.status} from ${new URL(url).host}${code ? ` (${code})` : ""}`);
+}
+
 export const jupiterHost = () => (process.env.JUPITER_API_KEY ? "https://api.jup.ag" : "https://lite-api.jup.ag");
 const jupCache = new Map<string, { at: number; value: JupToken[] }>();
 // ok is false when Jupiter could not be reached, so callers can tell "no data" from "no answer".

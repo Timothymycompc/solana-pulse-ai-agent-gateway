@@ -26,6 +26,7 @@ import { runXPost } from "./x";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
+import { httpError } from "./tools/lib";
 import { VERSION } from "./version";
 import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
@@ -137,12 +138,12 @@ async function startServer() {
     },
     fetchJson: async (url, timeoutMs = 8000) => {
       const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", ...jupiterKeyHeader(url) } });
-      if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+      if (!res.ok) throw await httpError(res, url);
       return res.json();
     },
     postJson: async (url, body, timeoutMs = 8000) => {
       const res = await fetch(url, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", "content-type": "application/json", ...jupiterKeyHeader(url) }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+      if (!res.ok) throw await httpError(res, url);
       return res.json();
     },
   };

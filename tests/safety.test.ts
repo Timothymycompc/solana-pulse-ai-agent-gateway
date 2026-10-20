@@ -5,6 +5,7 @@ import { z } from "zod";
 import { checkTransactionIntent, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
+import { jupiterSaysNotTradable } from "../server/tools/sellcheck";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
 import { loadFixture, replayContext } from "./helpers/replay";
 
@@ -148,6 +149,23 @@ test("insiders, creator history and metadata follow their thresholds", () => {
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, false, null)?.result, "warn");
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, true, null)?.result, "info");
   assert.equal(metadataCheck({ tokenMeta: { mutable: false } }, false, null)?.result, "pass");
+});
+
+test("token_safety says AVOID for a token with no market left, but only when Jupiter itself says it isn't tradable", async () => {
+  const r = await replay(tokenVerdict, "token-verdict-dead");
+  assert.equal(r.verdict, "AVOID", r.summary);
+  assert.match(r.checks.find((c: any) => c.name === "liquidity")?.detail, /not tradable/);
+  // Jupiter down: no market data at all, so nothing is claimed about the market.
+  const down = await replay(tokenVerdict, "token-verdict-dead", { httpDown: true });
+  assert.ok(!down.checks.some((c: any) => c.name === "liquidity"), "no liquidity verdict without Jupiter");
+});
+
+test("Jupiter's router answers: not tradable is a no, a quote is a yes, an outage is unknown", async () => {
+  const ctx = (answer: () => Promise<any>) => ({ fetchJson: answer } as any);
+  assert.equal(await jupiterSaysNotTradable(ctx(async () => { throw new Error("HTTP 400 from api.jup.ag (TOKEN_NOT_TRADABLE)"); }), "m", 10n ** 15n), true);
+  assert.equal(await jupiterSaysNotTradable(ctx(async () => ({ outAmount: "123" })), "m", 10n ** 15n), false);
+  assert.equal(await jupiterSaysNotTradable(ctx(async () => { throw new Error("HTTP 429 from api.jup.ag"); }), "m", 10n ** 15n), null);
+  assert.equal(await jupiterSaysNotTradable(ctx(async () => { throw new Error("HTTP 400 from api.jup.ag"); }), "m", 10n ** 15n), null, "a 400 without Jupiter's code proves nothing");
 });
 
 test("token_safety says when market data is missing instead of blaming the token", async () => {

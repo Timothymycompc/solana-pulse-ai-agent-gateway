@@ -103,6 +103,8 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "token-verdict-lst", tool: tokenVerdict, args: async () => ({ token: "jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v" }) },
   // A tokenized stock whose permanent delegate is its issuer, xStocks (Tesla xStock, 2026-10-16 audit).
   { name: "token-verdict-xstock", tool: tokenVerdict, args: async () => ({ token: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB" }) },
+  // A 2023 memecoin with no market left: Jupiter has no liquidity for it and its router answers TOKEN_NOT_TRADABLE.
+  { name: "token-verdict-dead", tool: tokenVerdict, args: async () => ({ token: "EfJ2sLufzUZS7jA82N4VGF1syeFncjP7VpRtzaGyZrk2" }) },
 ];
 
 // Name scenarios to record only those (`npm run test:record -- token-verdict-jup`); with none, all are recorded.

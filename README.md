@@ -108,7 +108,7 @@ See [DEVELOPING.md](DEVELOPING.md) for the folder layout and how to add a tool, 
 ## Tests
 
 ```bash
-npm test               # 107 tests, offline, about a minute
+npm test               # 109 tests, offline, about a minute
 npm run test:record    # re-record the mainnet scenarios (reads and simulations only)
 npm run benchmark      # score the 10 attack cases
 npm run everyday       # replay the 200 everyday transactions

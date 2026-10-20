@@ -15,6 +15,20 @@ export type SellResult = { result: "pass" | "warn" | "fail" | "info"; detail: st
 const BLOCKED = /frozen|AccountFrozen|0x11\b|transfer hook|TransferHook|non-?transferable|NonTransferable|owner does not match/i;
 const NOT_THE_TOKEN = /insufficient (lamports|funds)|0x1\b|Attempt to debit an account but found no record|slippage|0x1771|0x1788|SlippageToleranceExceeded|blockhash/i;
 
+// Does Jupiter's router say the token can't be traded at all? Asks for a quote selling 0.01% of the supply into SOL,
+// with no wallet needed (the sell test above needs a holder with SOL, which a dead token rarely has). true only on
+// Jupiter's own "no market" answers; false when it quotes; null when it can't be asked (down, rate-limited).
+const NO_MARKET = /TOKEN_NOT_TRADABLE|COULD_NOT_FIND_ANY_ROUTE|NO_ROUTES_FOUND/;
+export async function jupiterSaysNotTradable(ctx: ToolContext, mint: string, rawSupply: bigint): Promise<boolean | null> {
+  const amount = rawSupply / 10_000n > 0n ? rawSupply / 10_000n : 1n;
+  try {
+    const quote = await ctx.fetchJson(`${JUP()}/quote?inputMint=${mint}&outputMint=${NATIVE_MINT}&amount=${amount}&slippageBps=2000`, 10_000);
+    return quote?.outAmount ? false : null;
+  } catch (e: any) {
+    return NO_MARKET.test(String(e?.message)) ? true : null;
+  }
+}
+
 async function sellers(conn: Connection, mint: PublicKey): Promise<{ owner: PublicKey; tokenAccount: PublicKey; raw: bigint }[]> {
   const largest = await conn.getTokenLargestAccounts(mint, "confirmed");
   const accounts = largest.value.filter((a) => BigInt(a.amount) > 0n).slice(0, 12);
