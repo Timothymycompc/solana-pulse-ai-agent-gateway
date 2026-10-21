@@ -297,6 +297,22 @@
   .data-table tr.row-open, .data-table tr.row-detail { background: color-mix(in srgb, var(--color-wood-950) 70%, transparent); }
   .data-table tr.row-detail { border-top-color: color-mix(in srgb, var(--color-wood-700) 60%, transparent); }
 
+  /* Owner explorer: rows fade in one after another; a call that just arrived glows brass for a moment. */
+  .call-row-in { animation: fade-in var(--duration-base) var(--ease-out-soft) both; }
+  @keyframes call-arrive {
+    from { background: color-mix(in srgb, var(--color-accent-500) 24%, transparent); }
+    to { background: transparent; }
+  }
+  .data-table tr.call-row-new > td { animation: call-arrive 2.6s var(--ease-out-soft) both; }
+  /* The "Live" light: a dot with a ring that keeps spreading while updates are on. */
+  .live-dot { position: relative; display: inline-block; height: 7px; width: 7px; border-radius: 999px; background: var(--color-ink-500); }
+  .live-dot.on { background: var(--color-success-400); }
+  .live-dot.on::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--color-success-400); animation: live-ping 1.6s ease-out infinite; }
+  @keyframes live-ping { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .call-row-in, .data-table tr.call-row-new > td, .live-dot.on::after { animation: none; }
+  }
+
   /* Pop-ups (menus, search, the phone sheet): a dimmed page behind a solid panel with a brass hairline. */
   .popup-scrim {
     background: color-mix(in srgb, var(--color-ink-950) 70%, transparent);

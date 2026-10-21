@@ -10,7 +10,7 @@ export const pool = new Pool({
 // A tool run: a tool call over HTTP or MCP. Other /mcp traffic is connections, tool listings and uptime pings.
 export const TOOL_RUN_SQL = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%')`;
 
-// The gateway keeps nine tables. No wallets, keys or balances are stored: payments settle on chain via x402.
+// The gateway keeps ten tables. No wallets, keys or balances are stored: payments settle on chain via x402.
 export async function ensureSchema() {
   // Free calls per paid tool, counted per caller network per UTC day (keyed hash, never the raw IP).
   await pool.query(`
@@ -124,6 +124,16 @@ export async function ensureSchema() {
     );
   `);
 
+  // Every live example input the site handed out (GET /api/tools/<name>/example), by a hash of its JSON, so the owner
+  // dashboard can tell a caller who ran the example from one who typed their own input. Public mainnet data only.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS served_examples (
+      input_hash TEXT PRIMARY KEY,
+      tool TEXT NOT NULL,
+      first_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
   // token_safety measured against what really happened (accuracy.ts). One row per token per cohort: the verdict, each
   // check's result and the market numbers when it was checked, then, for sampled young tokens, the same numbers a week
   // later. Token addresses and public market data only.
@@ -196,6 +206,17 @@ export async function recordServiceUsage(params: {
     );
   } catch (e) {
     console.error("service_usage insert failed:", e);
+  }
+}
+
+// The hash is taken of the JSONB text, which Postgres writes with keys in a fixed order, so it matches a stored input.
+export async function recordServedExample(tool: string, value: unknown) {
+  const json = capJson(value);
+  if (!json) return;
+  try {
+    await pool.query(`INSERT INTO served_examples (input_hash, tool) VALUES (md5($1::jsonb::text), $2) ON CONFLICT (input_hash) DO NOTHING`, [json, tool]);
+  } catch (e) {
+    console.error("served_examples insert failed:", e);
   }
 }
 

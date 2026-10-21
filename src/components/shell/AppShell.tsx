@@ -4,6 +4,7 @@ import { Link } from '../../router';
 import { button } from '../ui/button';
 import { DOCS_MENU, DOCS_PATHS, REPO_URL, TOP_LINKS, type NavSection } from '../../nav';
 import type { ToolDoc } from '../../lib/toolsApi';
+import { ownerKeyStore } from '../../lib/ownerApi';
 import { CommandPalette } from './CommandPalette';
 import { ToolsMenu } from './ToolsMenu';
 import { OnThisPage } from './OnThisPage';
@@ -69,6 +70,9 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; tools: T
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('mousedown', onDown); };
   }, []);
   useEffect(() => { setMenu(null); setSheet(null); }, [path]);
+  // The owner sees a link to their dashboard; visitors never do (it shows only where the owner key is saved).
+  const [isOwner, setIsOwner] = useState(false);
+  useEffect(() => setIsOwner(Boolean(ownerKeyStore.get())), [path]);
 
   const toggle = (m: Exclude<Menu, null>) => setMenu((cur) => (cur === m ? null : m));
   const close = () => { setMenu(null); setSheet(null); };
@@ -99,6 +103,9 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; tools: T
                   {item.title}{path === item.path && <ActiveTick />}
                 </Link>
               ))}
+              {isOwner && <Link to="/owner" aria-current={path === '/owner' ? 'page' : undefined} className={navItem(path === '/owner')}>
+                Owner{path === '/owner' && <ActiveTick />}
+              </Link>}
               <button onClick={() => toggle('docs')} aria-expanded={menu === 'docs'} aria-haspopup="true" className={navItem(docsActive || menu === 'docs')}>
                 Docs<ChevronDown className={`h-3.5 w-3.5 text-ink-500 transition-transform duration-200 ${menu === 'docs' ? 'rotate-180' : ''}`} />
                 {docsActive && <ActiveTick />}
@@ -172,6 +179,7 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; tools: T
               <>
                 <div className="flex flex-col gap-1 px-5 pt-2">
                   {TOP_LINKS.map((item) => <Link key={item.path} to={item.path} onClick={close} className="rounded-lg py-2 text-[17px] font-medium text-ink-100">{item.title}</Link>)}
+                  {isOwner && <Link to="/owner" onClick={close} className="rounded-lg py-2 text-[17px] font-medium text-ink-100">Owner</Link>}
                 </div>
                 <DocsMenu path={path} onNavigate={close} />
                 <div className="px-5"><Link to="/docs/connect" onClick={close} className={button('primary', 'md', 'w-full')}>Connect an agent</Link></div>

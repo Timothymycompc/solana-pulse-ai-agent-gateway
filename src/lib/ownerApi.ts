@@ -56,6 +56,50 @@ export async function loadOwnerOverview(key: string, days: number): Promise<Owne
   return body;
 }
 
+// Calls tab: every tool call in a period from GET /api/owner/calls, filtered and paged by the server.
+export type InputKind = 'own' | 'example' | 'empty';
+export type CallStatus = 'ok' | 'error' | 'payment';
+export type CallRow = {
+  id: number; at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; statusGroup: CallStatus;
+  inputKind: InputKind; paidUsdc: number; noteSent: boolean; verdict: string | null; headline: string | null;
+  caller: CallerRef & { userAgent: string | null; mcpClient: string | null; homepage: string | null; rotatesBrowsers: boolean };
+};
+export type GroupBy = 'caller' | 'network' | 'tool' | 'kind' | 'input';
+export type GroupSort = 'calls' | 'recent' | 'own' | 'errors' | 'paid';
+export type CallGroup = {
+  key: string; label: string; filter: Partial<CallFilters>; kind: Kind | null; network: string | null; userAgent: string | null;
+  rotatesBrowsers: boolean; calls: number; own: number; examples: number; empty: number; errors: number; payments: number; paidUsdc: number;
+  firstAt: string; lastAt: string; tools: { tool: string; n: number }[]; names: string[]; networks: number;
+};
+export type OwnerCalls = {
+  generatedAt: string; hours: number; matching: number; rows: CallRow[]; nextBefore: number | null;
+  group: GroupBy | null; groups: CallGroup[] | null;
+  summary: {
+    calls: number; capped: boolean; networks: number; rotatingNetworks: number;
+    byTool: Record<string, number>; byKind: Record<string, number>; byInput: Record<string, number>; byStatus: Record<string, number>;
+  };
+};
+export type CallFilters = {
+  hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
+  group?: GroupBy; sort?: GroupSort;
+};
+
+async function ownerGet<T>(key: string, path: string): Promise<T> {
+  const r = await fetch(path, { headers: { 'x-api-key': key }, cache: 'no-store' });
+  const body = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new OwnerKeyError(body.error || 'That key was not accepted.');
+  if (!r.ok) throw new Error(body.error || `Could not load (HTTP ${r.status}).`);
+  return body;
+}
+
+export function loadOwnerCalls(key: string, f: CallFilters & { before?: number; after?: number; limit?: number }): Promise<OwnerCalls> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') params.set(k, String(v));
+  return ownerGet(key, `/api/owner/calls?${params}`);
+}
+
+export const loadOwnerCall = (key: string, id: number) => ownerGet<{ id: number; input: unknown; output: unknown }>(key, `/api/owner/calls/${id}`);
+
 // Ends a personal note to a caller (they replied, or it went to the wrong caller).
 export async function stopOutreach(key: string, outreachKey: string): Promise<void> {
   const r = await fetch('/api/owner/outreach/stop', { method: 'POST', headers: { 'x-api-key': key, 'content-type': 'application/json' }, body: JSON.stringify({ key: outreachKey }) });

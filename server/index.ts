@@ -15,13 +15,14 @@ import { pageHandler } from "./pages";
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { callerNotes } from "./notes";
 import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./outreach";
-import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
+import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServedExample, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
 import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
+import { ownerCall, ownerCalls } from "./calls";
 import { runXPost } from "./x";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
@@ -197,6 +198,7 @@ async function startServer() {
     try {
       const value = await tool.example(ctx);
       exampleCache.set(tool.name, { at: Date.now(), value });
+      void recordServedExample(tool.name, value);
       res.json({ tool: tool.name, arguments: value, live: true });
     } catch (error: any) {
       res.status(503).json({ error: "Could not build a live example right now.", detail: String(error?.message ?? error).slice(0, 200) });
@@ -326,6 +328,33 @@ async function startServer() {
     } catch (error) {
       console.error("owner overview failed:", error);
       res.status(503).json({ error: "The dashboard data is temporarily unavailable." });
+    }
+  });
+
+  // Every tool call in a period with its caller, input kind and answer (calls.ts), for the dashboard's Calls tab.
+  app.get("/api/owner/calls", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    const q = req.query as Record<string, string | undefined>;
+    const n = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : undefined);
+    try {
+      if (req.ip) await noteOwnerNetwork(hashIp(req.ip));
+      res.json(await ownerCalls({ hours: n(q.hours) ?? 24, tool: q.tool || undefined, kind: q.kind || undefined, input: q.input || undefined,
+        status: q.status || undefined, q: q.q ? String(q.q).slice(0, 200) : undefined, caller: q.caller || undefined, network: q.network || undefined,
+        group: q.group || undefined, sort: q.sort || undefined, before: n(q.before), after: n(q.after), limit: n(q.limit) }));
+    } catch (error) {
+      console.error("owner calls failed:", error);
+      res.status(503).json({ error: "The calls are temporarily unavailable." });
+    }
+  });
+  app.get("/api/owner/calls/:id", noCache, async (req, res) => {
+    if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
+    if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: "Call ids are numbers." });
+    try {
+      const call = await ownerCall(Number(req.params.id));
+      call ? res.json(call) : res.status(404).json({ error: "No tool call with that id." });
+    } catch (error) {
+      console.error("owner call failed:", error);
+      res.status(503).json({ error: "That call is temporarily unavailable." });
     }
   });
 

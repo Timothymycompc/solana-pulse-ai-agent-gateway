@@ -36,3 +36,13 @@ Ideas parked on purpose. Solana Pulse is finished as it is; nothing here goes in
   - 170 of 598 sell tests were skipped because Jupiter's keyless tier turned them away: the Jupiter key matters.
   - Jupiter's first_traded is later than the real buy for 43 of 52 older tokens: it's the first pool Jupiter knows, not the launch. The age check must not treat it as launch time for old tokens.
   - Copycat tickers really get bought: fake "BTC", "ARB" and "SBONK" are in the losers. find_token's copycat warning is the fix; use them as test cases.
+
+## From the Dexra study (2026-10-20, full notes on the phone: SolanaPulse/competitors-2026-10-20.txt)
+Dexra (dexra.dev) is the closest competitor: token/launch verdicts, closed source, launched 2026-10-17. Ideas worth doing after current work, each measured before it ships:
+- "Check before signing" example PRs into popular bot repos (Chainstack's pumpfun-bonkfun-bot, 0xfnzero/sol-trade-sdk), the way Dexra added "check before buying" examples.
+- Ready-to-fork agent templates (Solana Agent Kit, Vercel AI SDK, Claude Agent SDK, elizaOS) with check_tx + tx_matches built in, dry run by default.
+- A public accuracy endpoint/page from the existing accuracy test (Dexra's score_performance publishes collapse rates with confidence intervals), and public call stats.
+- One-command install into many MCP clients; Zed and Gemini CLI extensions.
+- More lists: jaw9c/awesome-remote-mcp-servers, Merit-Systems/awesome-agentic-commerce, mcp.so.
+- Possible collaboration with Dexra (token check + transaction check); outreach file 13 on the phone.
+- Owner dashboard bot detection (found 2026-10-21): two networks (58bd04, 00273c) ran 128 calls over 3 days while claiming to be Chrome on Linux, Chrome on Windows AND Safari on macOS at the same time, and a burst on 2026-10-18 20:43-21:06 came from ~8 networks with mixed browser names. These are crawlers faking browser user agents, but the dashboard counts them as "Browser". Rule to add (measure first): a network seen with 2+ different desktop OS/browser user agents within an hour is a bot. Until then, never report browser callers as people without checking their inputs (pulse-inputs). Partly done 2026-10-21: the owner Explorer flags such networks as "fake browser" and shows own/example/empty inputs; the Overview, Callers and /status counts still count them as browsers.

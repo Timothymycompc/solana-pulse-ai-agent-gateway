@@ -10,7 +10,7 @@ import { MoneyTab } from './owner/MoneyTab';
 import { ToolsTab } from './owner/ToolsTab';
 import { CallersTab } from './owner/CallersTab';
 import { VisitorsTab } from './owner/VisitorsTab';
-import { RunsTab } from './owner/RunsTab';
+import { ExplorerTab } from './owner/ExplorerTab';
 
 // Owner dashboard: money, tool runs, callers, site visitors and the latest runs, one tab each. Data needs the owner key.
 // The tabs live in src/pages/owner/, with the pieces they share in owner/ui.tsx.
@@ -112,14 +112,14 @@ export const OwnerPage: React.FC = () => {
           : <>
             <TabBar tab={tab} onChange={openTab} />
             {error && <p role="status" className="text-[12px] text-warning-300">Could not refresh: {error} Showing the last numbers.</p>}
-            <p className="flex items-center gap-1.5 text-[11px] text-ink-500"><Clock3 className="h-3 w-3" />Updated {new Date(data.generatedAt).toLocaleTimeString()}. Refreshes every 30 seconds. The period buttons above set the window for every tab.</p>
+            <p className="flex items-center gap-1.5 text-[11px] text-ink-500"><Clock3 className="h-3 w-3" />Updated {new Date(data.generatedAt).toLocaleTimeString()}. Refreshes every 30 seconds. The period buttons above set the window for every tab except Explorer, which has its own and updates live.</p>
             <div role="tabpanel" aria-label={TABS.find((t) => t.id === tab)!.label}>
               {tab === 'overview' && <OverviewTab data={data} go={openTab} />}
               {tab === 'money' && <MoneyTab data={data} />}
               {tab === 'tools' && <ToolsTab data={data} />}
               {tab === 'callers' && <CallersTab data={data} ownerKey={key} onChange={() => void refresh()} />}
               {tab === 'visitors' && <VisitorsTab data={data} />}
-              {tab === 'runs' && <RunsTab data={data} />}
+              {tab === 'explorer' && <ExplorerTab ownerKey={key} />}
             </div>
           </>}
       </article>
