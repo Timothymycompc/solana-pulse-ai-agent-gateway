@@ -73,7 +73,9 @@ export const freePassFor = (userAgent: string | undefined, now = Date.now()) =>
 // Trial keys for builders who take up the free-trial offer: the key (sent as x-api-key, over HTTP or MCP) runs every
 // tool free until the date given. Only the key's SHA-256 is kept, so the code can be public; each trial is on record
 // here with who it is for. Make one with `npm run trial-key -- <name>`.
-export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: string }[] = [];
+export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: string }[] = [
+  { name: "tensorblock", keySha256: "7e8d1641743ac79e6407b3248a00434dacce83fff99046eb28f9edd4431769e9", until: "2027-01-13T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-21." },
+];
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys = TRIAL_KEYS) => {
   if (!apiKey) return null;
