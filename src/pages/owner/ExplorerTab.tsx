@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Radio, Search, TriangleAlert } from 'lucide-react';
+import { Bot, ChevronDown, Radio, Search, TriangleAlert, User } from 'lucide-react';
 import { loadOwnerCalls, type CallFilters, type CallGroup, type CallRow, type GroupBy, type GroupSort, type OwnerCalls } from '../../lib/ownerApi';
 import { ago, chip, Empty, Footnote, LABEL, num, plural, shown, Swatch, td, usd, type ShownKind } from './ui';
 import { CallDetail } from './CallDetail';
@@ -21,6 +21,12 @@ const INPUTS = { own: 'Own input', example: 'Example', empty: 'Empty' } as const
 const RESULTS = { ok: 'Answered', error: 'Error', payment: 'Payment' } as const;
 const OUTCOME: Record<string, string> = { paid: 'Paid', payment_asked: 'Asked to pay', error: 'Error', free_call: 'Free call', owner_key: 'Owner key', ok: 'Answered' };
 const LIVE_MS = 8000;
+
+// Whether bots and the owner's own calls are hidden, remembered in this browser only (bots hidden by default).
+const HIDE_KEY = 'owner-explorer-hide';
+const readHide = (): { bots: boolean; mine: boolean } => {
+  try { return { bots: true, mine: false, ...JSON.parse(localStorage.getItem(HIDE_KEY) || '{}') }; } catch { return { bots: true, mine: false }; }
+};
 
 const InputBadge: React.FC<{ kind: CallRow['inputKind'] }> = ({ kind }) => (
   <span className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-medium ${kind === 'own'
@@ -165,11 +171,18 @@ export const ExplorerTab: React.FC<{ ownerKey: string }> = ({ ownerKey }) => {
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [live, setLive] = useState(true);
+  const [hide, setHide] = useState(readHide);
+  const toggleHide = (which: 'bots' | 'mine') => setHide((h) => {
+    const next = { ...h, [which]: !h[which] };
+    try { localStorage.setItem(HIDE_KEY, JSON.stringify(next)); } catch { /* not remembered */ }
+    return next;
+  });
   const [data, setData] = useState<OwnerCalls | null>(null);
   const [grouped, setGrouped] = useState<OwnerCalls | null>(null);
   useEffect(() => { const t = setTimeout(() => setQ(typed.trim()), 350); return () => clearTimeout(t); }, [typed]);
 
-  const base: CallFilters = useMemo(() => ({ hours, kind: kind || undefined, input: input || undefined, status: status || undefined, tool: tool || undefined, q: q || undefined }), [hours, kind, input, status, tool, q]);
+  const base: CallFilters = useMemo(() => ({ hours, kind: kind || undefined, input: input || undefined, status: status || undefined, tool: tool || undefined, q: q || undefined,
+    hideBots: hide.bots ? '1' : undefined, hideMine: hide.mine ? '1' : undefined } as CallFilters), [hours, kind, input, status, tool, q, hide]);
   // Grouped views load their groups here; the calls view loads through its CallList.
   const groupKey = JSON.stringify({ base, view, sort });
   useEffect(() => {
@@ -201,6 +214,10 @@ export const ExplorerTab: React.FC<{ ownerKey: string }> = ({ ownerKey }) => {
             {PERIODS.map((p) => <button key={p.hours} onClick={() => setHours(p.hours)} aria-pressed={hours === p.hours}
               className={`px-2.5 py-1.5 text-[11px] transition ${hours === p.hours ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-white'}`}>{p.label}</button>)}
           </div>
+          <button onClick={() => toggleHide('bots')} aria-pressed={hide.bots} title="Directory and uptime bots, and networks posing as several browsers"
+            className={`${chip(hide.bots)} inline-flex items-center gap-1.5`}><Bot className="h-3 w-3" />{hide.bots ? 'Bots hidden' : 'Hide bots'}</button>
+          <button onClick={() => toggleHide('mine')} aria-pressed={hide.mine} title="Calls from your own networks and with your owner key"
+            className={`${chip(hide.mine)} inline-flex items-center gap-1.5`}><User className="h-3 w-3" />{hide.mine ? 'Mine hidden' : 'Hide mine'}</button>
           <button onClick={() => setLive((l) => !l)} aria-pressed={live} className={`${chip(live)} inline-flex items-center gap-1.5`}>
             <span className={`live-dot ${live ? 'on' : ''}`} /><Radio className="h-3 w-3" />{live ? 'Live' : 'Paused'}
           </button>
@@ -208,10 +225,10 @@ export const ExplorerTab: React.FC<{ ownerKey: string }> = ({ ownerKey }) => {
       </div>
 
       {s && <div className="grid grid-cols-2 divide-x divide-white/10 border-b border-white/10 sm:grid-cols-4">
-        <Counter label="Calls" value={data!.matching} note={data!.matching !== s.calls ? `of ${num.format(s.calls)} in the period` : s.capped ? 'newest 20,000' : undefined} />
+        <Counter label="Calls" value={data!.matching} note={[data!.matching !== s.calls ? `of ${num.format(s.calls)} shown` : '', s.hidden ? `${num.format(s.hidden)} hidden` : '', s.capped ? 'newest 20,000' : ''].filter(Boolean).join(' · ') || undefined} />
         <Counter label="Own inputs" value={s.byInput.own ?? 0} tone="text-accent-200" note="typed by the caller, not the example" />
         <Counter label="Networks" value={s.networks} note="bots counted once each" />
-        <Counter label="Fake-browser networks" value={s.rotatingNetworks} tone={s.rotatingNetworks ? 'text-warning-300' : 'text-white'} note="crawlers posing as several browsers" />
+        <Counter label="Fake-browser networks" value={s.rotatingNetworks} tone={s.rotatingNetworks ? 'text-warning-300' : 'text-white'} note={hide.bots ? 'crawlers posing as browsers: hidden' : 'crawlers posing as several browsers'} />
       </div>}
 
       <div className="space-y-2.5 border-b border-white/10 px-4 py-3">
@@ -246,7 +263,8 @@ export const ExplorerTab: React.FC<{ ownerKey: string }> = ({ ownerKey }) => {
 
       <Footnote>Straight from the database. Inputs and outputs are kept {plural(30, 'day')}; older calls show their numbers only.
         "Example" means the caller sent an example input this site handed out (recorded from 21 October 2026; earlier examples count as own input).
-        A network that answers as several desktop browsers is flagged as a fake browser.</Footnote>
+        A network that answers as several desktop browsers is flagged as a fake browser. "Hide bots" hides directory and uptime bots and
+        those fake-browser networks; "Hide mine" hides calls from networks you opened this page from and calls with your owner key. Both are remembered in this browser.</Footnote>
     </section>
   );
 };

@@ -75,13 +75,15 @@ export type OwnerCalls = {
   generatedAt: string; hours: number; matching: number; rows: CallRow[]; nextBefore: number | null;
   group: GroupBy | null; groups: CallGroup[] | null;
   summary: {
-    calls: number; capped: boolean; networks: number; rotatingNetworks: number;
+    calls: number; hidden: number; capped: boolean; networks: number; rotatingNetworks: number;
     byTool: Record<string, number>; byKind: Record<string, number>; byInput: Record<string, number>; byStatus: Record<string, number>;
   };
 };
 export type CallFilters = {
   hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
   group?: GroupBy; sort?: GroupSort;
+  // '1' hides directory and uptime bots plus fake-browser networks / the owner's own calls.
+  hideBots?: '1'; hideMine?: '1';
 };
 
 async function ownerGet<T>(key: string, path: string): Promise<T> {

@@ -340,7 +340,8 @@ async function startServer() {
       if (req.ip) await noteOwnerNetwork(hashIp(req.ip));
       res.json(await ownerCalls({ hours: n(q.hours) ?? 24, tool: q.tool || undefined, kind: q.kind || undefined, input: q.input || undefined,
         status: q.status || undefined, q: q.q ? String(q.q).slice(0, 200) : undefined, caller: q.caller || undefined, network: q.network || undefined,
-        group: q.group || undefined, sort: q.sort || undefined, before: n(q.before), after: n(q.after), limit: n(q.limit) }));
+        group: q.group || undefined, sort: q.sort || undefined, before: n(q.before), after: n(q.after), limit: n(q.limit),
+        hideBots: q.hideBots === "1", hideMine: q.hideMine === "1" }));
     } catch (error) {
       console.error("owner calls failed:", error);
       res.status(503).json({ error: "The calls are temporarily unavailable." });

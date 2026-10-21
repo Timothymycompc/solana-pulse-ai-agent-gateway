@@ -15,6 +15,8 @@ export type CallStatus = "ok" | "error" | "payment";
 export type CallsQuery = {
   hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
   group?: string; sort?: string; before?: number; after?: number; limit?: number;
+  // Hide directory and uptime bots plus networks posing as several browsers; hide the owner's own calls.
+  hideBots?: boolean; hideMine?: boolean;
 };
 // The explorer can show the matching calls one by one, or folded into groups sorted by any of these.
 export const GROUPS = ["caller", "network", "tool", "kind", "input"] as const;
@@ -100,17 +102,19 @@ export async function ownerCalls(o: CallsQuery) {
     };
   });
 
+  // Hidden callers drop out before anything is counted, so the numbers describe what is left on screen.
+  const visible = all.filter((c) => !(o.hideBots && (c.caller.kind === "bot" || c.caller.rotatesBrowsers)) && !(o.hideMine && c.caller.kind === "you"));
   // The counts behind the filter chips cover the whole period (and search), so every option shows what it would match.
   const count = <T extends string>(pick: (c: (typeof all)[number]) => T) =>
-    all.reduce((m, c) => ((m[pick(c)] = (m[pick(c)] ?? 0) + 1), m), {} as Record<string, number>);
+    visible.reduce((m, c) => ((m[pick(c)] = (m[pick(c)] ?? 0) + 1), m), {} as Record<string, number>);
   const summary = {
-    calls: all.length, capped: rowsRes.rows.length >= WINDOW_MAX,
-    networks: new Set(all.filter((c) => c.caller.network).map((c) => c.caller.network)).size,
+    calls: visible.length, hidden: all.length - visible.length, capped: rowsRes.rows.length >= WINDOW_MAX,
+    networks: new Set(visible.filter((c) => c.caller.network).map((c) => c.caller.network)).size,
     rotatingNetworks: new Set(all.filter((c) => c.caller.rotatesBrowsers).map((c) => c.caller.network)).size,
     byTool: count((c) => c.tool), byKind: count((c) => shownKind(c.caller.kind)), byInput: count((c) => c.inputKind), byStatus: count((c) => c.statusGroup),
   };
 
-  const matching = all.filter((c) =>
+  const matching = visible.filter((c) =>
     (!o.tool || c.tool === o.tool) && (!o.kind || shownKind(c.caller.kind) === o.kind) &&
     (!o.input || c.inputKind === o.input) && (!o.status || c.statusGroup === o.status) &&
     (!o.caller || c.caller.id === o.caller) && (!o.network || c.caller.network === o.network));

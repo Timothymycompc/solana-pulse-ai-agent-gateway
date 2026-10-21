@@ -109,6 +109,17 @@ test("grouped by network, caller or tool, sorted any way, and each group opens i
   assert.equal((await ownerCalls({ hours: 24, group: "nonsense" })).groups, null);
 });
 
+test("hide bots (and fake browsers) and hide my own calls, with the numbers recounted", async () => {
+  const r = await ownerCalls({ hours: 24, hideBots: true });
+  assert.equal(r.summary.calls, 4, "the directory bot and both fake-browser calls are gone");
+  assert.equal(r.summary.hidden, 3);
+  assert.ok(r.rows.every((c) => c.caller.kind !== "bot" && !c.caller.rotatesBrowsers));
+  assert.equal(r.summary.byInput.empty, undefined, "every empty call came from a bot or a crawler");
+  const both = await ownerCalls({ hours: 24, hideBots: true, hideMine: true });
+  assert.deepEqual(both.rows.map((c) => c.caller.name), ["curl", "curl", "curl"]);
+  assert.equal((await ownerCalls({ hours: 24, hideBots: true, group: "network" })).groups!.length, 2);
+});
+
 test("one call's full input and output", async () => {
   const r = await ownerCalls({ hours: 24, q: "FeR8VB" });
   const call = await ownerCall(r.rows[0].id);
