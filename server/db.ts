@@ -29,6 +29,7 @@ export async function ensureSchema() {
   // mcp_client is the clientInfo name an MCP client sends on initialize. For tool calls only, input is the tool's
   // arguments and output its result (capped by capJson, cleared after IO_RETENTION_DAYS by clearOldToolIo).
   // note_sent: the answer carried a note from the developer (notes.ts, outreach.ts), added after output was saved.
+  // test_name: the owner's own test that made the call (deploy check, audit...), sent in the x-pulse-test header.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS service_usage (
       id BIGSERIAL PRIMARY KEY,
@@ -42,7 +43,8 @@ export async function ensureSchema() {
   `);
   await pool.query(`ALTER TABLE service_usage ADD COLUMN IF NOT EXISTS caller_hash TEXT, ADD COLUMN IF NOT EXISTS client TEXT,
     ADD COLUMN IF NOT EXISTS mcp_client TEXT, ADD COLUMN IF NOT EXISTS via TEXT, ADD COLUMN IF NOT EXISTS payment_tx TEXT,
-    ADD COLUMN IF NOT EXISTS input JSONB, ADD COLUMN IF NOT EXISTS output JSONB, ADD COLUMN IF NOT EXISTS note_sent BOOLEAN NOT NULL DEFAULT FALSE;`);
+    ADD COLUMN IF NOT EXISTS input JSONB, ADD COLUMN IF NOT EXISTS output JSONB, ADD COLUMN IF NOT EXISTS note_sent BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS test_name TEXT;`);
   try {
     await pool.query(`DROP INDEX IF EXISTS service_usage_wallet_idx;`);
     await pool.query(`ALTER TABLE service_usage DROP COLUMN IF EXISTS wallet_address;`);
@@ -196,13 +198,14 @@ export async function clearOldToolIo() {
 export async function recordServiceUsage(params: {
   endpoint: string; method: string; status: number; callerHash: string | null; client: string | null;
   mcpClient?: string | null; via?: string | null; paymentTx?: string | null; input?: unknown; output?: unknown; noteSent?: boolean;
+  testName?: string | null;
 }) {
   try {
     await pool.query(
-      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx, input, output, note_sent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)`,
+      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx, input, output, note_sent, test_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12)`,
       [params.endpoint, params.method, params.status, params.callerHash, params.client, params.mcpClient ?? null, params.via ?? null,
-        params.paymentTx ?? null, capJson(params.input), capJson(params.output), params.noteSent ?? false]
+        params.paymentTx ?? null, capJson(params.input), capJson(params.output), params.noteSent ?? false, params.testName ?? null]
     );
   } catch (e) {
     console.error("service_usage insert failed:", e);

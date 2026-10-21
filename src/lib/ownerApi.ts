@@ -58,10 +58,13 @@ export async function loadOwnerOverview(key: string, days: number): Promise<Owne
 
 // Calls tab: every tool call in a period from GET /api/owner/calls, filtered and paged by the server.
 export type InputKind = 'own' | 'example' | 'empty';
+export type MadeBy = 'test' | 'you' | 'bot' | 'outside';
 export type CallStatus = 'ok' | 'error' | 'payment';
 export type CallRow = {
   id: number; at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; statusGroup: CallStatus;
   inputKind: InputKind; paidUsdc: number; noteSent: boolean; verdict: string | null; headline: string | null;
+  // Who made it: one of the owner's tests (test names which), the owner, a bot, or someone outside.
+  madeBy: MadeBy; test: string | null;
   caller: CallerRef & { userAgent: string | null; mcpClient: string | null; homepage: string | null; rotatesBrowsers: boolean };
 };
 export type GroupBy = 'caller' | 'network' | 'tool' | 'kind' | 'input';
@@ -77,11 +80,12 @@ export type OwnerCalls = {
   summary: {
     calls: number; hidden: number; capped: boolean; networks: number; rotatingNetworks: number;
     byTool: Record<string, number>; byKind: Record<string, number>; byInput: Record<string, number>; byStatus: Record<string, number>;
+    byMadeBy: Record<string, number>;
   };
 };
 export type CallFilters = {
   hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
-  group?: GroupBy; sort?: GroupSort;
+  group?: GroupBy; sort?: GroupSort; madeBy?: MadeBy;
   // '1' hides directory and uptime bots plus fake-browser networks / the owner's own calls.
   hideBots?: '1'; hideMine?: '1';
 };

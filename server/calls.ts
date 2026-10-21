@@ -14,11 +14,11 @@ export type InputKind = "own" | "example" | "empty";
 export type CallStatus = "ok" | "error" | "payment";
 export type CallsQuery = {
   hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
-  group?: string; sort?: string; before?: number; after?: number; limit?: number;
+  group?: string; sort?: string; before?: number; after?: number; limit?: number; madeBy?: string;
   // Hide directory and uptime bots plus networks posing as several browsers; hide the owner's own calls.
   hideBots?: boolean; hideMine?: boolean;
 };
-// The explorer can show the matching calls one by one, or folded into groups sorted by any of these.
+// The explorer can show the matching calls one by one, or folded into groups sorted by any of these (most recent first unless asked).
 export const GROUPS = ["caller", "network", "tool", "kind", "input"] as const;
 export const SORTS = ["calls", "recent", "own", "errors", "paid"] as const;
 const GROUP_MAX = 300;
@@ -48,6 +48,13 @@ const outcomeOf = (r: any) => (r.payment_tx ? "paid" : r.status === 402 || r.via
 const statusOf = (r: any): CallStatus => (r.payment_tx || r.status === 402 || r.via === "x402" ? "payment" : r.status >= 400 ? "error" : "ok");
 const shownKind = (k: Kind) => (k === "unknown" ? "other" : k);
 
+// Which of the owner's tests made a call: the name it sent (x-pulse-test header, from 2026-10-21), or for older calls
+// the audit scripts, which name themselves pulse-audit in their user agent.
+export const testOf = (r: { test_name?: string | null; client?: string | null }) =>
+  r.test_name || (/^pulse-(audit|test)/i.test(r.client ?? "") ? String(r.client).split("/")[0].toLowerCase() : null);
+// Who made a call, in one word for the "Made by" column: one of the owner's tests, the owner, a bot, or someone outside.
+export type MadeBy = "test" | "you" | "bot" | "outside";
+
 // The one line a row shows of the answer: the verdict and summary when the tool gives them, otherwise the error.
 function headline(r: any): string | null {
   if (r.truncated) return "Output too large to keep";
@@ -63,7 +70,7 @@ export async function ownerCalls(o: CallsQuery) {
     pool.query(`SELECT caller_hash, client, MAX(mcp_client) AS mcp_client FROM service_usage
       WHERE mcp_client IS NOT NULL AND created_at >= NOW() - make_interval(hours => $1::int) GROUP BY caller_hash, client`, [hours]),
     pool.query(`
-      SELECT s.id, s.endpoint, s.caller_hash, s.client, s.via, s.status, s.payment_tx, s.note_sent, s.created_at,
+      SELECT s.id, s.endpoint, s.caller_hash, s.client, s.via, s.status, s.payment_tx, s.note_sent, s.created_at, s.test_name,
         p.amount_base_units AS paid,
         CASE WHEN s.input IS NULL OR s.input = '{}'::jsonb THEN 'empty'
           WHEN EXISTS (SELECT 1 FROM served_examples e WHERE e.input_hash = md5(s.input::text)) THEN 'example'
@@ -87,13 +94,15 @@ export async function ownerCalls(o: CallsQuery) {
   const all = rowsRes.rows.map((r: any) => {
     const mcpClient = mcpOf.get(`${r.caller_hash}|${r.client}`) ?? null;
     const info = classifyClient(r.client, mcpClient);
-    const mine = info.kind !== "bot" && ((r.caller_hash && ownerNets.has(r.caller_hash)) || r.via === "owner");
+    const test = testOf(r);
+    const mine = Boolean(test) || (info.kind !== "bot" && ((r.caller_hash && ownerNets.has(r.caller_hash)) || r.via === "owner"));
     const kind: Kind = mine ? "you" : info.kind;
+    const madeBy: MadeBy = test ? "test" : mine ? "you" : info.kind === "bot" ? "bot" : "outside";
     const transport = String(r.endpoint).startsWith("/mcp") ? "mcp" : "http";
     return {
       id: Number(r.id), at: new Date(r.created_at).toISOString(), tool: toolOf(r.endpoint), transport, status: Number(r.status),
       outcome: outcomeOf(r), statusGroup: statusOf(r), inputKind: r.input_kind as InputKind,
-      paidUsdc: r.paid ? Number(r.paid) / 1e6 : 0, noteSent: r.note_sent === true, verdict: r.verdict ?? null, headline: headline(r),
+      paidUsdc: r.paid ? Number(r.paid) / 1e6 : 0, noteSent: r.note_sent === true, verdict: r.verdict ?? null, headline: headline(r), test, madeBy,
       caller: {
         id: info.kind === "bot" ? `bot:${info.name}` : `net:${r.caller_hash}|${info.name}`, kind, name: info.name,
         network: info.kind === "bot" ? null : shortId(r.caller_hash), userAgent: r.client, mcpClient, homepage: info.homepage,
@@ -112,17 +121,18 @@ export async function ownerCalls(o: CallsQuery) {
     networks: new Set(visible.filter((c) => c.caller.network).map((c) => c.caller.network)).size,
     rotatingNetworks: new Set(all.filter((c) => c.caller.rotatesBrowsers).map((c) => c.caller.network)).size,
     byTool: count((c) => c.tool), byKind: count((c) => shownKind(c.caller.kind)), byInput: count((c) => c.inputKind), byStatus: count((c) => c.statusGroup),
+    byMadeBy: count((c) => c.madeBy),
   };
 
   const matching = visible.filter((c) =>
     (!o.tool || c.tool === o.tool) && (!o.kind || shownKind(c.caller.kind) === o.kind) &&
     (!o.input || c.inputKind === o.input) && (!o.status || c.statusGroup === o.status) &&
-    (!o.caller || c.caller.id === o.caller) && (!o.network || c.caller.network === o.network));
+    (!o.caller || c.caller.id === o.caller) && (!o.network || c.caller.network === o.network) && (!o.madeBy || c.madeBy === o.madeBy));
   const page = (o.after ? matching.filter((c) => c.id > o.after!) : matching.filter((c) => !o.before || c.id < o.before)).slice(0, limit);
   const nextBefore = !o.after && page.length === limit && matching.some((c) => c.id < page[page.length - 1].id) ? page[page.length - 1].id : null;
   const group = (GROUPS as readonly string[]).includes(o.group ?? "") ? o.group! : null;
   return { generatedAt: new Date().toISOString(), hours, summary, matching: matching.length, rows: page, nextBefore,
-    group, groups: group ? groupCalls(matching, group, (SORTS as readonly string[]).includes(o.sort ?? "") ? o.sort! : "calls") : null };
+    group, groups: group ? groupCalls(matching, group, (SORTS as readonly string[]).includes(o.sort ?? "") ? o.sort! : "recent") : null };
 }
 
 type Call = {
