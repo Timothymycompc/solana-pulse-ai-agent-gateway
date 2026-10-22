@@ -1,0 +1,255 @@
+// The Telegram bot: someone pastes a token, wallet or transaction into the chat (or /check it in a group) and gets
+// Pulse's answer in plain words. It runs the same tools as /api and /mcp, in-process, with the same 25 free calls a
+// day per tool, counted per Telegram user instead of per IP. Every run is logged like any other tool run
+// (endpoint /telegram/tools/<name>), with the Telegram user ID kept only as a keyed hash.
+// Telegram calls POST /telegram/webhook; scripts/telegram-setup.sh points it there.
+import { createHash, timingSafeEqual } from "crypto";
+import type { Express, Request, Response } from "express";
+import { PublicKey, type Connection } from "@solana/web3.js";
+import { recordServiceUsage } from "./db";
+import { hashTelegramUser, refundFreeCallFor, reserveFreeCallFor } from "./meter";
+import { FREE_CALLS_PER_TOOL } from "./pricing";
+
+const SITE = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
+export const TELEGRAM_CLIENT = "Telegram bot (Solana Pulse)";
+
+// ---------- What the message asks for ----------
+export type Ask =
+  | { kind: "token_or_address"; address: string }
+  | { kind: "tx"; signature: string }
+  | { kind: "ticker"; name: string }
+  | { kind: "help" }
+  | { kind: "myid" }
+  | { kind: "none" };
+
+const B58 = "1-9A-HJ-NP-Za-km-z";
+const B58_RUN = new RegExp(`(?<![${B58}])[${B58}]{32,88}(?![${B58}])`, "g");
+
+// Pulls the first address (32-44 base58 characters) or transaction signature (86-88) out of the text, so links
+// from Solscan, pump.fun or Dexscreener work as well as a bare address. A $TICKER or /find <name> searches by name.
+// In a group the bot only answers commands, so a chat's normal messages never use anyone's free calls.
+export function parseAsk(text: string, isGroup: boolean): Ask {
+  const trimmed = text.trim();
+  const command = trimmed.match(/^\/([a-z_]+)(?:@\w+)?\s*([\s\S]*)$/i);
+  const name = command?.[1].toLowerCase();
+  if (name === "start" || name === "help") return { kind: "help" };
+  if (name === "myid") return { kind: "myid" };
+  if (name === "find") return command![2].trim() ? { kind: "ticker", name: command![2].trim().replace(/^\$/, "").slice(0, 40) } : { kind: "help" };
+  if (isGroup && name !== "check") return { kind: "none" };
+  const body = name === "check" ? command![2] : trimmed;
+  for (const run of body.match(B58_RUN) ?? []) {
+    if (run.length >= 86) return { kind: "tx", signature: run };
+    if (run.length <= 44) return { kind: "token_or_address", address: run };
+  }
+  const ticker = body.match(/\$([A-Za-z][A-Za-z0-9]{0,14})\b/);
+  if (ticker) return { kind: "ticker", name: ticker[1] };
+  return name === "check" || !isGroup ? { kind: "help" } : { kind: "none" };
+}
+
+// ---------- Replies (Telegram HTML) ----------
+const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const code = (s: string) => `<code>${esc(s)}</code>`;
+const short = (a: string) => (a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a);
+const pretty = (check: string) => check.replace(/^extension:/, "extension ").replace(/_/g, " ");
+const SOURCE_NAMES: Record<string, string> = { "on-chain": "Solana mainnet", jupiter: "Jupiter", rugcheck: "RugCheck", simulation: "a simulated sell" };
+const clip = (s: string) => (s.length > 3900 ? `${s.slice(0, 3900)}…` : s);
+
+export const HELP = [
+  "<b>Solana Pulse</b> checks Solana tokens and transactions for the known ways people get robbed.",
+  "",
+  "Send me:",
+  "• a <b>token address</b> (or a pump.fun / Dexscreener / Solscan link): scam-trap check",
+  "• a <b>transaction signature</b>: what it did, every balance change, and why it failed",
+  "• a <b>wallet or any address</b>: what it is and what's safe to send it",
+  "• <b>$TICKER</b> or /find name: the real token's address, and how many copycats use the name",
+  "",
+  "In a group, use /check &lt;address or signature&gt;.",
+  `Free: ${FREE_CALLS_PER_TOOL} checks a day of each kind. Every answer comes from live data and names its source.`,
+  "",
+  `For developers and AI agents: the same tools over MCP and HTTP at ${SITE}`,
+].join("\n");
+
+const VERDICT_LINE: Record<string, string> = {
+  SAFE: "🟢 <b>SAFE</b>: none of the scam traps we know about were found",
+  CAUTION: "🟡 <b>CAUTION</b>: something needs a look",
+  AVOID: "🔴 <b>AVOID</b>: at least one known scam trap is present",
+};
+
+export function formatTokenSafety(b: any, address: string): string {
+  const about = b.about ?? {};
+  const checks: any[] = Array.isArray(b.checks) ? b.checks : [];
+  const by = (r: string) => checks.filter((c) => c.result === r);
+  const line = (icon: string) => (c: any) => `${icon} <b>${esc(pretty(c.name))}</b>: ${esc(c.detail)}`;
+  const passed = by("pass").map((c) => pretty(c.name));
+  const sources = [...new Set(checks.map((c) => SOURCE_NAMES[c.source] ?? c.source).filter(Boolean))];
+  return clip([
+    VERDICT_LINE[b.verdict] ?? `<b>${esc(b.verdict)}</b>`,
+    `${esc(about.symbol ?? "Unknown symbol")}${about.name ? ` (${esc(about.name)})` : ""} · ${code(address)}`,
+    "",
+    esc(b.summary),
+    "",
+    ...by("fail").map(line("❌")), ...by("warn").map(line("⚠️")), ...by("info").slice(0, 4).map(line("ℹ️")),
+    ...(passed.length ? [`✅ Passed: ${esc(passed.join(", "))}`] : []),
+    "",
+    ...(sources.length ? [`Sources: ${esc(sources.join(", "))}.`] : []),
+    "<i>A check can't make a token safe. SAFE only means none of the traps we know about are present, and it says nothing about the price.</i>",
+    `<a href="${SITE}/docs/tools/token_safety">How the check works</a> · <a href="https://solscan.io/token/${esc(address)}">Solscan</a>`,
+  ].join("\n"));
+}
+
+export function formatExplainTx(b: any, signature: string): string {
+  const sol: any[] = Array.isArray(b.sol_changes) ? b.sol_changes : [];
+  const tokens: any[] = Array.isArray(b.token_changes) ? b.token_changes : [];
+  const f = b.failure?.explanation;
+  return clip([
+    b.result === "failed" ? "❌ <b>Failed</b>" : "✅ <b>Succeeded</b>",
+    b.time ? esc(b.time) : "",
+    "",
+    esc(b.summary),
+    ...(sol.length ? ["", "<b>SOL changes</b>", ...sol.slice(0, 6).map((c) => `${code(short(c.account))} ${esc(c.change)} SOL`)] : []),
+    ...(tokens.length ? ["", "<b>Token changes</b>", ...tokens.slice(0, 6).map((c) => `${code(short(c.owner))} ${esc(c.change)} ${esc(c.symbol ?? short(c.token))}`)] : []),
+    ...(f ? ["", `<b>Why it failed:</b> ${esc(f.meaning)}`, `<b>Fix:</b> ${esc(f.fix)}`] : []),
+    "",
+    "Source: Solana mainnet.",
+    `<a href="https://solscan.io/tx/${esc(signature)}">Solscan</a>`,
+  ].filter((l, i, all) => !(l === "" && all[i - 1] === "")).join("\n"));
+}
+
+export function formatWhatsThis(b: any, address: string): string {
+  return clip([
+    `<b>${esc(String(b.kind ?? "unknown").replace(/_/g, " "))}</b> · ${code(address)}`,
+    "",
+    esc(b.summary),
+    ...(b.exists ? [`Holds ${esc(b.sol)} SOL${b.owner_program_name ? ` · owned by ${esc(b.owner_program_name)}` : ""}`] : []),
+    "",
+    "Source: Solana mainnet.",
+    `<a href="https://solscan.io/account/${esc(address)}">Solscan</a>`,
+  ].join("\n"));
+}
+
+export function formatFindToken(b: any): string {
+  const list: any[] = Array.isArray(b.candidates) ? b.candidates.slice(0, 3) : [];
+  return clip([
+    `<b>${esc(b.name)}</b>`,
+    b.best ? `Best match (${esc(b.confidence)} confidence): ${esc(b.best.symbol)} ${code(b.best.address)}` : "No single token is safe to pick for this name.",
+    ...(b.copycats ? [`⚠️ ${esc(b.copycats)} unverified tokens use the same name. Copycats are a common scam.`] : []),
+    ...(list.length ? ["", ...list.map((c) => `${c.verified ? "✅ verified" : "❔ unverified"} ${esc(c.symbol)} ${code(c.address)}`)] : []),
+    "",
+    esc(b.next_step),
+    "Send me an address to run the full scam-trap check. Source: Jupiter's token list.",
+  ].join("\n"));
+}
+
+export const limitReply = (what: string) =>
+  `You've used today's ${FREE_CALLS_PER_TOOL} free ${what}. They reset at 00:00 UTC.\nDevelopers can pay per call in USDC (x402): ${SITE}/docs/pricing`;
+
+export const errorReply = (body: any) =>
+  `Couldn't finish that: ${esc(body?.error ?? "unknown error")}${body?.fix ? `\n${esc(body.fix)}` : ""}\nFailed checks never count against your free checks.`;
+
+// ---------- Handling one update ----------
+export type ToolResult = { status: number; body: Record<string, any> };
+export type BotDeps = {
+  runTool: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>;
+  isToken: (address: string) => Promise<boolean>;
+  send: (chatId: number, html: string, replyTo?: number) => Promise<void>;
+  typing: (chatId: number) => Promise<void>;
+  // Reserves one free call; false when today's are used up. refund gives it back after a failed run.
+  reserve: (userId: number, tool: string) => Promise<boolean>;
+  refund: (userId: number, tool: string) => Promise<void>;
+  record: (o: { userId: number; tool: string; status: number; input: unknown; output: unknown; owner: boolean }) => Promise<void>;
+  ownerIds: Set<number>;
+};
+
+const WHAT: Record<string, string> = { token_safety: "token checks", explain_tx: "transaction lookups", whats_this: "address lookups", find_token: "name searches" };
+
+export async function handleUpdate(update: any, deps: BotDeps): Promise<void> {
+  const msg = update?.message ?? update?.edited_message;
+  if (!msg?.text || !msg.chat || !msg.from || msg.from.is_bot) return;
+  const isGroup = msg.chat.type !== "private";
+  const ask = parseAsk(msg.text, isGroup);
+  const reply = (html: string) => deps.send(msg.chat.id, html, isGroup ? msg.message_id : undefined);
+  if (ask.kind === "none") return;
+  if (ask.kind === "help") return reply(HELP);
+  if (ask.kind === "myid") return reply(`Your Telegram user ID is ${code(String(msg.from.id))}.`);
+
+  await deps.typing(msg.chat.id);
+  let tool: string, args: Record<string, unknown>, format: (b: any) => string;
+  if (ask.kind === "tx") [tool, args, format] = ["explain_tx", { tx_id: ask.signature }, (b) => formatExplainTx(b, ask.signature)];
+  else if (ask.kind === "ticker") [tool, args, format] = ["find_token", { name: ask.name }, formatFindToken];
+  else if (await deps.isToken(ask.address)) [tool, args, format] = ["token_safety", { token: ask.address }, (b) => formatTokenSafety(b, ask.address)];
+  else [tool, args, format] = ["whats_this", { address: ask.address }, (b) => formatWhatsThis(b, ask.address)];
+
+  const owner = deps.ownerIds.has(msg.from.id);
+  if (!owner && !(await deps.reserve(msg.from.id, tool))) return reply(limitReply(WHAT[tool]));
+  const result = await deps.runTool(tool, args);
+  if (result.status >= 400 && !owner) await deps.refund(msg.from.id, tool);
+  await deps.record({ userId: msg.from.id, tool, status: result.status, input: args, output: result.body, owner });
+  await reply(result.status >= 400 ? errorReply(result.body) : format(result.body));
+}
+
+// ---------- The webhook ----------
+// Telegram sends this secret in a header on every call, so nobody else can post fake updates. It's derived from the
+// bot token, so there is one secret to keep, not two.
+export const webhookSecret = (botToken: string) => createHash("sha256").update(`pulse-telegram-webhook:${botToken}`).digest("hex");
+
+export function telegramWebhook(botToken: string, deps: BotDeps) {
+  const secret = Buffer.from(webhookSecret(botToken));
+  const seen: number[] = [];
+  return async (req: Request, res: Response) => {
+    const given = Buffer.from(String(req.headers["x-telegram-bot-api-secret-token"] ?? ""));
+    if (given.length !== secret.length || !timingSafeEqual(given, secret)) return res.status(401).json({ error: "Not Telegram." });
+    // Telegram resends an update it thinks failed; answer each one once.
+    const id = Number(req.body?.update_id);
+    if (seen.includes(id)) return res.json({ ok: true });
+    seen.push(id);
+    if (seen.length > 500) seen.shift();
+    try {
+      await handleUpdate(req.body, deps);
+    } catch (error) {
+      console.error("telegram update failed:", error);
+    }
+    res.json({ ok: true });
+  };
+}
+
+// Turns the bot on when TELEGRAM_BOT_TOKEN is set. TELEGRAM_OWNER_IDS (comma-separated, from /myid) marks the owner's
+// own Telegram accounts: their checks are unlimited and labelled as the owner's tests, so they never count as users.
+export function mountTelegram(app: Express, runTool: BotDeps["runTool"], mainnet: () => Connection) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+  const api = telegramApi(botToken);
+  const ownerIds = new Set((process.env.TELEGRAM_OWNER_IDS ?? "").split(",").map((s) => Number(s.trim())).filter(Boolean));
+  app.post("/telegram/webhook", telegramWebhook(botToken, {
+    runTool, ownerIds, send: api.send, typing: api.typing,
+    isToken: async (address) => {
+      try {
+        const info = await mainnet().getParsedAccountInfo(new PublicKey(address));
+        return (info.value?.data as any)?.parsed?.type === "mint";
+      } catch { return false; }
+    },
+    reserve: async (userId, tool) => (await reserveFreeCallFor(hashTelegramUser(userId), tool)) !== null,
+    refund: (userId, tool) => refundFreeCallFor(hashTelegramUser(userId), tool),
+    record: ({ userId, tool, status, input, output, owner }) => recordServiceUsage({
+      endpoint: `/telegram/tools/${tool}`, method: "POST", status, callerHash: hashTelegramUser(userId), client: TELEGRAM_CLIENT,
+      via: owner ? "owner" : "free_call", input, output, testName: owner ? "telegram" : null,
+    }),
+  }));
+  console.log(`Telegram bot on (${ownerIds.size} owner account${ownerIds.size === 1 ? "" : "s"})`);
+}
+
+export function telegramApi(botToken: string) {
+  const call = async (method: string, body: unknown) => {
+    const r = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000),
+    });
+    const data: any = await r.json().catch(() => ({}));
+    if (!data.ok) console.error(`telegram ${method} failed:`, data.description ?? r.status);
+  };
+  return {
+    send: (chatId: number, html: string, replyTo?: number) => call("sendMessage", {
+      chat_id: chatId, text: html, parse_mode: "HTML", link_preview_options: { is_disabled: true },
+      ...(replyTo ? { reply_parameters: { message_id: replyTo, allow_sending_without_reply: true } } : {}),
+    }),
+    typing: (chatId: number) => call("sendChatAction", { chat_id: chatId, action: "typing" }),
+  };
+}

@@ -33,7 +33,12 @@ export function isOwnerKey(apiKey?: string): boolean {
 // True when a row's last call was on an earlier UTC day, so its count starts again from zero.
 const NEW_DAY = `(trial_tool_usage.last_call_at AT TIME ZONE 'UTC')::date < (NOW() AT TIME ZONE 'UTC')::date`;
 
-async function reserveFreeCall(ip: string, tool: string): Promise<number | null> {
+// Telegram users are counted by their Telegram user ID instead of an IP (the bot's calls all come from Telegram's servers).
+export const hashTelegramUser = (userId: number | string) => createHmac("sha256", callerHashKey()).update("tg:" + userId).digest("hex");
+
+const reserveFreeCall = (ip: string, tool: string) => reserveFreeCallFor(hashIp(ip), tool);
+
+export async function reserveFreeCallFor(callerHash: string, tool: string): Promise<number | null> {
   const result = await pool.query(
     `INSERT INTO trial_tool_usage (ip_hash, tool, calls_used)
      VALUES ($1, $2, 1)
@@ -42,16 +47,18 @@ async function reserveFreeCall(ip: string, tool: string): Promise<number | null>
        last_call_at = NOW()
      WHERE ${NEW_DAY} OR trial_tool_usage.calls_used < $3
      RETURNING calls_used`,
-    [hashIp(ip), tool, FREE_CALLS_PER_TOOL]
+    [callerHash, tool, FREE_CALLS_PER_TOOL]
   );
   return result.rowCount ? Number(result.rows[0].calls_used) : null;
 }
 
-export async function refundFreeCall(ip: string, tool: string): Promise<void> {
+export const refundFreeCall = (ip: string, tool: string) => refundFreeCallFor(hashIp(ip), tool);
+
+export async function refundFreeCallFor(callerHash: string, tool: string): Promise<void> {
   try {
     await pool.query(
       `UPDATE trial_tool_usage SET calls_used = GREATEST(calls_used - 1, 0) WHERE ip_hash = $1 AND tool = $2`,
-      [hashIp(ip), tool]
+      [callerHash, tool]
     );
   } catch (error) { console.error("free call refund failed:", error); }
 }
@@ -75,6 +82,7 @@ export const freePassFor = (userAgent: string | undefined, now = Date.now()) =>
 // here with who it is for. Make one with `npm run trial-key -- <name>`.
 export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: string }[] = [
   { name: "tensorblock", keySha256: "7e8d1641743ac79e6407b3248a00434dacce83fff99046eb28f9edd4431769e9", until: "2027-01-13T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-21." },
+  { name: "dexra-oleg", keySha256: "1c9f0d7d7e5ff58c140491af56eb934d4409b86cfca8152e0f30095d37803ada", until: "2026-12-03T23:59:59Z", why: "Free trial, 6 weeks, granted 2026-10-22." },
 ];
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys = TRIAL_KEYS) => {

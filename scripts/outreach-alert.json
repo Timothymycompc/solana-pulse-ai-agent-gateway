@@ -1,0 +1,29 @@
+{
+  "displayName": "Solana Pulse: new person reached out to",
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "A new caller got a personal note",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"solana-pulse-gateway\" AND textPayload:\"OUTREACH_NEW\"",
+        "labelExtractors": {
+          "caller": "REGEXP_EXTRACT(textPayload, \"\\\"name\\\":\\\"([^\\\"]*)\\\"\")",
+          "user_agent": "REGEXP_EXTRACT(textPayload, \"\\\"userAgent\\\":\\\"([^\\\"]*)\\\"\")",
+          "runs": "REGEXP_EXTRACT(textPayload, \"\\\"runs\\\":([0-9]+)\")",
+          "tools": "REGEXP_EXTRACT(textPayload, \"\\\"tools\\\":(\\\\[.*\\\\])\")"
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": { "period": "300s" },
+    "autoClose": "1800s"
+  },
+  "documentation": {
+    "subject": "Solana Pulse: personal note sent to ${log.extracted_label.caller}",
+    "content": "**Caller:** ${log.extracted_label.caller}\n\n**User agent:** ${log.extracted_label.user_agent}\n\n**Calls this week:** ${log.extracted_label.runs}\n\n**Tools (name, calls):** ${log.extracted_label.tools}\n\nThis caller used your Solana Pulse tools like a real developer or AI app, so a personal note from you is added to their answers for 14 days.\n\nMore on your owner page: https://solana-pulse-gateway-1021990235790.us-central1.run.app/owner (People you've reached out to). If they reply, it'll come to this email or as a GitHub issue.",
+    "mimeType": "text/markdown"
+  },
+  "notificationChannels": ["projects/x300-506418/notificationChannels/9544205752157001443"],
+  "enabled": true
+}

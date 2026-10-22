@@ -46,3 +46,12 @@ Dexra (dexra.dev) is the closest competitor: token/launch verdicts, closed sourc
 - More lists: jaw9c/awesome-remote-mcp-servers, Merit-Systems/awesome-agentic-commerce, mcp.so.
 - Possible collaboration with Dexra (token check + transaction check); outreach file 13 on the phone.
 - Owner dashboard bot detection (found 2026-10-21): two networks (58bd04, 00273c) ran 128 calls over 3 days while claiming to be Chrome on Linux, Chrome on Windows AND Safari on macOS at the same time, and a burst on 2026-10-18 20:43-21:06 came from ~8 networks with mixed browser names. These are crawlers faking browser user agents, but the dashboard counts them as "Browser". Rule to add (measure first): a network seen with 2+ different desktop OS/browser user agents within an hour is a bot. Until then, never report browser callers as people without checking their inputs (pulse-inputs). Partly done 2026-10-21: the owner Explorer flags such networks as "fake browser" and shows own/example/empty inputs; the Overview, Callers and /status counts still count them as browsers.
+
+## From the walkthrough video (2026-10-21)
+- Connect page: copy-paste setups for agent frameworks that already speak remote MCP, so no new package is needed: Vercel AI SDK, LangChain/LangGraph (langchain-mcp-adapters), OpenAI Agents SDK, Claude Agent SDK, Mastra. Each one run for real against /mcp before it goes on the page.
+- token_safety on BONK skipped the sell test twice on 2026-10-21 ("the token's holders could not be read right now"), so the most-used tokens may never get a sell test. Find out why before relying on it.
+
+## Found 2026-10-22 (Telegram bot work)
+- token_safety wording: on BONK the summary says "the creator has no rug record" and then "RugCheck is unavailable ... the creator's rug history were not checked", and Sources lists RugCheck although it couldn't be reached. Make the summary and the source list say only what was really checked.
+- whats_this calls a wallet that holds tokens but no SOL "Nothing exists here yet" (e.g. the payout wallet). True for the SOL account, misleading for a person; say it holds no SOL and check for token accounts.
+- Telegram bot: optional "address spotting" in groups (answer any pasted token address without /check, as RugCheck-style bots do). Needs privacy mode off in @BotFather and a per-group switch, so a busy group doesn't burn everyone's free checks.

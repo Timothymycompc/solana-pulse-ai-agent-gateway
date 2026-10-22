@@ -1,7 +1,7 @@
 // Owner dashboard, Calls tab: every tool call in a period, read straight from service_usage (GET /api/owner/calls,
 // owner key only). Filtering and paging happen here so the page stays fast with thousands of calls; a call's full input
 // and output load one at a time when the owner opens it (GET /api/owner/calls/:id).
-import { pool, TOOL_RUN_SQL } from "./db";
+import { pool, TOOL_RUN_SQL, transportOf } from "./db";
 import { classifyClient, type CallerKind } from "./callers";
 import { TOOLS_BY_NAME } from "./tools";
 
@@ -26,7 +26,7 @@ const GROUP_MAX = 300;
 const shortId = (hash: string | null) => (hash ? hash.slice(0, 6) : null);
 // "/api/tools/token_safety" or "/mcp/tools/token%5Fsafety" → the tool's current name (old names count as the new one).
 function toolOf(endpoint: string): string {
-  const raw = endpoint.replace(/^\/(api|mcp)\/tools\//, "");
+  const raw = endpoint.replace(/^\/(api|mcp|telegram)\/tools\//, "");
   let name = raw;
   try { name = decodeURIComponent(raw); } catch { /* keep raw */ }
   return TOOLS_BY_NAME.get(name)?.name ?? name;
@@ -98,7 +98,7 @@ export async function ownerCalls(o: CallsQuery) {
     const mine = Boolean(test) || (info.kind !== "bot" && ((r.caller_hash && ownerNets.has(r.caller_hash)) || r.via === "owner"));
     const kind: Kind = mine ? "you" : info.kind;
     const madeBy: MadeBy = test ? "test" : mine ? "you" : info.kind === "bot" ? "bot" : "outside";
-    const transport = String(r.endpoint).startsWith("/mcp") ? "mcp" : "http";
+    const transport = transportOf(String(r.endpoint));
     return {
       id: Number(r.id), at: new Date(r.created_at).toISOString(), tool: toolOf(r.endpoint), transport, status: Number(r.status),
       outcome: outcomeOf(r), statusGroup: statusOf(r), inputKind: r.input_kind as InputKind,

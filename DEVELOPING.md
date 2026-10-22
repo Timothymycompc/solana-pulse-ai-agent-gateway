@@ -17,6 +17,7 @@ server/            the backend (Express + MCP), bundled to dist/server.cjs
   x-manual.ts      posts the owner writes by hand (npm run x-post), with pictures or a video
   x-queue.ts       the queue of X posts (only approved ones go out) and the list pull requests to announce
   pages.ts         serves each website page with its text already in the HTML (for readers without JavaScript)
+  telegram.ts      the Telegram bot: paste a token, address or transaction, get the tool's answer (same free calls, logged)
   mcp-accept.ts    lets /mcp clients with a bare Accept header in (the MCP library would answer 406)
   auth.ts          reads the owner key from a request
   secrets.ts       loads secrets from Google Secret Manager
@@ -55,6 +56,7 @@ To deploy from the new device, install the Google Cloud CLI, run `gcloud auth lo
 | `npm run build` | Check, then bundle everything into `dist/` |
 | `npm run deploy -- --check-only` | Check setup and code without uploading |
 | `npm run deploy` | Back up, deploy hidden, test, then go live |
+| `npm run telegram-setup` | Set up the Telegram bot: store its token, then (after a deploy) connect it; `-- owner <id>` marks your own account |
 | `npm run set-rpc-key` | Store a new Helius (or other) RPC key |
 | `npm run accuracy-setup` | Start the token_safety accuracy test on Google Cloud (Cloud Scheduler, every 10 minutes): 100 young tokens people are trading, each checked again a week later |
 | `npm run accuracy-rerun` | Queue the 500 tokens of the 2026-10-16 audit (tests/audit/) for fresh verdicts on Google Cloud |

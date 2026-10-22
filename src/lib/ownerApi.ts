@@ -4,7 +4,7 @@ export type Kind = 'you' | 'bot' | 'ai_app' | 'script' | 'browser' | 'other' | '
 
 export type ToolStats = {
   tool: string; known: boolean; oldName: string | null; price: string | null;
-  runs: number; http: number; mcp: number; errors: number; freeCalls: number; ownerCalls: number; paymentAsked: number;
+  runs: number; http: number; mcp: number; telegram: number; errors: number; freeCalls: number; ownerCalls: number; paymentAsked: number;
   byKind: Record<Kind, number>; callers: number; lastRunAt: string | null;
   payments: number; revenueUsdc: number; paymentsWindow: number; revenueWindowUsdc: number; revenueOthersUsdc: number; otherPayers: number;
   // All-time payments under each name the tool was paid as: its current name first, then its pre-October-2026 name.
@@ -40,7 +40,7 @@ export type OwnerOverview = {
   kinds: Record<Kind, { label: string; callers: number; runs: number; requests: number }>;
   callers: CallerStats[]; callerCount: number;
   outreach: { key: string; name: string; userAgent: string; tools: string; runs: number; since: string; until: string; active: boolean }[];
-  recentRuns: { at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; caller: CallerRef; noteSent: boolean; input: unknown; output: unknown }[];
+  recentRuns: { at: string; tool: string; transport: 'http' | 'mcp' | 'telegram'; status: number; outcome: string; caller: CallerRef; noteSent: boolean; input: unknown; output: unknown }[];
   payers: { payer: string; mine: boolean; payments: number; usdc: number; tools: number; firstAt: string; lastAt: string }[];
   recentPayments: { at: string; tool: string; amountUsdc: number; payer: string; mine: boolean; txSignature: string; caller: CallerRef | null }[];
   visitors: Visitors;
@@ -61,7 +61,7 @@ export type InputKind = 'own' | 'example' | 'empty';
 export type MadeBy = 'test' | 'you' | 'bot' | 'outside';
 export type CallStatus = 'ok' | 'error' | 'payment';
 export type CallRow = {
-  id: number; at: string; tool: string; transport: 'http' | 'mcp'; status: number; outcome: string; statusGroup: CallStatus;
+  id: number; at: string; tool: string; transport: 'http' | 'mcp' | 'telegram'; status: number; outcome: string; statusGroup: CallStatus;
   inputKind: InputKind; paidUsdc: number; noteSent: boolean; verdict: string | null; headline: string | null;
   // Who made it: one of the owner's tests (test names which), the owner, a bot, or someone outside.
   madeBy: MadeBy; test: string | null;

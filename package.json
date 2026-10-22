@@ -1,7 +1,7 @@
 {
   "name": "solana-pulse-gateway",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "deploy": "bash scripts/deploy.sh",
     "set-rpc-key": "bash scripts/set-rpc-key.sh",
     "set-jupiter-key": "bash scripts/set-jupiter-key.sh",
+    "telegram-setup": "bash scripts/telegram-setup.sh",
     "accuracy-setup": "bash scripts/accuracy-setup.sh",
     "accuracy-rerun": "bash scripts/accuracy-rerun.sh",
     "accuracy": "curl -s -H \"x-api-key: $(gcloud secrets versions access latest --secret=OWNER_API_KEY)\" https://solana-pulse-gateway-1021990235790.us-central1.run.app/api/owner/accuracy | python3 -m json.tool",

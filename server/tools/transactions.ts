@@ -77,7 +77,7 @@ export const preflightTransaction: ToolDef = {
   benefit: { kind: "money", text: "Catches a drainer approval or a transaction that will fail, before you sign. Failed transactions still cost fees. One hidden approval can empty a wallet." },
   useWhen: "Run on every transaction before signing. Shows what each wallet gains and loses, blocks drainer tricks, and catches failures and expired blockhashes before you pay a fee.",
   usage: '{"tx": "<base64, before signing>"}',
-  description: "Decodes each step, dry-runs it on live mainnet, finds each wallet's SOL and token changes, and answers OK, REVIEW or BLOCK with reasons.",
+  description: "Decodes each step, dry-runs it on live mainnet, finds each wallet's SOL and token changes, and answers OK, REVIEW or BLOCK with reasons. Measured: no false BLOCK on 200 real mainnet transactions; with tx_matches it caught 9 of 9 attack cases (benchmark/ in the repo).",
   inputs: { tx: z.string().min(20), network: NETWORK },
   inputDocs: [TX_DOC, NETWORK_DOC],
   outputs: [
@@ -156,7 +156,7 @@ export const checkTransactionIntent: ToolDef = {
   benefit: { kind: "accuracy", text: "Asked to send 5 USDC, an agent can build a transaction for 50 (a decimals slip) or to a made-up address. This says MISMATCH and names the exact field." },
   useWhen: 'Run just before signing a transfer built from a request like "send 5 USDC to X", or a swap built for "swap 1 USDC for JUP". Confirms it moves exactly that token, amount and recipient, nothing more, or that the swap sells exactly that amount and pays the bought token back to you. Catches made-up amounts, wrong decimals, hidden steps and swaps that pay someone else.',
   usage: '"send 1 USDC to X" is {"tx": "<base64>", "expected": {"token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "1", "to": "X"}}',
-  description: "Compares the transaction with your request (token, exact amount, recipient, sender), flags every step that isn't the transfer, and checks dry-run balances so money moved any other way is caught. For a swap it reads the dry run: exactly the amount sold, the bought token reaching your wallet, and nothing else leaving it.",
+  description: "Compares the transaction with your request (token, exact amount, recipient, sender), flags every step that isn't the transfer, and checks dry-run balances so money moved any other way is caught. For a swap it reads the dry run: exactly the amount sold, the bought token reaching your wallet, and nothing else leaving it. Measured on 200 real mainnet transactions: 80 of 80 transfers and 26 of 27 swaps matched (the other paid a bot 1.54%).",
   inputs: {
     tx: z.string().min(20),
     expected: z.union([

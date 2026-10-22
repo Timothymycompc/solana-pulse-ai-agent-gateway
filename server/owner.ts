@@ -1,6 +1,6 @@
 // Owner dashboard data: revenue per tool, who calls each tool (directory bots, AI apps, scripts, people) and site
 // visitors. Served only with the owner key, by GET /api/owner/overview in index.ts.
-import { pool, TOOL_RUN_SQL } from "./db";
+import { pool, TOOL_RUN_SQL, transportOf } from "./db";
 import { classifyClient, isMobile, KIND_LABELS, type CallerKind } from "./callers";
 import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { priceOf } from "./pricing";
@@ -15,7 +15,7 @@ const ms = (v: unknown) => new Date(v as string).getTime();
 
 // "/api/tools/token_safety" or "/mcp/tools/token%5Fsafety" → "token_safety"
 function toolOf(endpoint: string): string {
-  const raw = endpoint.replace(/^\/(api|mcp)\/tools\//, "");
+  const raw = endpoint.replace(/^\/(api|mcp|telegram)\/tools\//, "");
   try { return decodeURIComponent(raw); } catch { return raw; }
 }
 
@@ -133,7 +133,7 @@ export async function ownerOverview(o: { days: number }) {
     if (!t) {
       const known = TOOLS_BY_NAME.has(tool);
       t = {
-        tool, known, oldName: TOOLS_BY_NAME.get(tool)?.oldName ?? null, price: known ? priceOf(tool) : null, runs: 0, http: 0, mcp: 0, errors: 0,
+        tool, known, oldName: TOOLS_BY_NAME.get(tool)?.oldName ?? null, price: known ? priceOf(tool) : null, runs: 0, http: 0, mcp: 0, telegram: 0, errors: 0,
         freeCalls: 0, ownerCalls: 0, paymentAsked: 0, byKind: emptyKinds(), callers: new Set<string>(), lastRunAt: 0,
         payments: 0, revenueUsdc: 0, paymentsWindow: 0, revenueWindowUsdc: 0, revenueOthersUsdc: 0, otherPayers: 0,
         byName: [] as { name: string; payments: number; revenueUsdc: number }[],
@@ -146,7 +146,8 @@ export async function ownerOverview(o: { days: number }) {
   for (const { r, caller, tool, failed } of runs) {
     const t = statsFor(tool);
     t.runs++;
-    if (r.endpoint.startsWith("/mcp")) t.mcp++; else t.http++;
+    const via = transportOf(r.endpoint);
+    if (via === "mcp") t.mcp++; else if (via === "telegram") t.telegram++; else t.http++;
     if (failed) t.errors++;
     if (r.via === "free_call") t.freeCalls++;
     if (r.via === "owner") t.ownerCalls++;
@@ -187,7 +188,7 @@ export async function ownerOverview(o: { days: number }) {
   const ioRows = await pool.query(`SELECT id, input, output FROM service_usage WHERE id = ANY($1::bigint[])`, [latest.map(({ r }) => r.id)]);
   const ioById = new Map(ioRows.rows.map((row: any) => [String(row.id), row]));
   const recentRuns = latest.map(({ r, caller, tool, failed }) => ({
-    at: iso(r.created_at), tool, transport: r.endpoint.startsWith("/mcp") ? "mcp" : "http", status: r.status,
+    at: iso(r.created_at), tool, transport: transportOf(r.endpoint), status: r.status,
     outcome: r.payment_tx ? "paid" : r.status === 402 || r.via === "x402" ? "payment_asked" : failed ? "error"
       : r.via === "free_call" ? "free_call" : r.via === "owner" ? "owner_key" : "ok",
     caller: { id: caller.id, kind: caller.kind, name: caller.name, network: caller.network }, noteSent: r.note_sent === true,

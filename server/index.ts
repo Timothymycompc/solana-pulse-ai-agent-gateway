@@ -31,13 +31,14 @@ import { httpError } from "./tools/lib";
 import { VERSION } from "./version";
 import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
+import { mountTelegram } from "./telegram";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 
 async function startServer() {
   await loadSecrets(["DATABASE_URL", "OWNER_API_KEY", "SOLANA_MAINNET_RPC_URL", "CALLER_HASH_SECRET", "CDP_API_KEY_ID", "CDP_API_KEY_SECRET",
-    "X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET", "JUPITER_API_KEY"]);
+    "X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET", "JUPITER_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_OWNER_IDS"]);
   await ensureSchema();
   void clearOldToolIo();
   setInterval(() => void clearOldToolIo(), 6 * 60 * 60 * 1000).unref();
@@ -207,6 +208,8 @@ async function startServer() {
       res.status(503).json({ error: "Could not build a live example right now.", detail: String(error?.message ?? error).slice(0, 200) });
     }
   });
+
+  mountTelegram(app, (name, args) => runTool(TOOLS_BY_NAME.get(name)!, args), () => ctx.connection("mainnet-beta"));
 
   app.post("/api/tools/:name", noCache, requireTool, paidRoute, async (req: any, res) => {
     const outcome = await runTool(req.tool, req.body);
@@ -517,7 +520,8 @@ async function startServer() {
 
   // Glama connector ownership verification
   app.get("/.well-known/glama.json", (_req, res) => {
-    res.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", maintainers: [{ email: "timothymycompc@gmail.com" }] });
+    // The claim token is public by design (bound to the owner's Glama account, no personal data); one token for every domain.
+    res.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_11AcjHBOhpMfx0tc5ncQEWG92a9-4h93", maintainers: [{ email: "timothymycompc@gmail.com" }] });
   });
 
   // Every page and tool page, generated from the registry so new tools are indexed automatically.

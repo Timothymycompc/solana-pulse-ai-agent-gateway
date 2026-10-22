@@ -1,5 +1,7 @@
 # Solana Pulse
 
+[![Solana Pulse: agent safety layer MCP connector – tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/io.github.Timothymycompc/solana-pulse-gateway/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.Timothymycompc/solana-pulse-gateway)
+
 **An intelligence layer between Solana and AI agents.** It checks transactions before an agent signs them, confirms a transaction does exactly what the agent meant, gives token safety verdicts, explains failures, and converts amounts with real on-chain decimals, so agents stop losing money to hallucinated values.
 
 - Live: https://solana-pulse-gateway-1021990235790.us-central1.run.app

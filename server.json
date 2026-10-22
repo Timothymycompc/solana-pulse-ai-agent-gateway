@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Timothymycompc/solana-pulse-gateway",
   "title": "Solana Pulse: agent safety layer",
-  "description": "Stops AI agents losing money on Solana: pre-sign checks, intent matching, token verdicts. x402 USDC.",
+  "description": "Dry-run Solana txs before agents sign: exact balance changes, intent match, token traps. 25 free/day",
   "repository": {
     "url": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway",
     "source": "github"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "websiteUrl": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/",
   "remotes": [
     {

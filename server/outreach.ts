@@ -61,7 +61,8 @@ export function noteText(c: Pick<Candidate, "tools" | "runs">): string {
 
 // Last week's tool runs per network and client, with the MCP client name each network sent on initialize.
 async function activity(): Promise<CallerActivity[]> {
-  const recent = `${TOOL_RUN_SQL} AND via IS DISTINCT FROM 'owner' AND created_at >= NOW() - INTERVAL '7 days'`;
+  // Telegram users can't receive a note in an API answer, so the bot's runs are left out (telegram.ts).
+  const recent = `${TOOL_RUN_SQL} AND endpoint NOT LIKE '/telegram/%' AND via IS DISTINCT FROM 'owner' AND created_at >= NOW() - INTERVAL '7 days'`;
   const [runs, spread, inits, owners] = await Promise.all([
     pool.query(`SELECT caller_hash, client, endpoint, COUNT(*)::int AS n FROM service_usage WHERE ${recent} GROUP BY caller_hash, client, endpoint`),
     pool.query(`SELECT caller_hash, client, COUNT(DISTINCT date_trunc('hour', created_at))::int AS hours FROM service_usage WHERE ${recent} GROUP BY caller_hash, client`),

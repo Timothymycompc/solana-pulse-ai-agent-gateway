@@ -7,8 +7,9 @@ export const pool = new Pool({
   ssl: isCloudSqlSocket ? undefined : { rejectUnauthorized: false },
 });
 
-// A tool run: a tool call over HTTP or MCP. Other /mcp traffic is connections, tool listings and uptime pings.
-export const TOOL_RUN_SQL = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%')`;
+// A tool run: a tool call over HTTP, MCP or the Telegram bot (telegram.ts). Other /mcp traffic is connections, tool listings and uptime pings.
+export const TOOL_RUN_SQL = `((method = 'POST' AND endpoint LIKE '/api/tools/%') OR endpoint LIKE '/mcp/tools/%' OR endpoint LIKE '/telegram/tools/%')`;
+export const transportOf = (endpoint: string) => (endpoint.startsWith("/mcp") ? "mcp" : endpoint.startsWith("/telegram") ? "telegram" : "http");
 
 // The gateway keeps ten tables. No wallets, keys or balances are stored: payments settle on chain via x402.
 export async function ensureSchema() {
