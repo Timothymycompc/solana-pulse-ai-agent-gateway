@@ -45,11 +45,17 @@ API="https://api.telegram.org/bot$TOKEN"
 CODE=$(curl -s -m 15 -o /dev/null -w '%{http_code}' -X POST "$SITE/telegram/webhook" -H 'content-type: application/json' -d '{}')
 [ "$CODE" = "401" ] || { echo "The live server doesn't have the bot on yet (got HTTP $CODE). Deploy first, then run this again."; exit 1; }
 SECRET=$(printf %s "pulse-telegram-webhook:$TOKEN" | sha256sum | cut -d' ' -f1)
-post() { curl -s -m 15 -X POST "$API/$1" -H 'content-type: application/json' -d "$2" | python3 -c "import json,sys; d=json.load(sys.stdin); print('  $1:', 'ok' if d.get('ok') else d.get('description'))"; }
+# One retry: a phone connection sometimes drops a reply, and every one of these calls is safe to repeat.
+post() {
+  local r; for try in 1 2; do r=$(curl -s -m 20 -X POST "$API/$1" -H 'content-type: application/json' -d "$2"); [ -n "$r" ] && break; sleep 3; done
+  printf %s "$r" | python3 -c "import json,sys
+try: d=json.load(sys.stdin); print('  $1:', 'ok' if d.get('ok') else d.get('description'))
+except Exception: print('  $1: no answer from Telegram (run tgsetup again)')"
+}
 post setWebhook "{\"url\":\"$SITE/telegram/webhook\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\",\"edited_message\"],\"drop_pending_updates\":true}"
 # /myid still works (it's how the owner finds their ID) but stays out of the menu.
 post setMyCommands '{"commands":[{"command":"check","description":"🛡 Scam-check a token, wallet or transaction (paste address or link)"},{"command":"find","description":"🔎 Find the real token by name and spot copycats"},{"command":"help","description":"❓ What I check and where the data comes from"}]}'
 post setMyShortDescription '{"short_description":"Paste any Solana token, link or transaction. Scam-trap check from live on-chain data in seconds. Free."}'
-post setMyDescription '{"description":"🛡 Before you buy or sign, check it.\n\nPaste a Solana token address (or a pump.fun, Dexscreener or Solscan link) and I check it for the known ways people get robbed: can it be sold, can someone mint more or freeze your tokens, can the liquidity be pulled, has the creator rugged before, and how long it has been trading.\n\nPaste a transaction to see what really moved and why it failed. Type a name like BONK to find the real token and its copycats.\n\nFree, live data, every answer names its source. SAFE only means none of the known traps were found."}'
+post setMyDescription '{"description": "🛡 Before you buy or sign, check it.\n\nPaste a Solana token address or a pump.fun, Dexscreener or Solscan link. I check it for the known ways people get robbed: can it be sold, can someone mint more or freeze it, can the liquidity be pulled, has the creator rugged before, how old it is.\n\nPaste a transaction to see what really moved and why it failed. Type a name like BONK to find the real token and its copycats.\n\nFree and live. SAFE only means none of the known traps were found."}'
 NAME=$(curl -s -m 15 "$API/getMe" | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['username'])")
 echo "Done. Your bot: https://t.me/$NAME  (send it /myid, then: npm run telegram-setup -- owner <that number>)"

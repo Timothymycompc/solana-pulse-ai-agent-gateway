@@ -252,7 +252,7 @@ export const inspectAddress: ToolDef = {
   inputs: { address: z.string(), network: NETWORK },
   inputDocs: [{ name: "address", type: "string (base58 address)", required: true, lookingFor: "Any Solana address.", whereToGet: "The address you're about to use." }, NETWORK_DOC],
   outputs: [
-    { field: "exists", type: "boolean", is: "Whether anything lives at this address. A wallet that has never received SOL doesn't exist yet.", howWorkedOut: "Looked up on chain." },
+    { field: "exists", type: "boolean", is: "Whether an account with SOL lives at this address. A wallet with no SOL doesn't, though it can still own tokens (see details.token_accounts).", howWorkedOut: "Looked up on chain." },
     { field: "kind", type: "string", is: "wallet, token_account, mint (a token), program, program_data, stake_account, vote_account, lookup_table, program_owned_account or not_found.", howWorkedOut: "From the owner program, whether it's a program, and its data." },
     { field: "summary", type: "string", is: "What it is, in plain words, and what's safe to do with it.", howWorkedOut: "Fixed text per kind." },
     { field: "lamports / sol", type: "string", is: "SOL held by the account, in lamports and in SOL.", howWorkedOut: "The account's lamports; sol = lamports / 10^9." },
@@ -260,14 +260,25 @@ export const inspectAddress: ToolDef = {
     { field: "owner_program_name", type: "string | null", is: "That program's name, when we know it.", howWorkedOut: "Our table of program names." },
     { field: "is_program", type: "boolean", is: "True for program accounts.", howWorkedOut: "The account's executable flag." },
     { field: "can_sign", type: "boolean", is: "True for addresses that have a private key (normal keypairs). False for program-derived addresses, which can't sign.", howWorkedOut: "The address is on the ed25519 curve." },
-    { field: "details", type: "object", is: "Facts for this kind. Token accounts: token, owner, amount, delegate. Tokens: decimals, supply, who_can_mint, who_can_freeze.", howWorkedOut: "From the account data." },
+    { field: "details", type: "object", is: "Facts for this kind. Token accounts: token, owner, amount, delegate. Tokens: decimals, supply, who_can_mint, who_can_freeze. No SOL account: token_accounts, how many token accounts it owns (null if that couldn't be checked).", howWorkedOut: "From the account data; token_accounts from both token programs." },
   ],
   example: async () => ({ address: USDC_MINT }),
   run: async ({ address, network }, ctx) => {
     const key = new PublicKey(assertAddress(address, "address"));
     const res = await ctx.connection(network).getParsedAccountInfo(key, "confirmed");
     const onCurve = PublicKey.isOnCurve(key.toBytes());
-    if (!res.value) return { address: key.toBase58(), network, exists: false, kind: "not_found", summary: "Nothing exists here yet. A wallet that has never received SOL looks like this; sending SOL creates it.", lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: {} };
+    if (!res.value) {
+      // No SOL account, but the address can still own tokens (a wallet that spent all its SOL, or a payout address that
+      // only ever received USDC), so the token programs are asked too. null means the lookup failed: unknown, not zero.
+      const tokenAccounts = await Promise.all([TOKEN_PROGRAM, TOKEN_2022_PROGRAM].map((programId) =>
+        ctx.connection(network).getTokenAccountsByOwner(key, { programId: new PublicKey(programId) }, "confirmed").then((r) => r.value.length)))
+        .then(([a, b]) => a + b).catch(() => null);
+      const holder = onCurve ? "A wallet" : "A program-derived address (controlled by a program, not a person)";
+      const summary = tokenAccounts ? `${holder} with no SOL that holds ${tokenAccounts} token account${tokenAccounts === 1 ? "" : "s"}. It's in use: it just needs SOL to pay fees before it can move them.`
+        : tokenAccounts === 0 ? "Nothing exists here yet: no SOL and no tokens. A wallet that has never received anything looks like this; sending SOL creates it."
+        : "No SOL here. Whether it holds tokens couldn't be checked right now.";
+      return { address: key.toBase58(), network, exists: false, kind: tokenAccounts ? "wallet" : "not_found", summary, lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: { token_accounts: tokenAccounts } };
+    }
     const acc = res.value;
     const owner = acc.owner.toBase58();
     const parsed: any = (acc.data as any)?.parsed;
