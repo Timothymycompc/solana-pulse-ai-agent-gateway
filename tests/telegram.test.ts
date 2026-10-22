@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import express from "express";
-import { formatExplainTx, formatFindToken, formatTokenSafety, formatWhatsThis, handleUpdate, parseAsk, telegramWebhook, webhookSecret, type BotDeps } from "../server/telegram";
+import { ageText, formatExplainTx, formatFindToken, formatTokenSafety, formatWhatsThis, handleUpdate, parseAsk, telegramWebhook, tokenFacts, webhookSecret, type BotDeps } from "../server/telegram";
 
 const fixture = (name: string) => JSON.parse(fs.readFileSync(path.join("tests/fixtures/telegram", name), "utf8"));
 const BONK = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
@@ -17,7 +17,19 @@ test("reads addresses and signatures from bare text and from links", () => {
   assert.deepEqual(parseAsk(`look https://solscan.io/tx/${SIG}?cluster=mainnet`, false), { kind: "tx", signature: SIG });
   assert.deepEqual(parseAsk("is $BONK legit?", false), { kind: "ticker", name: "BONK" });
   assert.deepEqual(parseAsk("/find bonk", false), { kind: "ticker", name: "bonk" });
-  assert.deepEqual(parseAsk("hello", false), { kind: "help" }, "a private chat with nothing to check gets the help text");
+  assert.deepEqual(parseAsk("hello", false), { kind: "help" }, "a greeting gets the help text");
+  assert.deepEqual(parseAsk("CITY", false), { kind: "ticker", name: "CITY" }, "one bare word in a private chat is a token name");
+  assert.deepEqual(parseAsk("what is this token", false), { kind: "help" });
+});
+
+test("a token's age reads in plain words, and a brand-new one is marked", () => {
+  const now = Date.parse("2026-10-22T23:00:00Z");
+  assert.equal(ageText("2026-10-22T20:00:00Z", now), "3 hours");
+  assert.equal(ageText("2026-10-10T23:00:00Z", now), "12 days");
+  assert.equal(ageText("2023-05-11T17:09:10Z", now), "3 years 5 months");
+  assert.equal(ageText(null, now), null);
+  assert.match(tokenFacts({ first_traded: "2026-10-22T20:00:00Z", liquidity_usd: 11200 }, now), /^🆕 Trading for 3 hours .* \$11\.2K liquidity/);
+  assert.match(tokenFacts({}, now), /Age unknown/, "missing data says unknown, never a guess");
 });
 
 test("in a group it answers only its commands, so normal chat never uses free calls", () => {

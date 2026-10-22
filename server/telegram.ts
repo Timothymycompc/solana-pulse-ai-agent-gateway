@@ -43,7 +43,42 @@ export function parseAsk(text: string, isGroup: boolean): Ask {
   }
   const ticker = body.match(/\$([A-Za-z][A-Za-z0-9]{0,14})\b/);
   if (ticker) return { kind: "ticker", name: ticker[1] };
+  // In a private chat one bare word ("CITY") is a token name; a greeting gets the help text.
+  const word = body.trim().match(/^[A-Za-z][A-Za-z0-9]{1,14}$/);
+  if (word && !isGroup && !GREETINGS.test(word[0])) return { kind: "ticker", name: word[0] };
   return name === "check" || !isGroup ? { kind: "help" } : { kind: "none" };
+}
+const GREETINGS = /^(hi|hello|hey|gm|gn|yo|sup|thanks|thx|ty|help|start|menu|ok|okay)$/i;
+
+// How long a token has been trading, from its first pool: "3 years 5 months", "12 days", "5 hours".
+export function ageText(firstTraded: string | null | undefined, now = Date.now()): string | null {
+  const at = firstTraded ? Date.parse(firstTraded) : NaN;
+  if (Number.isNaN(at)) return null;
+  const hours = Math.max(0, (now - at) / 3_600_000);
+  const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+  if (hours < 1) return "under an hour";
+  if (hours < 48) return plural(Math.floor(hours), "hour");
+  const days = Math.floor(hours / 24);
+  if (days < 60) return plural(days, "day");
+  const months = Math.floor(days / 30.44);
+  if (months < 24) return plural(months, "month");
+  const years = Math.floor(months / 12), rest = months % 12;
+  return rest ? `${plural(years, "year")} ${plural(rest, "month")}` : plural(years, "year");
+}
+
+const usd = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}K` : `$${n.toFixed(0)}`;
+const price = (n: number) => n >= 1 ? `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : `$${n.toPrecision(3)}`;
+
+// The facts line under a token's name: age first, since brand-new tokens are where most rugs happen.
+export function tokenFacts(about: any, now = Date.now()): string {
+  const age = ageText(about?.first_traded, now);
+  const young = age !== null && now - Date.parse(about.first_traded) < 86_400_000;
+  return [
+    age ? `${young ? "🆕" : "📅"} Trading for ${age} (since ${String(about.first_traded).slice(0, 10)})` : "📅 Age unknown",
+    typeof about?.liquidity_usd === "number" ? `💧 ${usd(about.liquidity_usd)} liquidity` : null,
+    typeof about?.holders === "number" ? `👥 ${about.holders.toLocaleString("en-US")} holders` : null,
+    typeof about?.usd_price === "number" ? `💲 ${price(about.usd_price)}` : null,
+  ].filter(Boolean).join(" · ");
 }
 
 // ---------- Replies (Telegram HTML) ----------
@@ -55,18 +90,19 @@ const SOURCE_NAMES: Record<string, string> = { "on-chain": "Solana mainnet", jup
 const clip = (s: string) => (s.length > 3900 ? `${s.slice(0, 3900)}…` : s);
 
 export const HELP = [
-  "<b>Solana Pulse</b> checks Solana tokens and transactions for the known ways people get robbed.",
+  "🛡 <b>Solana Pulse</b> looks for the known ways people get robbed on Solana, using live on-chain data.",
   "",
-  "Send me:",
-  "• a <b>token address</b> (or a pump.fun / Dexscreener / Solscan link): scam-trap check",
-  "• a <b>transaction signature</b>: what it did, every balance change, and why it failed",
-  "• a <b>wallet or any address</b>: what it is and what's safe to send it",
-  "• <b>$TICKER</b> or /find name: the real token's address, and how many copycats use the name",
+  "<b>Just paste one of these:</b>",
+  "🪙 <b>Token address</b>, or a pump.fun / Dexscreener / Solscan link → scam-trap check: can it be sold, can someone mint or freeze, can the liquidity be pulled, who launched it, how old it is",
+  "🔁 <b>Transaction signature</b> → what really moved, and why it failed",
+  "👛 <b>Wallet or any address</b> → what it is, and whether it's safe to send to",
+  "🔎 <b>A token name</b> (BONK or $BONK) → the real token, and how many copycats use the name",
   "",
-  "In a group, use /check &lt;address or signature&gt;.",
-  `Free: ${FREE_CALLS_PER_TOOL} checks a day of each kind. Every answer comes from live data and names its source.`,
+  "In a group: /check &lt;address, link or signature&gt; · /find &lt;name&gt;",
   "",
-  `For developers and AI agents: the same tools over MCP and HTTP at ${SITE}`,
+  `Free: ${FREE_CALLS_PER_TOOL} checks a day of each kind. Every answer names its source. SAFE only means none of the traps we know about were found.`,
+  "",
+  `🤖 Building an agent? The same checks over MCP and HTTP: ${SITE}`,
 ].join("\n");
 
 const VERDICT_LINE: Record<string, string> = {
@@ -75,7 +111,8 @@ const VERDICT_LINE: Record<string, string> = {
   AVOID: "🔴 <b>AVOID</b>: at least one known scam trap is present",
 };
 
-export function formatTokenSafety(b: any, address: string): string {
+// The summary isn't shown: its sentences are the same ones the check lines give, so it only repeated them.
+export function formatTokenSafety(b: any, address: string, now = Date.now()): string {
   const about = b.about ?? {};
   const checks: any[] = Array.isArray(b.checks) ? b.checks : [];
   const by = (r: string) => checks.filter((c) => c.result === r);
@@ -85,13 +122,12 @@ export function formatTokenSafety(b: any, address: string): string {
   return clip([
     VERDICT_LINE[b.verdict] ?? `<b>${esc(b.verdict)}</b>`,
     `${esc(about.symbol ?? "Unknown symbol")}${about.name ? ` (${esc(about.name)})` : ""} · ${code(address)}`,
-    "",
-    esc(b.summary),
+    esc(tokenFacts(about, now)),
     "",
     ...by("fail").map(line("❌")), ...by("warn").map(line("⚠️")), ...by("info").slice(0, 4).map(line("ℹ️")),
     ...(passed.length ? [`✅ Passed: ${esc(passed.join(", "))}`] : []),
     "",
-    ...(sources.length ? [`Sources: ${esc(sources.join(", "))}.`] : []),
+    ...(sources.length ? [`Sources: ${esc(sources.join(", "))}. Age, liquidity, holders and price: Jupiter.`] : []),
     "<i>A check can't make a token safe. SAFE only means none of the traps we know about are present, and it says nothing about the price.</i>",
     `<a href="${SITE}/docs/tools/token_safety">How the check works</a> · <a href="https://solscan.io/token/${esc(address)}">Solscan</a>`,
   ].join("\n"));
