@@ -8,11 +8,12 @@ import { ToolPage } from './ToolPage';
 import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, StatusPage } from './GuidePages';
 import { OwnerPage } from './OwnerPage';
 import { ToolboxPage } from './ToolboxPage';
+import { TrackRecordPage } from './TrackRecordPage';
 
 const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1];
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
-  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/owner', '/toolbox'].includes(path)) return true;
+  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/toolbox'].includes(path)) return true;
   const name = toolName(path);
   return Boolean(name && (!index || index.tools.some((t) => t.name === name)));
 }
@@ -25,6 +26,7 @@ export function pageFor(path: string, index: ToolsIndex | null, error: string): 
   if (path === '/docs/connect') return <ConnectPage />;
   if (path === '/docs/pricing') return <PricingPage />;
   if (path === '/status') return <StatusPage />;
+  if (path === '/track-record') return <TrackRecordPage />;
   if (path === '/owner') return <OwnerPage />;
   if (name || path === '/toolbox') {
     if (index) return name ? <ToolPage name={name} index={index} /> : <ToolboxPage index={index} />;
@@ -42,6 +44,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/docs/connect': 'Connect Claude, ChatGPT, Cursor or any MCP client to Solana Pulse. One URL and every tool, with its documentation, is available to the model.',
   '/docs/pricing': 'Solana Pulse pricing: 25 free calls per tool per day, then a few cents in USDC per call through x402. Failed calls are never charged.',
   '/toolbox': 'Try every Solana Pulse tool live in the browser: edit the inputs, run it, and copy the call as curl, TypeScript or MCP.',
+  '/track-record': 'Solana Pulse track record: what token_safety said about new and well-known tokens, against what really happened a day and a week later. Measured, not assumed.',
   '/status': 'Live Solana Pulse usage: real tool runs, callers and uptime pings, counted without storing IP addresses.',
 };
 

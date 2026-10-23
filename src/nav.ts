@@ -15,6 +15,7 @@ const GUIDE_PAGES: NavItem[] = [
   { title: 'Toolbox', path: '/toolbox', keywords: 'playground try run every tool edit inputs json history calls' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
   { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude claude-code chatgpt openai gemini antigravity cursor elizaos agentkit coinbase config agent' },
+  { title: 'Track record', path: '/track-record', keywords: 'accuracy results measured rug pull watch history new tokens false alarms proof' },
 ];
 const PAYMENT_PAGES: NavItem[] = [
   { title: 'Pricing & x402', path: '/docs/pricing', keywords: 'price usdc pay payment free calls x402' },
@@ -38,6 +39,7 @@ export const DOCS_MENU: { title: string; items: (NavItem & { about: string })[] 
     { title: 'Quickstart', path: '/docs/quickstart', about: 'A real call in under a minute' },
     { title: 'What is a call?', path: '/docs/calls', about: 'Requests and answers, explained with a restaurant' },
     { title: 'Live usage', path: '/status', about: 'Tool runs and callers, as they happen' },
+    { title: 'Track record', path: '/track-record', about: 'What token_safety said, against what really happened' },
   ] },
   { title: 'For machines', items: [
     { title: 'llms.txt', path: '/llms.txt', external: true, about: 'A plain-text guide for language models' },
@@ -45,7 +47,7 @@ export const DOCS_MENU: { title: string; items: (NavItem & { about: string })[] 
     { title: 'Tool reference', path: '/api/tools', external: true, about: 'Every input and output, as JSON' },
   ] },
 ];
-export const DOCS_PATHS = new Set(['/docs/quickstart', '/docs/calls', '/status']);
+export const DOCS_PATHS = new Set(['/docs/quickstart', '/docs/calls', '/status', '/track-record']);
 
 // The three checks an agent runs before money moves, in the order it runs them.
 export const SAFETY_CHECKS = [

@@ -55,3 +55,20 @@ Dexra (dexra.dev) is the closest competitor: token/launch verdicts, closed sourc
 - token_safety wording: on BONK the summary says "the creator has no rug record" and then "RugCheck is unavailable ... the creator's rug history were not checked", and Sources lists RugCheck although it couldn't be reached. Make the summary and the source list say only what was really checked.
 - whats_this calls a wallet that holds tokens but no SOL "Nothing exists here yet" (e.g. the payout wallet). True for the SOL account, misleading for a person; say it holds no SOL and check for token accounts.
 - Telegram bot: optional "address spotting" in groups (answer any pasted token address without /check, as RugCheck-style bots do). Needs privacy mode off in @BotFather and a per-group switch, so a busy group doesn't burn everyone's free checks.
+
+## New project idea (Tim, 2026-10-22): scam app and site checker, built like Solana Pulse
+Turn the by-hand investigations (luckquexa, GameVault, Boomwins, Prog Coin) into tools, same architecture as Pulse
+(one tool registry, HTTP + MCP, x402, Telegram bot, recorded real cases as tests, measured accuracy). Its own repo.
+- Possible tools: check_site (domain age, registrar, hosting, TLS history from crt.sh, Cloudflare front, sister domains
+  on the same IPs/registrar batch), check_payment_page (lookalikes of real payment processors), check_telegram
+  (bot/channel age, posts, links out, "earn/withdraw" mini-app patterns), check_app (APK signer, package name, what it can
+  install), traffic_report (netlook on a phone capture), report_kit (abuse contacts from RDAP + ready-to-send texts).
+- Every rule backed by a real recorded case, like Pulse's benchmark. A clean result only means "none of the known traps".
+- Open questions: who pays (people checking a site won't pay per call; maybe free for people, paid API for wallets,
+  exchanges and app stores), data limits (RDAP/WHOIS privacy, rate limits), and keeping it separate from Pulse.
+
+## New Token Watch (Tim asked 2026-10-23)
+Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timing signal on purpose. Still open:
+- /watch <token> in the Telegram bot: alert people when a watched token's liquidity is pulled or an authority moves.
+- Use the watch's readings in the accuracy answers (when a token lost most, not only whether), once a few weeks of data exist.
+- Post the first week of watch numbers on X with the track record link.

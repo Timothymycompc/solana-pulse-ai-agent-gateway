@@ -165,6 +165,29 @@ export async function ensureSchema() {
     );
   `);
 
+  // Token watch (watch.ts): young tokens Pulse keeps re-reading for a week, and each reading.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS token_watch (
+      mint TEXT PRIMARY KEY,
+      symbol TEXT,
+      found_in TEXT NOT NULL,
+      added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      watch_until TIMESTAMPTZ NOT NULL,
+      first_pool_at TIMESTAMPTZ,
+      verdict_then TEXT NOT NULL,
+      checks_then JSONB,
+      reading_then JSONB NOT NULL
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS token_watch_readings (
+      mint TEXT NOT NULL REFERENCES token_watch(mint) ON DELETE CASCADE,
+      at TIMESTAMPTZ NOT NULL,
+      reading JSONB NOT NULL,
+      PRIMARY KEY (mint, at)
+    );
+  `);
+
   // Tables from the retired SOL-credit system and the old cookie trial. Cleanup must never stop the server
   // from starting: CASCADE removes foreign keys that point at these tables, and failures are only logged.
   for (const table of ["missed_endpoints", "wallets", "used_wallet_signatures", "processed_payments", "call_history", "anonymous_trial_usage"]) {

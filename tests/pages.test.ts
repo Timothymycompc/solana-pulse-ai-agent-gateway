@@ -66,3 +66,12 @@ test("missing files and unknown pages are 404s, and the owner page is not indexe
   assert.equal(owner.status, 200);
   assert.match(owner.html, /noindex/);
 });
+
+test("the track record page explains each measurement in the HTML; the numbers load in the browser", async () => {
+  const { status, html } = await get("/track-record");
+  assert.equal(status, 200);
+  const words = text(html);
+  assert.match(html, /<title>Track record · Solana Pulse<\/title>/);
+  for (const heading of ["New tokens, a week later", "Well-known tokens (false alarms)", "Token watch"]) assert.ok(words.includes(heading), heading);
+  assert.match(words, /Pulse never gives buy signals/);
+});

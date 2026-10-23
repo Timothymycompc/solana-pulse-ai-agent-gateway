@@ -80,7 +80,7 @@ export async function addToQueue(cohort: string, mints: string[]): Promise<numbe
 
 // Young, liquid tokens from Jupiter's activity lists, taking turns between the lists so no one list dominates, each
 // with the list it was found in.
-async function sampleCandidates(ctx: ToolContext): Promise<{ token: JupToken; list: string }[]> {
+export async function sampleCandidates(ctx: ToolContext): Promise<{ token: JupToken; list: string }[]> {
   const perList = await Promise.all(SAMPLE_LISTS.map(async (list) => {
     const tokens: JupToken[] = await ctx.fetchJson(`${jupiterHost()}/tokens/v2/${list}?limit=100`, 8000).catch(() => []);
     return (Array.isArray(tokens) ? tokens : []).filter((t) => {

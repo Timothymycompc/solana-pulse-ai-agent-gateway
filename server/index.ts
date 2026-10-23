@@ -31,6 +31,8 @@ import { httpError } from "./tools/lib";
 import { VERSION } from "./version";
 import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
+import { trackRecord } from "./track-record";
+import { startWatch, tokenHistory, watchTick, worthWatching } from "./watch";
 import { mountTelegram } from "./telegram";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
@@ -161,13 +163,27 @@ async function startServer() {
       return { status: 400, body: { error: "Invalid input.", issues: parsed.error.issues.map((i) => ({ field: i.path.join("."), problem: i.message })), fix: `See GET /api/tools/${tool.name} for every input and how to get it.` } };
     }
     try {
-      return { status: 200, body: await tool.run(parsed.data, ctx) };
+      const body = await tool.run(parsed.data, ctx);
+      if (tool.name === "token_safety") await addWatchHistory(body, (parsed.data as any).network ?? "mainnet-beta");
+      return { status: 200, body };
     } catch (error: any) {
       if (error instanceof ToolError) return { status: error.status, body: { error: error.message, fix: error.fix ?? null } };
       const message = String(error?.message ?? error);
       const rateLimited = /429|Too many requests/i.test(message);
       console.error(`tool ${tool.name} failed:`, message);
       return { status: rateLimited ? 503 : 502, body: { error: rateLimited ? "The Solana RPC is rate-limiting requests." : "The Solana RPC returned an error.", detail: message.slice(0, 300), fix: "Retry in a few seconds. Failed calls are never charged." } };
+    }
+  }
+
+  // token_safety's watch history (watch.ts): young tokens it checks start being watched, and a token Pulse has watched
+  // gets what changed since. The watch never fails the check: on a database error the history is just left out.
+  async function addWatchHistory(body: any, network: string) {
+    try {
+      if (worthWatching(body, network)) await startWatch(body.token, body, "checked by a caller");
+      body.history = network === "mainnet-beta" ? await tokenHistory(body.token) : null;
+    } catch (error: any) {
+      console.warn("watch history unavailable:", error?.message ?? error);
+      body.history = null;
     }
   }
 
@@ -370,7 +386,7 @@ async function startServer() {
   const safetyVerdict = async (mint: string) => (await TOOLS_BY_NAME.get("token_safety")!.run({ token: mint, network: "mainnet-beta" }, ctx)) as any;
   app.post("/api/owner/accuracy/tick", noCache, async (req, res) => {
     if (!ownerOnly(req, res)) return;
-    try { res.json(await accuracyTick(ctx, safetyVerdict)); }
+    try { res.json({ ...(await accuracyTick(ctx, safetyVerdict)), watch: await watchTick(ctx, safetyVerdict) }); }
     catch (error: any) { console.error("Accuracy tick failed:", error); res.status(500).json({ error: String(error?.message ?? error).slice(0, 400) }); }
   });
   app.post("/api/owner/accuracy/add", noCache, async (req, res) => {
@@ -382,6 +398,13 @@ async function startServer() {
   app.get("/api/owner/accuracy", noCache, async (req, res) => {
     if (!ownerOnly(req, res)) return;
     res.json(await accuracyReport());
+  });
+
+  // The public track record (/track-record): token_safety's measured results and what happened to the tokens it watched.
+  // Aggregates and public token addresses only; no callers, inputs or keys.
+  app.get("/api/track-record", noCache, async (_req, res) => {
+    try { res.json(await trackRecord()); }
+    catch (error: any) { console.error("Track record failed:", error); res.status(500).json({ error: "The track record is unavailable right now." }); }
   });
 
   // Posts the next item to the Pulse X account (x.ts). Cloud Scheduler calls it three times a week;
@@ -527,7 +550,7 @@ async function startServer() {
   // Every page and tool page, generated from the registry so new tools are indexed automatically.
   app.get("/sitemap.xml", noCache, (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
-    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
+    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 
