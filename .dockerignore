@@ -4,3 +4,4 @@ dist
 .git
 *.log
 *.bak
+templates

@@ -72,3 +72,14 @@ Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timi
 - /watch <token> in the Telegram bot: alert people when a watched token's liquidity is pulled or an authority moves.
 - Use the watch's readings in the accuracy answers (when a token lost most, not only whether), once a few weeks of data exist.
 - Post the first week of watch numbers on X with the track record link.
+
+## Found while building the agent templates (2026-10-25)
+- why_failed / check_tx wording: a plain SOL transfer of more than the wallet holds explains InsufficientFunds as
+  "The source token account does not hold enough tokens (Assumes the failing program is SPL Token)". The verdict
+  (BLOCK) is right; the explanation should say "not enough SOL" when the failing instruction is the System Program.
+- Owner dashboard: Tim's own Claude Code sessions (Pulse is in his MCP config) show up as 16 "AI app" callers from
+  different networks with 0 runs. Label them "You" (for example by the claude-code user agent plus 0 runs from those
+  networks, or a header in his own config) so they are not read as possible users.
+- LangChain's MCP client (@modelcontextprotocol/client 2.4) tried only the IPv6 address from the phone and timed out;
+  plain fetch worked. Worth one line in docs/connect if users report it.
+- Templates: token transfers and swaps (the guard already takes a swap `expected`); a Telegram /send demo bot.

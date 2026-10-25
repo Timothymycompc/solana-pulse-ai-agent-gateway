@@ -1,0 +1,459 @@
+{
+  "recordedAt": "2026-10-25T09:50:49.791Z",
+  "source": "live Solana Pulse, mainnet-beta",
+  "ok": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwjxY++sWI7mFEosxYAgyJ4NSjti7Pw8gnoT9YtNH/WAQICAAEMAgAAAEBCDwAAAAAAAA==",
+    "expected": {
+      "token": "SOL",
+      "amount": "0.001",
+      "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+      "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+    },
+    "check_tx": {
+      "network": "mainnet-beta",
+      "verdict": "OK",
+      "summary": "OK: Your wallet sends: 0.001005 SOL (SOL includes fees).",
+      "fee_payer": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+      "signers": [
+        "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      ],
+      "checks": [
+        {
+          "name": "simulation",
+          "result": "pass",
+          "detail": "Dry run worked, using 150 compute units."
+        },
+        {
+          "name": "blockhash",
+          "result": "pass",
+          "detail": "Blockhash is still valid."
+        },
+        {
+          "name": "fee_payer_balance",
+          "result": "pass",
+          "detail": "Fee payer holds 1494278.19407538 SOL; fees are 0.000005 SOL."
+        },
+        {
+          "name": "outflow",
+          "result": "info",
+          "detail": "Your wallet sends: 0.001005 SOL (SOL includes fees)."
+        }
+      ],
+      "balance_changes": [
+        {
+          "wallet": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "is_you": true,
+          "token": "SOL",
+          "symbol": "SOL",
+          "before": "1494278.19407538",
+          "after": "1494278.19307038",
+          "change": "-0.001005",
+          "raw_change": "-1005000",
+          "decimals": 9
+        },
+        {
+          "wallet": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "is_you": false,
+          "token": "SOL",
+          "symbol": "SOL",
+          "before": "0",
+          "after": "0.001",
+          "change": "0.001",
+          "raw_change": "1000000",
+          "decimals": 9
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "program_id": "11111111111111111111111111111111",
+          "program": "System Program",
+          "accounts": [
+            "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU"
+          ],
+          "type": "sol_transfer",
+          "info": {
+            "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+            "lamports": "1000000"
+          }
+        }
+      ],
+      "fee": {
+        "base_lamports": "5000",
+        "priority_lamports": "0",
+        "total_lamports": "5000",
+        "total_sol": "0.000005",
+        "compute_unit_limit": 3000,
+        "compute_unit_limit_from": "runtime default (3,000 per built-in program step, 200,000 per other step)",
+        "compute_unit_price": "0"
+      },
+      "simulation": {
+        "worked": true,
+        "error": null,
+        "error_explained": null,
+        "compute_used": 150,
+        "logs": [
+          "Program 11111111111111111111111111111111 invoke [1]",
+          "Program 11111111111111111111111111111111 success"
+        ]
+      }
+    },
+    "tx_matches": {
+      "network": "mainnet-beta",
+      "verdict": "MATCH",
+      "summary": "The transaction sends exactly 0.001 SOL from 5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9 to Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU and nothing else.",
+      "expected": {
+        "token_address": "So11111111111111111111111111111111111111112",
+        "raw_amount": "1000000",
+        "decimals": 9,
+        "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+        "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      },
+      "compared": [
+        {
+          "what": "token",
+          "expected": "SOL",
+          "actual": "SOL",
+          "ok": true
+        },
+        {
+          "what": "amount",
+          "expected": "0.001 (1000000 raw)",
+          "actual": "0.001 (1000000 raw)",
+          "ok": true
+        },
+        {
+          "what": "to",
+          "expected": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "actual": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "ok": true
+        },
+        {
+          "what": "from",
+          "expected": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "actual": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "ok": true
+        },
+        {
+          "what": "simulation",
+          "expected": "succeeds",
+          "actual": "succeeds",
+          "ok": true
+        }
+      ],
+      "transfers": [
+        {
+          "step": 0,
+          "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "token": "SOL",
+          "amount": "0.001",
+          "raw_amount": "1000000",
+          "decimals": 9
+        }
+      ],
+      "unexpected": []
+    }
+  },
+  "wrongRecipient": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmfowIh2C/3h3dzzLBfyCbgkLuUqrxMfrNiNDqLG0LBvIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDIh9FkjU0JOsE8haugEXrFlVDPZy8qh7iFr2DHWG+QAQICAAEMAgAAAEBCDwAAAAAAAA==",
+    "expected": {
+      "token": "SOL",
+      "amount": "0.001",
+      "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+      "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+    },
+    "check_tx": {
+      "network": "mainnet-beta",
+      "verdict": "OK",
+      "summary": "OK: Your wallet sends: 0.001005 SOL (SOL includes fees).",
+      "fee_payer": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+      "signers": [
+        "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      ],
+      "checks": [
+        {
+          "name": "simulation",
+          "result": "pass",
+          "detail": "Dry run worked, using 150 compute units."
+        },
+        {
+          "name": "blockhash",
+          "result": "pass",
+          "detail": "Blockhash is still valid."
+        },
+        {
+          "name": "fee_payer_balance",
+          "result": "pass",
+          "detail": "Fee payer holds 1494278.14505341 SOL; fees are 0.000005 SOL."
+        },
+        {
+          "name": "outflow",
+          "result": "info",
+          "detail": "Your wallet sends: 0.001005 SOL (SOL includes fees)."
+        }
+      ],
+      "balance_changes": [
+        {
+          "wallet": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "is_you": true,
+          "token": "SOL",
+          "symbol": "SOL",
+          "before": "1494278.14505341",
+          "after": "1494278.14404841",
+          "change": "-0.001005",
+          "raw_change": "-1005000",
+          "decimals": 9
+        },
+        {
+          "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "is_you": false,
+          "token": "SOL",
+          "symbol": "SOL",
+          "before": "11175975.387138034",
+          "after": "11175975.388138034",
+          "change": "0.001",
+          "raw_change": "1000000",
+          "decimals": 9
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "program_id": "11111111111111111111111111111111",
+          "program": "System Program",
+          "accounts": [
+            "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+          ],
+          "type": "sol_transfer",
+          "info": {
+            "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "to": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+            "lamports": "1000000"
+          }
+        }
+      ],
+      "fee": {
+        "base_lamports": "5000",
+        "priority_lamports": "0",
+        "total_lamports": "5000",
+        "total_sol": "0.000005",
+        "compute_unit_limit": 3000,
+        "compute_unit_limit_from": "runtime default (3,000 per built-in program step, 200,000 per other step)",
+        "compute_unit_price": "0"
+      },
+      "simulation": {
+        "worked": true,
+        "error": null,
+        "error_explained": null,
+        "compute_used": 150,
+        "logs": [
+          "Program 11111111111111111111111111111111 invoke [1]",
+          "Program 11111111111111111111111111111111 success"
+        ]
+      }
+    },
+    "tx_matches": {
+      "network": "mainnet-beta",
+      "verdict": "MISMATCH",
+      "summary": "Wrong to: expected Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU, transaction has 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM.",
+      "expected": {
+        "token_address": "So11111111111111111111111111111111111111112",
+        "raw_amount": "1000000",
+        "decimals": 9,
+        "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+        "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      },
+      "compared": [
+        {
+          "what": "token",
+          "expected": "SOL",
+          "actual": "SOL",
+          "ok": true
+        },
+        {
+          "what": "amount",
+          "expected": "0.001 (1000000 raw)",
+          "actual": "0.001 (1000000 raw)",
+          "ok": true
+        },
+        {
+          "what": "to",
+          "expected": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "actual": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "ok": false
+        },
+        {
+          "what": "from",
+          "expected": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "actual": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "ok": true
+        },
+        {
+          "what": "simulation",
+          "expected": "succeeds",
+          "actual": "succeeds",
+          "ok": true
+        }
+      ],
+      "transfers": [
+        {
+          "step": 0,
+          "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "to": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "token": "SOL",
+          "amount": "0.001",
+          "raw_amount": "1000000",
+          "decimals": 9
+        }
+      ],
+      "unexpected": []
+    }
+  },
+  "tooLarge": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDIh9FkjU0JOsE8haugEXrFlVDPZy8qh7iFr2DHWG+QAQICAAEMAgAAAAA2JjTyhiMAAA==",
+    "expected": {
+      "token": "SOL",
+      "amount": "9999999",
+      "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+      "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+    },
+    "check_tx": {
+      "network": "mainnet-beta",
+      "verdict": "BLOCK",
+      "summary": "BLOCK: Dry run failed: InsufficientFunds: The source token account does not hold enough tokens. (Assumes the failing program is SPL Token; pass programId to confirm.) Fix: Check the balance with the tokens tool and lower the amount (remember decimals: use the convert tool).",
+      "fee_payer": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+      "signers": [
+        "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      ],
+      "checks": [
+        {
+          "name": "simulation",
+          "result": "fail",
+          "detail": "Dry run failed: InsufficientFunds: The source token account does not hold enough tokens. (Assumes the failing program is SPL Token; pass programId to confirm.) Fix: Check the balance with the tokens tool and lower the amount (remember decimals: use the convert tool)."
+        },
+        {
+          "name": "blockhash",
+          "result": "pass",
+          "detail": "Blockhash is still valid."
+        },
+        {
+          "name": "fee_payer_balance",
+          "result": "pass",
+          "detail": "Fee payer holds 1494278.14505341 SOL; fees are 0.000005 SOL."
+        }
+      ],
+      "balance_changes": [],
+      "steps": [
+        {
+          "index": 0,
+          "program_id": "11111111111111111111111111111111",
+          "program": "System Program",
+          "accounts": [
+            "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU"
+          ],
+          "type": "sol_transfer",
+          "info": {
+            "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+            "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+            "lamports": "9999999000000000"
+          }
+        }
+      ],
+      "fee": {
+        "base_lamports": "5000",
+        "priority_lamports": "0",
+        "total_lamports": "5000",
+        "total_sol": "0.000005",
+        "compute_unit_limit": 3000,
+        "compute_unit_limit_from": "runtime default (3,000 per built-in program step, 200,000 per other step)",
+        "compute_unit_price": "0"
+      },
+      "simulation": {
+        "worked": false,
+        "error": {
+          "InstructionError": [
+            0,
+            {
+              "Custom": 1
+            }
+          ]
+        },
+        "error_explained": {
+          "code": "0x1",
+          "name": "InsufficientFunds",
+          "scope": "token_program",
+          "meaning": "The source token account does not hold enough tokens. (Assumes the failing program is SPL Token; pass programId to confirm.)",
+          "likely_cause": "The source token account does not hold enough tokens.",
+          "fix": "Check the balance with the tokens tool and lower the amount (remember decimals: use the convert tool)."
+        },
+        "compute_used": 150,
+        "logs": [
+          "Program 11111111111111111111111111111111 invoke [1]",
+          "Transfer: insufficient lamports 1494278145048410, need 9999999000000000",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x1"
+        ]
+      }
+    },
+    "tx_matches": {
+      "network": "mainnet-beta",
+      "verdict": "MISMATCH",
+      "summary": "Wrong simulation: expected succeeds, transaction has fails: InsufficientFunds.",
+      "expected": {
+        "token_address": "So11111111111111111111111111111111111111112",
+        "raw_amount": "9999999000000000",
+        "decimals": 9,
+        "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+        "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+      },
+      "compared": [
+        {
+          "what": "token",
+          "expected": "SOL",
+          "actual": "SOL",
+          "ok": true
+        },
+        {
+          "what": "amount",
+          "expected": "9999999 (9999999000000000 raw)",
+          "actual": "9999999 (9999999000000000 raw)",
+          "ok": true
+        },
+        {
+          "what": "to",
+          "expected": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "actual": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "ok": true
+        },
+        {
+          "what": "from",
+          "expected": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "actual": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "ok": true
+        },
+        {
+          "what": "simulation",
+          "expected": "succeeds",
+          "actual": "fails: InsufficientFunds",
+          "ok": false
+        }
+      ],
+      "transfers": [
+        {
+          "step": 0,
+          "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
+          "token": "SOL",
+          "amount": "9999999",
+          "raw_amount": "9999999000000000",
+          "decimals": 9
+        }
+      ],
+      "unexpected": []
+    }
+  }
+}

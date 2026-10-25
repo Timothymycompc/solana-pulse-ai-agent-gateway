@@ -1,0 +1,22 @@
+{
+  "name": "pulse-template-claude-agent-sdk",
+  "private": true,
+  "type": "module",
+  "description": "A Claude Agent SDK agent that checks every Solana transaction with Solana Pulse before signing. Dry run by default.",
+  "scripts": {
+    "start": "tsx src/agent.ts",
+    "check": "tsx src/check.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.310",
+    "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
+  }
+}

@@ -17,6 +17,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "agent-kit"
+    "agent-kit",
+    "templates"
   ]
 }
