@@ -83,6 +83,7 @@ export const freePassFor = (userAgent: string | undefined, now = Date.now()) =>
 export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: string }[] = [
   { name: "tensorblock", keySha256: "7e8d1641743ac79e6407b3248a00434dacce83fff99046eb28f9edd4431769e9", until: "2027-01-13T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-21." },
   { name: "dexra-oleg", keySha256: "1c9f0d7d7e5ff58c140491af56eb934d4409b86cfca8152e0f30095d37803ada", until: "2026-12-03T23:59:59Z", why: "Free trial, 6 weeks, granted 2026-10-22." },
+  { name: "friend-chatgpt-trader", keySha256: "0ba0d02395643574ac434b4d30b1b4a1f7f5ae557458082177b75c099c84f9f7", until: "2027-01-18T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-26." },
 ];
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys = TRIAL_KEYS) => {
