@@ -83,3 +83,19 @@ Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timi
 - LangChain's MCP client (@modelcontextprotocol/client 2.4) tried only the IPv6 address from the phone and timed out;
   plain fetch worked. Worth one line in docs/connect if users report it.
 - Templates: token transfers and swaps (the guard already takes a swap `expected`); a Telegram /send demo bot.
+
+## From the 7-day recheck, group 1 (2026-10-26; not before the grant decision)
+- Group 1 (41 young tokens): AVOID did not separate losers (5 of 9 lost most vs CAUTION 22 of 32). Age at check did:
+  19 of 19 first-hour tokens lost 90%+, 0 of 9 tokens 30h+ old did. insiders check showed no signal (67% vs 66%).
+  Prediction for groups 2 and 3 written down first: phone SolanaPulse/applications/young-tokens-group1-notes-2026-10-26.txt
+- If it holds on groups 2-3: sample a new cohort of 1-3-day-old tokens (groups 2-3 have only 2), then propose, with the
+  numbers, whether age weighs more in the verdict and insiders less. The 90% "lost most" line stays as set.
+
+## Found testing the Claude connector (2026-10-26)
+- Free calls are counted per IP (trial_tool_usage.ip_hash). Every claude.ai connector call comes from Anthropic's
+  servers (all 33 of Tim's test calls came from one network, de6a62, as Claude-User / Anthropic/Toolbox), so Claude
+  users share one 25-a-day-per-tool counter per Anthropic address: one busy user can use up everyone's free calls.
+  Not a leak (paid tools still need a key or payment past 25). Fix to weigh: count by MCP session or client, or a
+  higher shared allowance for known hosted clients, measured first on how many outside Claude callers exist.
+- de6a62 in known.json ("curl 8.5.0 sweep, probably Tim's Claude cloud session") is really Anthropic's network, so
+  any Claude user shows up there, not just Tim. Re-label before counting callers from it.
