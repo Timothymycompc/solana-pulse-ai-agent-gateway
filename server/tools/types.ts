@@ -33,7 +33,8 @@ export type ToolCategory = "transactions" | "tokens" | "wallets" | "network" | "
 export interface ToolDef {
   name: string;
   // The name the tool had before the October 2026 rename. Calls by that name still work, with the old input names.
-  oldName: string;
+  // Tools added after the rename have none.
+  oldName?: string;
   // Turns arguments written with the old input names into the current ones. Current names win when both are given.
   oldInputs?: Record<string, string>;
   title: string;

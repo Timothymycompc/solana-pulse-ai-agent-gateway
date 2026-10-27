@@ -24,6 +24,7 @@ const SUMMARIES: Record<string, string> = {
   whats_this: "Check what kind of Solana address this is",
   convert: "Convert a token amount to or from raw units",
   why_failed: "Get the cause and fix for a Solana error",
+  trace: "Follow a wallet's money and flag drain patterns",
 };
 
 // The JSON schema of a tool's inputs, with each input's plain-words description, as the MCP tool list has it.

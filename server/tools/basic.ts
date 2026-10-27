@@ -125,8 +125,9 @@ export const getRecentTransactions: ToolDef = {
   useWhen: "Run to see a wallet's recent activity or get a real transaction ID. Never make one up.",
   usage: '{"wallet": "<address>", "how_many": 5}',
   description: "Lists a wallet's latest transactions, newest first, whether each worked, and a plain error name for failures.",
-  inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(50).optional().default(10), network: NETWORK },
-  inputDocs: [WALLET_DOC("transactions"), HOW_MANY_DOC(50, 10, "transactions"), NETWORK_DOC],
+  inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(50).optional().default(10), before: z.string().min(64).max(100).optional(), network: NETWORK },
+  inputDocs: [WALLET_DOC("transactions"), HOW_MANY_DOC(50, 10, "transactions"),
+    { name: "before", type: "string (signature)", required: false, lookingFor: "Start below this transaction, to page further back.", whereToGet: "next_before from the previous answer." }, NETWORK_DOC],
   outputs: [
     { field: "wallet", type: "string", is: "The wallet that was read.", howWorkedOut: "Your input, cleaned up." },
     { field: "count", type: "number", is: "How many transactions came back.", howWorkedOut: "Length of the list." },
@@ -137,16 +138,18 @@ export const getRecentTransactions: ToolDef = {
     { field: "transactions[].result", type: '"success" | "failed"', is: "Whether it worked.", howWorkedOut: "failed when the RPC reports an error." },
     { field: "transactions[].error", type: "string | null", is: "The failure's short name, e.g. InsufficientFundsForRent.", howWorkedOut: "why_failed run on the raw error. The raw error text when unknown." },
     { field: "transactions[].memo", type: "string | null", is: "Memo text attached to the transaction, if any.", howWorkedOut: "getSignaturesForAddress." },
+    { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page. For amounts and the other side of each transaction, use trace.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
   example: async () => ({ wallet: EXAMPLE_WALLET, how_many: 5 }),
-  run: async ({ wallet, how_many, network }, ctx) => {
+  run: async ({ wallet, how_many, before, network }, ctx) => {
     const address = assertAddress(wallet, "wallet");
-    const sigs = await ctx.connection(network).getSignaturesForAddress(new PublicKey(address), { limit: how_many }, "confirmed");
+    const sigs = await ctx.connection(network).getSignaturesForAddress(new PublicKey(address), { limit: how_many, ...(before ? { before } : {}) }, "confirmed");
     const transactions = sigs.map((s) => ({
       tx_id: s.signature, time: isoTime(s.blockTime), slot: s.slot, result: s.err ? "failed" : "success",
       error: s.err ? (explainError(s.err).matches[0]?.name ?? JSON.stringify(s.err)) : null, memo: s.memo ?? null,
     }));
-    return { wallet: address, network, count: transactions.length, failed_count: transactions.filter((t) => t.result === "failed").length, transactions };
+    return { wallet: address, network, count: transactions.length, failed_count: transactions.filter((t) => t.result === "failed").length, transactions,
+      next_before: sigs.length === how_many ? sigs[sigs.length - 1].signature : null };
   },
 };
 

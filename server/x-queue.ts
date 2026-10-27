@@ -102,7 +102,15 @@ Use it first:
 - name the program that failed
 - get the next step, such as a fresh quote
 A blind retry just burns fees.${tags("#DeFi")}`],
-].map(([tool, text]) => ({ key: `video:${tool}`, approved: true, text, video: `${tool}.mp4` }));
+].map(([tool, text]) => ({ key: `video:${tool}`, approved: true, text, video: `${tool}.mp4` })).concat([
+  // Added 2026-10-27 with the tool; not approved until Tim approves the text and the video exists.
+  { key: "video:trace", approved: false, video: "trace.mp4", text: `trace: where did the money go?
+One call follows a wallet's money:
+- how much went where, SOL and tokens
+- swept out, someone else paying the fee
+- lookalike addresses sent as dust
+Every flag shows its transactions.${tags("#Web3Security")}` },
+]);
 
 export const QUEUE: QueuePost[] = [
   ...TOOL_VIDEOS,

@@ -27,6 +27,7 @@ export const TOOL_PRICES: Record<string, ToolPrice> = {
   token_safety: "$0.02",
   check_tx: "$0.02",
   tx_matches: "$0.02",
+  trace: "$0.02",
 };
 
 // Every tool is served at /api/tools/<name> over HTTP and by name over MCP; both share pricing and free calls.

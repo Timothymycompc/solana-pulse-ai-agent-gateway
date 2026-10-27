@@ -19,7 +19,7 @@ const TX_DOC = {
   lookingFor: "Base64 transaction, signed or not, legacy, v0 or v1.",
   whereToGet: "Before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or an aggregator's swap tx.",
 };
-const symbolsFor = (ctx: ToolContext) => async (mints: string[]) => {
+export const symbolsFor = (ctx: ToolContext) => async (mints: string[]) => {
   const map = await jupByMints(ctx, mints);
   return new Map([...map].map(([mint, t]) => [mint, t.symbol]));
 };
@@ -274,7 +274,7 @@ export const checkTransactionIntent: ToolDef = {
 
 // web3.js rejects version 1 transactions (newer than it), so those are fetched raw and given the same shape:
 // PublicKeys where web3.js would put them.
-async function parsedTransaction(conn: Connection, signature: string): Promise<ParsedTransactionWithMeta | null> {
+export async function parsedTransaction(conn: Connection, signature: string): Promise<ParsedTransactionWithMeta | null> {
   try {
     return await conn.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
   } catch (error: any) {

@@ -49,6 +49,7 @@ export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   find_token: { name: "BONK" },
   token_safety: { token: BONK_MINT },
   wallet: { wallet: EXAMPLE_WALLET },
+  trace: { wallet: EXAMPLE_WALLET, how_many: 10 },
 };
 
 export function discoveryFor(name: string) {
