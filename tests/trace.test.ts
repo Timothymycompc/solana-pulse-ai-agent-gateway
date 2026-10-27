@@ -122,3 +122,30 @@ test("emptied by the owner: says every move out was signed by the wallet and pai
   assert.deepEqual(flags.map((f) => [f.name, f.level]), [["emptied", "info"]]);
   assert.match(flags[0].detail, /signed by this wallet and paid its own fee/);
 });
+
+test("report: Kunal's real sweep becomes the five-part report, with Solscan links and the caller's time zone", async () => {
+  const fixture = loadFixture("trace-kunal-sweep");
+  const r: any = await traceWallet.run(z.object(traceWallet.inputs).parse({ ...fixture.args, time_zone: "America/Chicago" }), replayContext(fixture));
+  const rep = r.report;
+  assert.match(rep.problem, /swept out of this wallet, mostly to 6tck…LoDQ \(program-controlled address: 2\.032462589 SOL\), and it was left empty/);
+  assert.equal(rep.evidence.length, 2);
+  assert.equal(rep.evidence[0].solscan, `https://solscan.io/tx/${rep.evidence[0].tx_id}`);
+  assert.equal(rep.evidence[0].time_local, "10/17/2026, 10:07:03 PM CDT");
+  assert.match(rep.evidence[0].what, /fee paid by 9WL2/);
+  assert.equal(rep.confidence.level, "high");
+  assert.match(rep.confidence.reason, /exchange deposit addresses and throwaway bot wallets look the same/i);
+  assert.ok(rep.points_to.some((p: string) => /seed phrase or private key leaked/.test(p)));
+  assert.ok(rep.next_steps.some((s: string) => /ic3\.gov/.test(s)));
+  assert.ok(rep.next_steps.some((s: string) => /second scam/.test(s)));
+});
+
+test("report: no signs means low confidence and the next step is to page back; a bad time zone is refused", async () => {
+  const { reportFor } = await import("../server/tools/trace");
+  const rep = reportFor({ wallet: W, network: "mainnet-beta", flows: [flow({ direction: "in", raw_sol_change: "5", sol_change: "0.000000005", counterparty: "X", fee_payer: "X", wallet_signed: false })], destinations: [], flags: [], unread: 1 });
+  assert.equal(rep.confidence.level, "low");
+  assert.match(rep.confidence.reason, /1 transaction couldn't be read/);
+  assert.match(rep.next_steps[0], /next_before/);
+  assert.equal(rep.evidence[0].time_local, null, "no time zone given: UTC only");
+  const fixture = loadFixture("trace-kunal-sweep");
+  await assert.rejects(traceWallet.run(z.object(traceWallet.inputs).parse({ ...fixture.args, time_zone: "Mars/Olympus" }), replayContext(fixture)), /Unknown time zone/);
+});

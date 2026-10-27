@@ -162,6 +162,65 @@ export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | nul
   return flags;
 }
 
+type Destination = { address: string; transactions: number; sol_out: string; tokens_out: { token: string; symbol: string | null; amount: string }[]; kind: string };
+
+export const solscan = (kind: "tx" | "account", id: string, network = "mainnet-beta") =>
+  `https://solscan.io/${kind}/${id}${network === "devnet" ? "?cluster=devnet" : ""}`;
+
+// A clock time in the caller's time zone ("2026-10-18 10:07:03 PM CDT"), next to UTC in the report.
+const localTime = (iso: string, timeZone: string) => new Intl.DateTimeFormat("en-US", {
+  timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "short",
+}).format(new Date(iso));
+
+// The five-part report a person can act on, built only from the flows, destinations and flags above. Fixed rules:
+// confidence is high only for the full drain pattern, medium for single signs, low when nothing matched.
+export function reportFor(o: { wallet: string; network: string; flows: Flow[]; destinations: Destination[]; flags: Flag[]; unread: number; timeZone?: string }) {
+  const has = (name: string) => o.flags.some((f) => f.name === name);
+  const drain = drainPattern(o.flags);
+  const top = o.destinations[0];
+  const received = (d: Destination) => [...(d.sol_out !== "0" ? [`${d.sol_out} SOL`] : []), ...d.tokens_out.map((t) => `${t.amount} ${t.symbol ?? short(t.token)}`)].join(", ");
+  const problem = drain ? `Money was swept out of this wallet${top ? `, mostly to ${short(top.address)} (${top.kind}: ${received(top)})` : ""}, and it was left empty.`
+    : has("lookalike_dust") ? "Someone is trying address poisoning on this wallet: lookalike addresses sent it dust."
+    : has("fee_paid_by_other_wallet") || has("passed_straight_through") ? "Money left this wallet in a way a sweep can look, but the full drain pattern (swept and emptied) wasn't found."
+    : o.flows.length ? "None of the drain patterns Pulse checks for were found in these transactions." : "No transactions found for this wallet.";
+
+  const moved = o.flows.filter((f) => f.result === "success" && f.direction !== "none");
+  const evidence = moved.map((f) => ({
+    time_utc: f.time, time_local: f.time && o.timeZone ? localTime(f.time, o.timeZone) : null,
+    what: [`${f.direction === "in" ? "Received" : f.direction === "out" ? "Sent" : "Moved"}`,
+      ...(f.sol_change !== "0" ? [`${f.sol_change.replace(/^-/, "")} SOL`] : []),
+      ...f.token_changes.map((t) => `${t.change.replace(/^-/, "")} ${t.symbol ?? short(t.token)}`)].join(" ")
+      + (f.counterparty ? ` ${f.direction === "in" ? "from" : "to"} ${f.counterparty}` : "")
+      + (f.fee_payer !== o.wallet && f.wallet_signed ? ` (signed by this wallet, fee paid by ${f.fee_payer})` : ""),
+    tx_id: f.tx_id, solscan: solscan("tx", f.tx_id, o.network),
+  }));
+
+  const signs = o.flags.map((f) => f.name.replace(/_/g, " "));
+  const confidence = drain
+    ? { level: "high", reason: "Swept and emptied: the pattern of the real drains this was tested on. Exchange deposit addresses and throwaway bot wallets look the same, so it holds if this is a personal wallet whose owner didn't move the funds." }
+    : o.flags.length ? { level: "medium", reason: `Signs found (${signs.join(", ")}), but not the full drain pattern; each of these alone also has innocent causes, given in each flag.` }
+    : { level: "low", reason: `None of the patterns were found in the last ${o.flows.length} transactions. An older drain can be further back: trace again with before set to next_before.` };
+  if (o.unread) confidence.reason += ` ${o.unread} transaction${o.unread === 1 ? "" : "s"} couldn't be read and ${o.unread === 1 ? "is" : "are"} left out.`;
+
+  const pointsTo: string[] = [];
+  if (drain && has("fee_paid_by_other_wallet")) pointsTo.push("Someone else held this wallet's key: a sweeper signed with it while another wallet paid the fees. That usually means the seed phrase or private key leaked.");
+  if (drain && has("passed_straight_through")) pointsTo.push("Funds were forwarded within seconds of arriving, which is how sweeper bots work.");
+  if (has("lookalike_dust")) pointsTo.push("Address poisoning: dust from lookalike addresses, so the owner copies the wrong one from history.");
+  if (has("dust_received")) pointsTo.push("Dust from unknown addresses, often the first step of address poisoning.");
+  if (top) pointsTo.push(/program/.test(top.kind) ? `The money went to an address a program controls (${short(top.address)}): a bridge, exchange or app, not a person's wallet. Whoever runs it may see where it went next.`
+    : top.kind.startsWith("wallet") ? `The money went to a regular wallet that can sign (${short(top.address)}).` : `The money went to ${short(top.address)} (${top.kind}).`);
+
+  const nextSteps: string[] = [];
+  if (drain) nextSteps.push(
+    "Treat this wallet as compromised: move anything left to a new wallet with a new seed phrase. The old phrase can't be made safe again.",
+    ...(top ? [`Send the Solscan links below to whoever runs ${short(top.address)} (an exchange or bridge, if it is one) and to your wallet app's support.`] : []),
+    "Report the theft: ic3.gov in the US, or your local police. Keep this report and the links.",
+    "Ignore anyone who offers to recover the funds for a fee; that is usually a second scam.");
+  if (has("lookalike_dust") || has("dust_received")) nextSteps.push("Never copy an address from your transaction history; check the whole address against one you saved yourself.");
+  if (!drain && !o.flags.length && o.flows.length) nextSteps.push("If money is missing, it may be further back: trace again with before set to next_before.");
+  return { problem, evidence, destinations: o.destinations.map((d) => ({ ...d, solscan: solscan("account", d.address, o.network) })), confidence, points_to: pointsTo, next_steps: nextSteps };
+}
+
 export const traceWallet: ToolDef = {
   name: "trace",
   title: "Where did the money go?",
@@ -170,11 +229,12 @@ export const traceWallet: ToolDef = {
   useWhen: "Run when a wallet was drained or money went missing, or before trusting an address someone gave you: follows the money and flags sweeper, pass-through and lookalike-address patterns.",
   usage: '{"wallet": "<address>", "how_many": 25}',
   description: "Follows a wallet's money through its recent transactions: net SOL and token change and the other side of each, where most money went, and drain patterns with evidence.",
-  inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(50).optional().default(25), before: z.string().min(64).max(100).optional(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta") },
+  inputs: { wallet: z.string(), how_many: z.number().int().min(1).max(50).optional().default(25), before: z.string().min(64).max(100).optional(), time_zone: z.string().max(64).optional(), network: z.enum(["mainnet-beta", "devnet"]).optional().default("mainnet-beta") },
   inputDocs: [
     { name: "wallet", type: "string (base58 address)", required: true, lookingFor: "The wallet to follow.", whereToGet: "The user's wallet, or an address from their report. Never make one up." },
     { name: "how_many", type: "number", required: false, lookingFor: "How many recent transactions to read, newest first (1-50, default 25).", whereToGet: "More covers a longer stretch of time." },
     { name: "before", type: "string (signature)", required: false, lookingFor: "Start below this transaction, to page further back.", whereToGet: "next_before from the previous answer." },
+    { name: "time_zone", type: "string (IANA time zone)", required: false, lookingFor: "The person's time zone, so the report shows their clock time next to UTC, e.g. America/Chicago.", whereToGet: "Ask them, or leave it out for UTC only." },
     NETWORK_DOC,
   ],
   outputs: [
@@ -185,6 +245,7 @@ export const traceWallet: ToolDef = {
     { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
     { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown).", howWorkedOut: "Outgoing flows grouped by counterparty; kind from the account's owner and whether the address is on the ed25519 curve." },
     { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
+    { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied), medium for single signs, low when nothing matched. Built only from the fields above." },
     { field: "unread", type: "number", is: "Transactions listed for the wallet that couldn't be loaded; they're left out, never guessed.", howWorkedOut: "Signatures minus loaded transactions." },
     { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
@@ -193,8 +254,12 @@ export const traceWallet: ToolDef = {
     "No exchange or entity labels: Pulse has no verified source for them, so a destination is described only by what the chain says it is.",
   ],
   example: async () => ({ wallet: EXAMPLE_WALLET, how_many: 10 }),
-  run: async ({ wallet, how_many, before, network }, ctx) => {
+  run: async ({ wallet, how_many, before, time_zone, network }, ctx) => {
     const address = assertAddress(wallet, "wallet");
+    if (time_zone) {
+      try { new Intl.DateTimeFormat("en-US", { timeZone: time_zone }); }
+      catch { throw new ToolError(400, `Unknown time zone: ${time_zone}.`, "Use an IANA name such as America/Chicago or Europe/London, or leave it out for UTC."); }
+    }
     const conn = ctx.connection(network);
     const key = new PublicKey(address);
     const [sigs, balance] = await Promise.all([
@@ -260,6 +325,7 @@ export const traceWallet: ToolDef = {
     return {
       wallet: address, network, summary, period: { from: times[times.length - 1] ?? null, to: times[0] ?? null },
       sol_now: balance === null ? null : lamportsToSol(balance), flows, top_destinations: topDestinations, flags,
+      report: reportFor({ wallet: address, network, flows, destinations: topDestinations, flags, unread, timeZone: time_zone }),
       unread, next_before: sigs.length === how_many ? sigs[sigs.length - 1].signature : null,
     };
   },

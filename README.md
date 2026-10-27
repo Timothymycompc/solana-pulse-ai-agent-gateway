@@ -26,7 +26,7 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 | `find_token` | Copycat tickers: the verified token address for a ticker, with copycats counted | $0.01 |
 | `fee` | Fee unit mistakes: cheap, normal and fast prices in micro-lamports per compute unit, plus the exact cost in SOL | $0.01 |
 | `wallet` | Totals inflated by spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.01 |
-| `trace` | Guessing where money went after a drain: each transaction's net SOL and token change and the other side, where most of it went (and whether that's a wallet or program-controlled), and drain patterns with the transactions that show them: swept with someone else paying the fee, passed straight through, emptied, lookalike-address dust (address poisoning) and dust from strangers | $0.02 |
+| `trace` | Guessing where money went after a drain: each transaction's net SOL and token change and the other side, where most of it went (and whether that's a wallet or program-controlled), and drain patterns with the transactions that show them (swept with someone else paying the fee, passed straight through, emptied, lookalike-address dust, dust from strangers), and a ready report: the problem in one line, every transaction with its Solscan link and the caller's local time, a confidence level with its reason, what it points to, and next steps | $0.02 |
 | `convert` | Decimal errors: normal amounts to exact raw units using the token's real decimals | $0.01 |
 | `why_failed` | Blind retries: Solana error codes in plain words, with a fix | $0.01 |
 | `whats_this` | Sending to the wrong kind of address: wallet, token account, token, program and more | $0.01 |
