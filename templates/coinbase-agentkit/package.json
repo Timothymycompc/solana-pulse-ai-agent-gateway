@@ -1,0 +1,24 @@
+{
+  "name": "pulse-template-coinbase-agentkit",
+  "private": true,
+  "type": "module",
+  "description": "A Coinbase AgentKit agent whose Solana sends are checked by Solana Pulse before signing. Dry run by default.",
+  "scripts": {
+    "start": "tsx src/agent.ts",
+    "check": "tsx src/check.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.88",
+    "@coinbase/agentkit": "^0.10.4",
+    "@solana/web3.js": "^1.98.4",
+    "ai": "^7.0.153",
+    "bs58": "^6.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
+  }
+}

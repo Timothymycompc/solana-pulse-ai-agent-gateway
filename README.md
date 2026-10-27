@@ -69,7 +69,7 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 
 Solana Agent Kit (SendAI): a plugin in [`agent-kit/`](agent-kit/README.md) ([`solana-agent-kit-plugin-pulse`](https://www.npmjs.com/package/solana-agent-kit-plugin-pulse) on npm) turns each tool into an action (`PULSE_CHECK_TX`, `PULSE_TOKEN_SAFETY`, ...) and a method (`agent.methods.pulseCheckTx(agent, { tx })`). Its tool list is generated from the same registry (`npm run agent-kit`), and `tests/agent-kit.test.ts` fails if it falls behind.
 
-Agent templates: [`templates/`](templates/README.md) has four small agents to fork (Vercel AI SDK, Claude Agent SDK, LangChain, elizaOS). Each one checks every transfer with `check_tx` (must be OK) and `tx_matches` (must be MATCH) before signing, refuses when Pulse can't answer, and is a dry run by default.
+Agent templates: [`templates/`](templates/README.md) has five small agents to fork (Vercel AI SDK, Claude Agent SDK, LangChain, elizaOS, Coinbase AgentKit). Each one checks every transfer with `check_tx` (must be OK) and `tx_matches` (must be MATCH) before signing, refuses when Pulse can't answer, and is a dry run by default.
 
 ## Pricing and payments
 

@@ -1,6 +1,6 @@
 # Agent templates: check before signing
 
-Four small agents you can fork, one per framework. Each has a `send_sol` tool that builds the transfer, has Solana Pulse check it, and only then signs:
+Five small agents you can fork, one per framework. Each has a `send_sol` tool that builds the transfer, has Solana Pulse check it, and only then signs:
 
 1. **check_tx** dry-runs the transaction on live mainnet and must answer **OK** (not REVIEW or BLOCK).
 2. **tx_matches** compares it with what the user asked for (token, amount, recipient) and must answer **MATCH**.
@@ -15,6 +15,7 @@ Anything else means nothing is signed, and the agent gets the reasons in plain w
 | [claude-agent-sdk](claude-agent-sdk) | Claude Agent SDK | `send_sol` tool, plus Pulse's read-only tools over MCP | same |
 | [langchain](langchain) | LangChain 1 | `send_sol` tool, plus Pulse's read-only tools through `@langchain/mcp-adapters` | same |
 | [elizaos](elizaos) | elizaOS 1.7 | `SEND_SOL` action in a plugin | add `pulseSafetyPlugin` to your character |
+| [coinbase-agentkit](coinbase-agentkit) | Coinbase AgentKit 0.10 | `pulse_send_sol` action in an AgentKit action provider, plus `pulse_token_safety` and `pulse_trace` (no AgentKit analytics, see its README) | `npm start -- "send 0.001 SOL to <address>"` |
 
 ## Try the safety path first, with no AI model
 
@@ -45,6 +46,7 @@ WALLET_ADDRESS=<your wallet> npm run check -- <recipient> 0.001
 - Claude Agent SDK: a full agent run (the model called `send_sol`, both checks passed, dry run).
 - LangChain: Pulse's tools loaded through the MCP adapter and `token_safety` answered (run on Google Cloud Build).
 - elizaOS: the `SEND_SOL` action ran with a stand-in runtime.
+- Coinbase AgentKit (2026-10-27, Google Cloud Build): installed and type-checked against AgentKit 0.10.4; `npm run check` passed a real 0.001 SOL transfer (OK and MATCH, dry run) and refused one from an unfunded wallet (BLOCK, MISMATCH), with every web request logged: none went to Coinbase's analytics.
 - Not run: the Vercel and LangChain agents' model step, because it needs an Anthropic API key.
 
 These templates only send SOL. Token transfers and swaps work the same way: build the transaction, call `checkBeforeSigning(tx, expected)` from `pulse-guard.ts`, and sign only if `allowed` is true.
