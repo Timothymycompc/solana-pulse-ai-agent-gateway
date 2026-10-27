@@ -18,7 +18,7 @@ import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./ou
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServedExample, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
-import { admitCall, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
+import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
@@ -503,7 +503,7 @@ async function startServer() {
     const sessionId = randomUUID();
     const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
     sseTransports.set(sessionId, transport);
-    await createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", userAgent: req.get("user-agent") }).connect(transport);
+    await createMcpServer({ apiKey: apiKeyOf(req), ip: req.ip || "unknown", userAgent: req.get("user-agent") }).connect(transport);
     res.on("close", () => sseTransports.delete(sessionId));
   });
   app.post("/mcp/messages", async (req, res) => {
@@ -512,7 +512,7 @@ async function startServer() {
     else res.status(404).json({ error: "MCP SSE session not found." });
   });
   app.post("/mcp", async (req, res) => {
-    const server = createMcpServer({ apiKey: keyFromReq(req), ip: req.ip || "unknown", userAgent: req.get("user-agent"), note: (n) => Object.assign(res.locals, n) });
+    const server = createMcpServer({ apiKey: apiKeyOf(req), ip: req.ip || "unknown", userAgent: req.get("user-agent"), note: (n) => Object.assign(res.locals, n) });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
     try {

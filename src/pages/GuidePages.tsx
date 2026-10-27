@@ -36,6 +36,15 @@ export const QuickstartPage: React.FC = () => (
   </article>
 );
 
+// A first question to ask after connecting, so people see a tool run. BONK is a real, liquid token.
+const TryIt: React.FC = () => (
+  <>
+    <P>Try it: start a new chat and ask</P>
+    <CodeBlock title="Ask" code="Use Solana Pulse to check the token DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263 (BONK) for known traps." />
+    <P>You should see <Code>token_safety</Code> run and a verdict with its reasons. SAFE means none of the traps Pulse knows about were found, not that the price can't fall.</P>
+  </>
+);
+
 export const ConnectPage: React.FC = () => (
   <article className="max-w-3xl">
     <PageHeader title="Connect an agent" lead="Solana Pulse is a Model Context Protocol (MCP) server. Connect once and every tool, with its documentation, is available to the model." />
@@ -46,9 +55,20 @@ export const ConnectPage: React.FC = () => (
       ['Server-Sent Events', <Code>{`${origin()}/mcp/sse`}</Code>],
     ]} />
 
+    <H2>Have a trial key?</H2>
+    <P>A key runs every tool without the daily limit. Where it goes depends on the app:</P>
+    <ul className="mb-5 max-w-[68ch] list-disc space-y-1.5 pl-5 text-[15px] leading-[1.7] text-ink-300 marker:text-ink-500">
+      <li>Apps where you paste a URL into a connector screen (Claude and ChatGPT, on the web, desktop and phone): put the key at the end of the URL. Treat that URL like a password.</li>
+      <li>Config files, terminals and your own code: send it as the <Code>x-api-key</Code> header (or <Code>Authorization: Bearer</Code>).</li>
+    </ul>
+    <CodeBlock title="URL with your key" code={`${origin()}/mcp?key=YOUR_KEY`} />
+    <CodeBlock title="Claude Code" code={`claude mcp add --transport http solana-pulse ${origin()}/mcp --header "x-api-key: YOUR_KEY"`} />
+    <CodeBlock title="Cursor and other mcp.json clients" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp`, headers: { 'x-api-key': 'YOUR_KEY' } } } }, null, 2)} />
+
     <H2>Claude</H2>
     <P>On claude.ai and in the Claude apps, open Customize, then Connectors, choose Add and then Add custom connector. Name it Solana Pulse, paste the URL below, and pick No sign in. Free plans allow one custom connector.</P>
     <CodeBlock title="Connector URL" code={`${origin()}/mcp`} />
+    <TryIt />
     <P>In Claude Code, run:</P>
     <CodeBlock title="Terminal" code={`claude mcp add --transport http solana-pulse ${origin()}/mcp`} />
 
@@ -61,6 +81,7 @@ export const ConnectPage: React.FC = () => (
       <li>Install it from your plugins, then start a Work chat and type <Code>@</Code> to pick it.</li>
     </ol>
     <CodeBlock title="Server URL" code={`${origin()}/mcp`} />
+    <TryIt />
     <P>ChatGPT calls tools from OpenAI's servers, so its users share the daily free calls, and it can't pay for calls beyond them itself.</P>
 
     <H2>Gemini CLI</H2>
@@ -76,6 +97,7 @@ export const ConnectPage: React.FC = () => (
     <H2>Cursor</H2>
     <P>Add the server to <Code>~/.cursor/mcp.json</Code> (or <Code>.cursor/mcp.json</Code> for one project), then turn it on under Cursor Settings, MCP.</P>
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
+    <TryIt />
 
     <H2>VS Code (GitHub Copilot)</H2>
     <P>Run the command below, or add the server to <Code>.vscode/mcp.json</Code> in your project. VS Code uses <Code>servers</Code>, not <Code>mcpServers</Code>, and needs <Code>"type": "http"</Code>. The tools show up in Copilot Chat's agent mode.</P>

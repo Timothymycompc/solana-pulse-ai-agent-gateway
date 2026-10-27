@@ -92,6 +92,17 @@ export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys =
   return keys.find((k) => k.keySha256 === hash && now < Date.parse(k.until)) ?? null;
 };
 
+// The caller's key: the x-api-key or Bearer header, or a trial key in the address (/mcp?key=...) for apps whose
+// connector screen has no header field (the ChatGPT app and desktop offer only OAuth or no authentication). Only a
+// live trial key counts from the address, never the owner key: addresses land in Cloud Run's request logs. The usage
+// log already drops everything after "?".
+export function apiKeyOf(req: { headers: Record<string, any>; query?: Record<string, any> }, now = Date.now(), keys = TRIAL_KEYS): string | undefined {
+  const header = keyFromReq(req);
+  if (header) return header;
+  const fromUrl = typeof req.query?.key === "string" ? req.query.key.trim() : "";
+  return fromUrl && trialKeyFor(fromUrl, now, keys) ? fromUrl : undefined;
+}
+
 // How a call is admitted before any payment is asked for.
 export type Admission =
   | { via: "free_tool" }
@@ -144,7 +155,7 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "") || probe;
     let admission: Admission;
     try {
-      admission = await admitCall({ tool, ip, apiKey: keyFromReq(req), hasPayment, userAgent: req.get("user-agent") });
+      admission = await admitCall({ tool, ip, apiKey: apiKeyOf(req), hasPayment, userAgent: req.get("user-agent") });
     } catch (error) {
       console.error("free call metering error:", error);
       return res.status(503).json({ error: "Usage metering is temporarily unavailable. Retry shortly." });

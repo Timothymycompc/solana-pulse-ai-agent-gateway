@@ -4,6 +4,7 @@
 
 **An intelligence layer between Solana and AI agents.** It checks transactions before an agent signs them, confirms a transaction does exactly what the agent meant, gives token safety verdicts, explains failures, and converts amounts with real on-chain decimals, so agents stop losing money to hallucinated values.
 
+- **Add it to your AI in a minute** (Claude, ChatGPT, Cursor, VS Code, Codex and more): step-by-step on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect)
 - Live: https://solana-pulse-gateway-1021990235790.us-central1.run.app
 - MCP endpoint: `POST /mcp` (Streamable HTTP) or `/mcp/sse`
 - Listed in the official MCP Registry as `io.github.Timothymycompc/solana-pulse-gateway`
