@@ -93,6 +93,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Gemini CLI</H2>
     <P>Add the server for your user account, then check it shows as connected. Inside a session, <Code>/mcp</Code> lists its tools.</P>
+    <Watch id="s0Pd2QW1N28" app="Gemini CLI" />
     <CodeBlock title="Terminal" code={`gemini mcp add -s user --transport http solana-pulse ${origin()}/mcp\ngemini mcp list`} />
     <P>Or add it by hand to <Code>~/.gemini/settings.json</Code>. Streamable HTTP servers use <Code>httpUrl</Code>, not <Code>url</Code>.</P>
     <CodeBlock title="settings.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { httpUrl: `${origin()}/mcp` } } }, null, 2)} />
@@ -100,6 +101,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Antigravity</H2>
     <P>Antigravity CLI replaced Gemini CLI for free and Google One accounts. Type <Code>/mcp</Code> to open its MCP manager, or add the server to <Code>~/.gemini/config/mcp_config.json</Code> (or <Code>.agents/mcp_config.json</Code> for one project). Antigravity uses <Code>serverUrl</Code>; it ignores <Code>url</Code> and <Code>httpUrl</Code>. In the Antigravity editor, open the agent panel's menu, then MCP Servers, Manage MCP Servers and View raw config.</P>
+    <Watch id="Ua69IMPLWZk" app="Antigravity" />
     <CodeBlock title="mcp_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp` } } }, null, 2)} />
     <CodeBlock title="mcp_config.json, with your trial key" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp?key=YOUR_KEY` } } }, null, 2)} />
 
@@ -111,33 +113,39 @@ export const ConnectPage: React.FC = () => (
 
     <H2>VS Code (GitHub Copilot)</H2>
     <P>Run the command below, or add the server to <Code>.vscode/mcp.json</Code> in your project. VS Code uses <Code>servers</Code>, not <Code>mcpServers</Code>, and needs <Code>"type": "http"</Code>. The tools show up in Copilot Chat's agent mode.</P>
+    <Watch id="Cwj6jwc-2YE" app="VS Code" />
     <CodeBlock title="Terminal" code={`code --add-mcp '${JSON.stringify({ name: 'solana-pulse', type: 'http', url: `${origin()}/mcp` })}'`} />
     <CodeBlock title=".vscode/mcp.json" code={JSON.stringify({ servers: { 'solana-pulse': { type: 'http', url: `${origin()}/mcp` } } }, null, 2)} />
     <CodeBlock title=".vscode/mcp.json, with your trial key" code={JSON.stringify({ servers: { 'solana-pulse': { type: 'http', url: `${origin()}/mcp`, headers: { 'x-api-key': 'YOUR_KEY' } } } }, null, 2)} />
 
     <H2>Windsurf</H2>
     <P>Open Cascade's MCP settings and choose View raw config, or edit <Code>~/.codeium/windsurf/mcp_config.json</Code>. Windsurf uses <Code>serverUrl</Code>. Restart Windsurf after saving.</P>
+    <Watch id="nw_-XSPBVAw" app="Windsurf" />
     <CodeBlock title="mcp_config.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp` } } }, null, 2)} />
     <CodeBlock title="mcp_config.json, with your trial key" code={JSON.stringify({ mcpServers: { 'solana-pulse': { serverUrl: `${origin()}/mcp?key=YOUR_KEY` } } }, null, 2)} />
 
     <H2>Cline</H2>
     <P>Open Cline's MCP Servers panel, go to Configure and edit <Code>cline_mcp_settings.json</Code>. Without <Code>"type": "streamableHttp"</Code>, Cline treats the entry as a local command and fails to connect.</P>
+    <Watch id="rFRUa19cxbI" app="Cline" />
     <CodeBlock title="cline_mcp_settings.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { type: 'streamableHttp', url: `${origin()}/mcp`, disabled: false } } }, null, 2)} />
     <CodeBlock title="cline_mcp_settings.json, with your trial key" code={JSON.stringify({ mcpServers: { 'solana-pulse': { type: 'streamableHttp', url: `${origin()}/mcp?key=YOUR_KEY`, disabled: false } } }, null, 2)} />
 
     <H2>OpenAI Codex CLI</H2>
     <P>Add the server from the terminal, or put it in <Code>~/.codex/config.toml</Code>. Inside Codex, <Code>/mcp</Code> lists its tools.</P>
+    <Watch id="nM4VdqEFWNA" app="Codex CLI" />
     <CodeBlock title="Terminal" code={`codex mcp add solana-pulse --url ${origin()}/mcp\ncodex mcp list`} />
     <CodeBlock title="config.toml" code={`[mcp_servers.solana-pulse]\nurl = "${origin()}/mcp"`} />
     <CodeBlock title="config.toml, with your trial key (in the PULSE_KEY environment variable)" code={`[mcp_servers.solana-pulse]\nurl = "${origin()}/mcp"\nbearer_token_env_var = "PULSE_KEY"`} />
 
     <H2>Zed</H2>
     <P>Open your settings with <Code>zed: open settings file</Code>. Zed uses <Code>context_servers</Code>, not <Code>mcpServers</Code>; an entry with a <Code>url</Code> is a remote server.</P>
+    <Watch id="ssypZpBRPIA" app="Zed" />
     <CodeBlock title="settings.json" code={JSON.stringify({ context_servers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
     <CodeBlock title="settings.json, with your trial key" code={JSON.stringify({ context_servers: { 'solana-pulse': { url: `${origin()}/mcp?key=YOUR_KEY` } } }, null, 2)} />
 
     <H2>OpenCode</H2>
     <P>Add the server to <Code>opencode.json</Code> in your project, or <Code>~/.config/opencode/opencode.json</Code> for every project.</P>
+    <Watch id="qjpXYO9rvhg" app="OpenCode" />
     <CodeBlock title="opencode.json" code={JSON.stringify({ $schema: 'https://opencode.ai/config.json', mcp: { 'solana-pulse': { type: 'remote', url: `${origin()}/mcp` } } }, null, 2)} />
     <CodeBlock title="opencode.json, with your trial key" code={JSON.stringify({ $schema: 'https://opencode.ai/config.json', mcp: { 'solana-pulse': { type: 'remote', url: `${origin()}/mcp`, headers: { 'x-api-key': 'YOUR_KEY' } } } }, null, 2)} />
 
@@ -147,6 +155,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>ElizaOS</H2>
     <P>Add the MCP plugin and this server to your character file. Every tool becomes an action your agent can call.</P>
+    <Watch id="aZgHdqi8Xg4" app="ElizaOS" />
     <CodeBlock title="character.json" code={JSON.stringify({ plugins: ['@elizaos/plugin-mcp'], settings: { mcp: { servers: { 'solana-pulse': { type: 'streamable-http', url: `${origin()}/mcp` } } } } }, null, 2)} />
     <CodeBlock title="character.json, with your trial key" code={JSON.stringify({ plugins: ['@elizaos/plugin-mcp'], settings: { mcp: { servers: { 'solana-pulse': { type: 'streamable-http', url: `${origin()}/mcp?key=YOUR_KEY` } } } } }, null, 2)} />
 
