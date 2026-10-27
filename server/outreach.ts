@@ -64,7 +64,9 @@ async function activity(): Promise<CallerActivity[]> {
   // Telegram users can't receive a note in an API answer, so the bot's runs are left out (telegram.ts).
   // Only checks that ran (status under 400): a scanner that gets "402 Payment Required" on every call isn't using the
   // tools (2026-10-23: a fake-Chrome scanner on DigitalOcean/OVH servers triggered a note with 19 mostly-402 calls).
-  const recent = `${TOOL_RUN_SQL} AND status < 400 AND endpoint NOT LIKE '/telegram/%' AND via IS DISTINCT FROM 'owner' AND created_at >= NOW() - INTERVAL '7 days'`;
+  // The owner's own tests (x-pulse-test header, stored as test_name) aren't callers either: on 2026-10-27 a deploy
+  // check plus video and docs recordings from a new phone network triggered a "new person" email.
+  const recent = `${TOOL_RUN_SQL} AND status < 400 AND endpoint NOT LIKE '/telegram/%' AND via IS DISTINCT FROM 'owner' AND test_name IS NULL AND created_at >= NOW() - INTERVAL '7 days'`;
   const [runs, spread, inits, owners] = await Promise.all([
     pool.query(`SELECT caller_hash, client, endpoint, COUNT(*)::int AS n FROM service_usage WHERE ${recent} GROUP BY caller_hash, client, endpoint`),
     pool.query(`SELECT caller_hash, client, COUNT(DISTINCT date_trunc('hour', created_at))::int AS hours FROM service_usage WHERE ${recent} GROUP BY caller_hash, client`),

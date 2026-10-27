@@ -108,3 +108,6 @@ Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timi
   influence. Build on a branch, run server/accuracy.ts on the same 100 + a FRESH cohort, compare lost-most separation
   before/after. Ship only if the new weighting beats the current. Publish before/after. In the grant update as a
   measured milestone (section 8). Do NOT change live rules during grant review.
+
+## check_tx gaps found while writing the Solana Foundation pre-sign guide (2026-10-27)
+- Durable nonce (first ix System AdvanceNonceAccount = never expires; a signed copy stays valid) and authority changes outside SPL Token (Stake Authorize, BPF Upgradeable SetAuthority, System AuthorizeNonceAccount) are not checked. Add as REVIEW/fail with fixtures + benchmark cases. After the grant review.
