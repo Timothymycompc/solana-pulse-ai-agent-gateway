@@ -84,6 +84,12 @@ export function flowOf(wallet: string, tx: ParsedTransactionWithMeta, memo: stri
 }
 
 // The patterns, each one a fact about these transactions with the transactions listed. Flows are newest first.
+// Emptied and swept (passed straight through, or another wallet paid the fee to move the money out).
+export const drainPattern = (flags: { name: string }[]) => {
+  const has = (name: string) => flags.some((f) => f.name === name);
+  return has("emptied") && (has("passed_straight_through") || has("fee_paid_by_other_wallet"));
+};
+
 export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | null): Flag[] {
   const flags: Flag[] = [];
   const ok = flows.filter((f) => f.result === "success");
@@ -127,16 +133,30 @@ export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | nul
       detail: `Address poisoning: tiny transfers came from addresses that start and end like ones this wallet has paid (${pairs.join("; ")}). Copying the address from history would send money to the imitation.` });
   }
 
+  // Tiny amounts from addresses the wallet never paid, not signed by it: the probe that usually comes before address
+  // poisoning (a 1-lamport transfer on Tim's payout wallet, 2026-10-13), and spam airdrops. Noted, not a warning; the
+  // lookalike version above is the warning.
+  const poisonIds = new Set(poison.map((f) => f.tx_id));
+  const dust = ok.filter((f) => f.direction === "in" && !f.wallet_signed && f.counterparty && !paidTo.has(f.counterparty)
+    && BigInt(f.raw_sol_change) > 0n && BigInt(f.raw_sol_change) <= DUST_LAMPORTS && !f.token_changes.length && !poisonIds.has(f.tx_id));
+  if (dust.length) {
+    const senders = [...new Set(dust.map((f) => f.counterparty!))];
+    flags.push({ name: "dust_received", level: "info", tx_ids: dust.map((f) => f.tx_id),
+      detail: `${dust.length} tiny transfer${dust.length === 1 ? "" : "s"} (0.001 SOL or less) came from ${senders.length === 1 ? "an address" : `${senders.length} addresses`} this wallet never paid (${senders.slice(0, 3).map(short).join(", ")}${senders.length > 3 ? ", ..." : ""}). Address poisoners send these to get into your history; never copy an address from it.` });
+  }
+
   const lastOut = outs[0];
   if (lastOut && balanceNow !== null && balanceNow < EMPTY_LAMPORTS && flows[0]?.tx_id === lastOut.tx_id) {
+    // An owner sweeping their own wallet signs every move out and pays the fee; saying so keeps that from reading as a drain.
+    const ownMoves = outs.every((f) => f.wallet_signed && f.fee_payer === wallet);
     flags.push({ name: "emptied", level: "info", tx_ids: [lastOut.tx_id],
-      detail: `The latest transaction moved money out and the wallet holds ${lamportsToSol(balanceNow)} SOL now.` });
+      detail: `The latest transaction moved money out and the wallet holds ${lamportsToSol(balanceNow)} SOL now.${ownMoves ? " Every transaction here that moved money out was signed by this wallet and paid its own fee, as when the owner moves funds." : ""}` });
   }
   // Alone, each sign has innocent causes (on 45 ordinary active wallets, 2026-10-27: pass-through 8, another wallet's
-  // fee 7, emptied 3). Together, an emptied wallet that was swept is the drain pattern (Kunal, Adilak); that combination
-  // was 1 of the 45. Only then are they warnings.
-  const has = (name: string) => flags.some((f) => f.name === name);
-  if (has("emptied") && (has("passed_straight_through") || has("fee_paid_by_other_wallet"))) {
+  // fee 7, emptied 3). Together, an emptied wallet that was swept is the drain pattern (Kunal, Adilak); only then are
+  // they warnings. It matched 1 of the 45 in the first run and 5 in a second run hours later (throwaway bot wallets and
+  // what look like exchange deposit addresses), so the summary says those look the same.
+  if (drainPattern(flags)) {
     for (const f of flags) if (["emptied", "passed_straight_through", "fee_paid_by_other_wallet"].includes(f.name)) f.level = "warn";
   }
   return flags;
@@ -164,7 +184,7 @@ export const traceWallet: ToolDef = {
     { field: "sol_now", type: "string | null", is: "SOL the wallet holds now. null if it couldn't be read.", howWorkedOut: "getBalance." },
     { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
     { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown).", howWorkedOut: "Outgoing flows grouped by counterparty; kind from the account's owner and whether the address is on the ed25519 curve." },
-    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, emptied.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
+    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
     { field: "unread", type: "number", is: "Transactions listed for the wallet that couldn't be loaded; they're left out, never guessed.", howWorkedOut: "Signatures minus loaded transactions." },
     { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
@@ -232,6 +252,9 @@ export const traceWallet: ToolDef = {
           ...(topDestinations[0].sol_out !== "0" ? [`${topDestinations[0].sol_out} SOL`] : []),
           ...topDestinations[0].tokens_out.slice(0, 3).map((t) => `${t.amount} ${t.symbol ?? short(t.token)}`)].join(", ")}).` : "")
         + (flags.some((f) => f.level === "warn") ? ` Warning signs: ${flags.filter((f) => f.level === "warn").map((f) => f.name.replace(/_/g, " ")).join(", ")}.` : " None of the drain patterns Pulse checks for were found.")
+        // Measured 2026-10-27: on ordinary active addresses the drain pattern also matched exchange deposit addresses and
+        // throwaway bot wallets (5 of 45 in one run), which the chain can't tell apart from a drained personal wallet.
+        + (drainPattern(flags) ? " This is the drain pattern if it's a personal wallet whose owner didn't move the funds; exchange deposit addresses and short-lived bot wallets look the same on chain." : "")
         + (flags.some((f) => f.level === "info") ? ` Noted: ${flags.filter((f) => f.level === "info").map((f) => f.name.replace(/_/g, " ")).join(", ")}.` : "")
         + (unread ? ` ${unread} transaction${unread === 1 ? "" : "s"} couldn't be read and ${unread === 1 ? "is" : "are"} left out.` : "");
     return {

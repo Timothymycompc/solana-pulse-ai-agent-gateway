@@ -85,6 +85,7 @@ test("trace replays Kunal's real sweep (recorded from mainnet 2026-10-27)", asyn
   assert.equal(r.top_destinations[0].address, "6tckHFBpiJ8YgYN8FUskvtvTpXQZ55g5LHeo1kvELoDQ");
   assert.equal(r.top_destinations[0].kind, "program-controlled address");
   assert.equal(r.top_destinations[0].sol_out, "2.032462589");
+  assert.match(r.summary, /exchange deposit addresses and short-lived bot wallets look the same/, "the drain warning says what else matches it");
   assert.equal(r.next_before, null);
 });
 
@@ -100,4 +101,24 @@ test("trace replays Adilak's real drain (recorded 2026-10-27): the stolen tokens
   assert.match(out.PUMP, /^1446074\./);
   assert.ok(r.flags.some((f: any) => f.name === "emptied" && f.level === "warn"), "emptied and swept: the drain pattern");
   assert.match(r.summary, /Warning signs:/);
+});
+
+test("dust_received: 1 lamport from a stranger is noted (the probe before poisoning); not from someone the wallet paid", () => {
+  const flags = flagsFor(W, [
+    flow({ direction: "in", raw_sol_change: "1", counterparty: "BjkFstrangerYEmn", fee_payer: "BjkFstrangerYEmn", wallet_signed: false }),
+    flow({ time: "2026-10-17T00:00:00.000Z", direction: "out", raw_sol_change: "-100000000", counterparty: "FriendWallet" }),
+  ], 2_000_000_000n);
+  assert.deepEqual(flags.map((f) => [f.name, f.level]), [["dust_received", "info"]]);
+  assert.match(flags[0].detail, /never copy an address/);
+  const fromFriend = flagsFor(W, [
+    flow({ direction: "in", raw_sol_change: "1", counterparty: "FriendWallet", fee_payer: "FriendWallet", wallet_signed: false }),
+    flow({ time: "2026-10-17T00:00:00.000Z", direction: "out", raw_sol_change: "-100000000", counterparty: "FriendWallet" }),
+  ], 2_000_000_000n);
+  assert.deepEqual(fromFriend, []);
+});
+
+test("emptied by the owner: says every move out was signed by the wallet and paid its own fee", () => {
+  const flags = flagsFor(W, [flow({ direction: "out", raw_sol_change: "-100000000", counterparty: "MyOtherWallet" })], 0n);
+  assert.deepEqual(flags.map((f) => [f.name, f.level]), [["emptied", "info"]]);
+  assert.match(flags[0].detail, /signed by this wallet and paid its own fee/);
 });
