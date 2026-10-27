@@ -99,3 +99,12 @@ Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timi
   higher shared allowance for known hosted clients, measured first on how many outside Claude callers exist.
 - de6a62 in known.json ("curl 8.5.0 sweep, probably Tim's Claude cloud session") is really Anthropic's network, so
   any Claude user shows up there, not just Tim. Re-label before counting callers from it.
+
+## Token_safety re-weighting (from the 100-token accuracy test, 2026-10-26; measure before shipping)
+- Finding (74/100, consistent with group 1): AVOID does NOT separate losers from CAUTION (AVOID 11/16 lost 90%+ vs
+  CAUTION 38/58). The signal is AGE (flagged young 76% lost vs older-passed 17%) and creator_history (76% vs 50%).
+  insiders (76% vs 63%) and liquidity_pull (55% vs 68%, backwards) carry little/no signal on young tokens.
+- Plan: for tokens under ~2 days old, weight the verdict toward age + creator_history; reduce insiders + liquidity_pull
+  influence. Build on a branch, run server/accuracy.ts on the same 100 + a FRESH cohort, compare lost-most separation
+  before/after. Ship only if the new weighting beats the current. Publish before/after. In the grant update as a
+  measured milestone (section 8). Do NOT change live rules during grant review.
