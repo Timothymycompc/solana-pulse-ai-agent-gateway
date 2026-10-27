@@ -45,6 +45,11 @@ const TryIt: React.FC = () => (
   </>
 );
 
+// The setup video for an app (recorded 2026-10-27, public on YouTube): the same steps, plus a live call with a key.
+const Watch: React.FC<{ id: string; app: string }> = ({ id, app }) => (
+  <P><a className="text-accent-300 underline decoration-accent-300/30 underline-offset-4 hover:decoration-accent-300" href={`https://youtu.be/${id}`} target="_blank" rel="noreferrer">Watch it done in {app} (video, under 2 minutes)</a></P>
+);
+
 export const ConnectPage: React.FC = () => (
   <article className="max-w-3xl">
     <PageHeader title="Connect an agent" lead="Solana Pulse is a Model Context Protocol (MCP) server. Connect once and every tool, with its documentation, is available to the model." />
@@ -67,6 +72,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Claude</H2>
     <P>On claude.ai and in the Claude apps, open Customize, then Connectors, choose Add and then Add custom connector. Name it Solana Pulse, paste the URL below, and pick No sign in. Free plans allow one custom connector.</P>
+    <Watch id="8H2YPpWQP8w" app="Claude" />
     <CodeBlock title="Connector URL" code={`${origin()}/mcp`} />
     <TryIt />
     <P>In Claude Code, run:</P>
@@ -74,6 +80,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>ChatGPT</H2>
     <P>ChatGPT adds MCP servers as custom plugins, on the web only. It needs developer mode, which OpenAI offers on Business, Enterprise and Edu plans, and on Pro for read-only tools like these.</P>
+    <Watch id="NMBLXYZp1No" app="ChatGPT" />
     <ol className="mb-5 max-w-[68ch] list-decimal space-y-1.5 pl-5 text-[15px] leading-[1.7] text-ink-300 marker:text-ink-500">
       <li>Open ChatGPT Plugins, select the plus button and choose Add custom MCP server.</li>
       <li>Name it Solana Pulse and paste the URL below as the Server URL.</li>
@@ -96,6 +103,7 @@ export const ConnectPage: React.FC = () => (
 
     <H2>Cursor</H2>
     <P>Add the server to <Code>~/.cursor/mcp.json</Code> (or <Code>.cursor/mcp.json</Code> for one project), then turn it on under Cursor Settings, MCP.</P>
+    <Watch id="qeKfpJ_CLdw" app="Cursor" />
     <CodeBlock title="mcp.json" code={JSON.stringify({ mcpServers: { 'solana-pulse': { url: `${origin()}/mcp` } } }, null, 2)} />
     <TryIt />
 
