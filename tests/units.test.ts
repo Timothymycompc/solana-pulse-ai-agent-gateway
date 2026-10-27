@@ -99,13 +99,14 @@ test("each signature a built-in signature check verifies costs the base fee, lik
   assert.equal(fee.totalLamports, "10000");
 });
 
-test("whats_this: an address with no SOL still says whether it holds tokens, and says unknown when it can't tell", async () => {
+test("whats_this: an address with no SOL says whether it holds tokens and was used before, and says unknown when it can't tell", async () => {
   const tool = TOOLS_BY_NAME.get("whats_this")!;
   const wallet = "HGKYVGfQGvWdd9Y7uEm7NyHHPjmf5KMFAkfeYMvk5nVV";
-  const ctxWith = (tokens: number[] | null) => ({
+  const ctxWith = (tokens: number[] | null, signatures: number | null = 0) => ({
     connection: () => ({
       getParsedAccountInfo: async () => ({ value: null }),
       getTokenAccountsByOwner: async () => { if (!tokens) throw new Error("RPC down"); return { value: tokens.splice(0, 1).flatMap((n) => Array(n).fill({})) }; },
+      getSignaturesForAddress: async () => { if (signatures === null) throw new Error("RPC down"); return Array(signatures).fill({}); },
     }) as any,
     fetchJson: async () => ({}),
   });
@@ -115,6 +116,15 @@ test("whats_this: an address with no SOL still says whether it holds tokens, and
   assert.match(holds.summary, /no SOL that holds 1 token account/);
   const empty: any = await tool.run({ address: wallet, network: "mainnet-beta" }, ctxWith([0, 0]));
   assert.equal(empty.kind, "not_found");
+  assert.equal(empty.details.has_history, false);
+  assert.match(empty.summary, /Nothing has ever happened here/);
+  // 2026-10-27: an address that got dust and was emptied was called "never received anything".
+  const emptied: any = await tool.run({ address: wallet, network: "mainnet-beta" }, ctxWith([0, 0], 1));
+  assert.equal(emptied.details.has_history, true);
+  assert.match(emptied.summary, /Empty now, but used before/);
+  const historyUnknown: any = await tool.run({ address: wallet, network: "mainnet-beta" }, ctxWith([0, 0], null));
+  assert.equal(historyUnknown.details.has_history, null);
+  assert.match(historyUnknown.summary, /Whether it was used before couldn't be checked/);
   const unknown: any = await tool.run({ address: wallet, network: "mainnet-beta" }, ctxWith(null));
   assert.equal(unknown.details.token_accounts, null);
   assert.match(unknown.summary, /couldn't be checked/);

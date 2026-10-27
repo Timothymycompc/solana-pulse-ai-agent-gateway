@@ -260,7 +260,7 @@ export const inspectAddress: ToolDef = {
     { field: "owner_program_name", type: "string | null", is: "That program's name, when we know it.", howWorkedOut: "Our table of program names." },
     { field: "is_program", type: "boolean", is: "True for program accounts.", howWorkedOut: "The account's executable flag." },
     { field: "can_sign", type: "boolean", is: "True for addresses that have a private key (normal keypairs). False for program-derived addresses, which can't sign.", howWorkedOut: "The address is on the ed25519 curve." },
-    { field: "details", type: "object", is: "Facts for this kind. Token accounts: token, owner, amount, delegate. Tokens: decimals, supply, who_can_mint, who_can_freeze. No SOL account: token_accounts, how many token accounts it owns (null if that couldn't be checked).", howWorkedOut: "From the account data; token_accounts from both token programs." },
+    { field: "details", type: "object", is: "Facts for this kind. Token accounts: token, owner, amount, delegate. Tokens: decimals, supply, who_can_mint, who_can_freeze. No SOL account: token_accounts, how many token accounts it owns, and has_history, whether it has any past transactions (each null if it couldn't be checked).", howWorkedOut: "From the account data; token_accounts from both token programs; has_history from the address's transaction signatures." },
   ],
   example: async () => ({ address: USDC_MINT }),
   run: async ({ address, network }, ctx) => {
@@ -273,11 +273,18 @@ export const inspectAddress: ToolDef = {
       const tokenAccounts = await Promise.all([TOKEN_PROGRAM, TOKEN_2022_PROGRAM].map((programId) =>
         ctx.connection(network).getTokenAccountsByOwner(key, { programId: new PublicKey(programId) }, "confirmed").then((r) => r.value.length)))
         .then(([a, b]) => a + b).catch(() => null);
+      // Empty today isn't the same as never used: a wallet that received dust and was then emptied (common in scam
+      // traces) has past transactions, so those are checked before saying it never received anything.
+      const hasHistory = tokenAccounts === 0
+        ? await ctx.connection(network).getSignaturesForAddress(key, { limit: 1 }, "confirmed").then((s) => s.length > 0).catch(() => null)
+        : null;
       const holder = onCurve ? "A wallet" : "A program-derived address (controlled by a program, not a person)";
       const summary = tokenAccounts ? `${holder} with no SOL that holds ${tokenAccounts} token account${tokenAccounts === 1 ? "" : "s"}. It's in use: it just needs SOL to pay fees before it can move them.`
-        : tokenAccounts === 0 ? "Nothing exists here yet: no SOL and no tokens. A wallet that has never received anything looks like this; sending SOL creates it."
+        : tokenAccounts === 0 && hasHistory ? "Empty now, but used before: no SOL and no tokens today, and it has past transactions. Its history shows where the money went."
+        : tokenAccounts === 0 && hasHistory === false ? "Nothing has ever happened here: no SOL, no tokens and no past transactions. Sending SOL creates it."
+        : tokenAccounts === 0 ? "Nothing here now: no SOL and no tokens. Whether it was used before couldn't be checked right now."
         : "No SOL here. Whether it holds tokens couldn't be checked right now.";
-      return { address: key.toBase58(), network, exists: false, kind: tokenAccounts ? "wallet" : "not_found", summary, lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: { token_accounts: tokenAccounts } };
+      return { address: key.toBase58(), network, exists: false, kind: tokenAccounts ? "wallet" : "not_found", summary, lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: { token_accounts: tokenAccounts, has_history: hasHistory } };
     }
     const acc = res.value;
     const owner = acc.owner.toBase58();

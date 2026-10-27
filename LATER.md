@@ -111,3 +111,14 @@ Built 2026-10-23 as 0.7.0 (server/watch.ts, /track-record), without any buy-timi
 
 ## check_tx gaps found while writing the Solana Foundation pre-sign guide (2026-10-27)
 - Durable nonce (first ix System AdvanceNonceAccount = never expires; a signed copy stays valid) and authority changes outside SPL Token (Stake Authorize, BPF Upgradeable SetAuthority, System AuthorizeNonceAccount) are not checked. Add as REVIEW/fail with fixtures + benchmark cases. After the grant review.
+
+## Forensics feedback from Tim's Claude app session (2026-10-26/27, ~45 calls tracing a drained wallet)
+Worked: explain_tx (balances, signers, fee payer; the fee payer exposed one key co-signing for many wallets), memos in history, whats_this, owner key over a claude.ai connector.
+Ranked by impact:
+1. history: add per-transaction net SOL/token change for the queried wallet + main counterparty (a trace went ~45 calls instead of ~5).
+2. history: pagination (`before` cursor; stops at 50 today).
+3. explain_tx: batch 10-20 tx_ids per call.
+4. Name more programs: srmqPvym... (OpenBook/Serum v3) showed null; "closed OpenBook order account, rent went to X".
+5. BUG (false data, fix first): whats_this said "never received anything" for 5Gu1..., which had received dust and then emptied. Should say "previously active, now empty".
+6. why_failed / failure.explanation null for "`from` must not carry data" (common System transfer error).
+Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike-address (poisoning) dust, a fee payer co-signing for many unrelated wallets in one burst, known drainers, exchange-sized destinations. Must follow PRINCIPLES (every flag from real data with source; measured on real cases before shipping).
