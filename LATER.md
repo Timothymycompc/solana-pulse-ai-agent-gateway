@@ -127,3 +127,11 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - Opt-in only: someone tags @solanapulsebots with a wallet, transaction or question; the bot runs the right Pulse tool (trace, why_failed, whats_this, explain_tx) and Claude writes ONE reply in plain words with the real result and a matching video link. Never replies unprompted (X bans keyword-based automated replies; AI reply bots need X's written approval).
 - Needs: X's AI reply bot approval (application text: draft it), X API pay-per-use credits (~$0.20 per reply with a link per third-party guides, unverified), an Anthropic API key (a few cents per reply).
 - Build after the grant's first payment or first income. Until then the X poster (pulse-x-post, PAUSED, 16 approved video posts, own timeline only) can run for ~$5 of credits if Tim wants.
+
+## From a Gemini review (2026-10-28), checked against the code
+- trace: flag SetAuthority / Assign on the wallet's token accounts (ownership handed over without tokens moving). Not checked today.
+- trace: show the drain destination's current balance so a collector hub reads differently from a personal wallet.
+- wallet, tokens, token_account: return `slot` like balance does, so agents can compare freshness.
+- fee: optional `accounts` or `intent` (transfer/swap) input for local fee markets before the tx is built (after the fee-market.ts fix ships).
+- find_token: `can_mint_more` as an enum (none / wallet / program-controlled) instead of boolean|null; LST mints are program-controlled.
+- x402lens.com lists the service as "Unreachable": find which path its crawler checks.

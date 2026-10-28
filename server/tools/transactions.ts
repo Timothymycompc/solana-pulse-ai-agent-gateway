@@ -6,6 +6,7 @@ import { z } from "zod";
 import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners, type DecodedInstruction, type LoadedTransaction } from "./decode";
 import { explainError } from "./errors";
 import { permissionCheck, permissionChecks, type Check } from "./permissions";
+import { recentMarket } from "./fee-market";
 import { matchSwap } from "./swap";
 import {
   assertAddress, BASE_FEE_LAMPORTS_PER_SIGNATURE, COMPUTE_BUDGET_PROGRAM, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, jupiterDexes, labelFor,
@@ -376,7 +377,7 @@ export const feeAdvice: ToolDef = {
   benefit: { kind: "money", text: "Prices are in micro-lamports per compute unit, the unit setComputeUnitPrice takes. Mixing that up with lamports overpays a million times." },
   useWhen: "Run before setting a priority fee. Gives the price in the unit Compute Budget expects (micro-lamports per compute unit) and the total in SOL, so a unit mix-up never overpays.",
   usage: '{} for network prices, or {"tx": "<base64>"} for your own',
-  description: "Turns recent priority fees into three prices: cheap, normal, fast. Pass your transaction to get its compute limit and exact cost at each.",
+  description: "Turns what recent transactions paid for priority into three prices: cheap, normal, fast. Pass your transaction to get its compute limit and exact cost at each.",
   inputs: { tx: z.string().min(20).optional(), network: NETWORK },
   inputDocs: [
     { ...TX_DOC, required: false, lookingFor: "Your transaction, so fees match its accounts and compute comes from a dry run." },
@@ -384,9 +385,9 @@ export const feeAdvice: ToolDef = {
   ],
   outputs: [
     { field: "unit", type: "string", is: 'Always "micro-lamports per compute unit". 1,000,000 micro-lamports = 1 lamport. It is the unit setComputeUnitPrice takes.', howWorkedOut: "Fixed." },
-    { field: "based_on", type: "string", is: "Which fees were sampled: the accounts your transaction writes to, or the whole network.", howWorkedOut: "Your transaction's writable accounts when given, otherwise network-wide." },
-    { field: "samples / share_paying", type: "number", is: "How many recent slots were sampled, and the share that paid any priority fee.", howWorkedOut: "getRecentPrioritizationFees (about the last 150 slots)." },
-    { field: "prices.cheap / normal / fast .compute_unit_price", type: "number", is: "The price to set with setComputeUnitPrice. cheap usually lands within a few slots when it's quiet. fast is for urgent trades.", howWorkedOut: "The 50th, 75th and 90th percentile of sampled fees (at least 1 for normal and fast when everything sampled is zero)." },
+    { field: "based_on", type: "string", is: "What the prices come from: the transactions in the latest blocks, plus your transaction's writable accounts when given.", howWorkedOut: "The blocks read (slots listed); with a transaction, also getRecentPrioritizationFees on its writable accounts." },
+    { field: "samples / share_paying", type: "number", is: "How many recent transactions were sampled, and the share of them that paid any priority fee.", howWorkedOut: "Every non-vote transaction in the latest 2 readable blocks (getBlock, version 1 included)." },
+    { field: "prices.cheap / normal / fast .compute_unit_price", type: "number", is: "The price to set with setComputeUnitPrice. cheap is what half of recent transactions paid or more; fast is for urgent trades.", howWorkedOut: "The 50th, 75th and 90th percentile of what those transactions paid per compute unit (a v1 transaction's lamport total over its compute limit). With a transaction, each is raised to the same percentile of the lowest fees that landed on its accounts, if that is higher." },
     { field: "prices.*.priority_lamports / total_lamports / total_sol", type: "string", is: "What the transaction would pay at that price.", howWorkedOut: "priority = price x compute units / 1,000,000, rounded up. total = priority + 5000 lamports per signature." },
     { field: "compute_units", type: "number", is: "The compute units the costs are worked out for.", howWorkedOut: "With a transaction: dry-run units used + 10%. Without: 200,000 (a typical one-step default)." },
     { field: "compute_units_from", type: "string", is: "Whether compute_units came from a dry run or the default.", howWorkedOut: '"simulation" or "default".' },
@@ -408,17 +409,23 @@ export const feeAdvice: ToolDef = {
       const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed" });
       if (sim.value.unitsConsumed) { computeUnits = Math.ceil(sim.value.unitsConsumed * 1.1); computeUnitsSource = "simulation"; }
     }
-    const fees = (await conn.getRecentPrioritizationFees(accounts.length ? { lockedWritableAccounts: accounts } : undefined)).map((f) => f.prioritizationFee).sort((a, b) => a - b);
+    // What transactions paid, not getRecentPrioritizationFees' per-slot minimum: network-wide that minimum is nearly always 0.
+    const market = await recentMarket(conn);
+    const paid = [...market.prices].sort((a, b) => a - b);
+    // Your accounts' per-slot minimum is still a floor: a busy account can need more than the network's typical price.
+    const floor = accounts.length ? (await conn.getRecentPrioritizationFees({ lockedWritableAccounts: accounts })).map((f) => f.prioritizationFee).sort((a, b) => a - b) : [];
     const tier = (price: number) => {
       const priority = (BigInt(price) * BigInt(computeUnits) + 999_999n) / 1_000_000n;
       const total = priority + BigInt(BASE_FEE_LAMPORTS_PER_SIGNATURE * signatures);
       return { compute_unit_price: price, priority_lamports: priority.toString(), total_lamports: total.toString(), total_sol: lamportsToSol(total) };
     };
-    const p50 = percentile(fees, 50), p75 = Math.max(percentile(fees, 75), 1), p90 = Math.max(percentile(fees, 90), p75, 1);
+    const at = (p: number) => Math.max(percentile(paid, p), percentile(floor, p));
+    const p50 = at(50), p75 = Math.max(at(75), p50, 1), p90 = Math.max(at(90), p75, 1);
     const prices = { cheap: tier(p50), normal: tier(p75), fast: tier(p90) };
     return {
-      network, unit: "micro-lamports per compute unit", based_on: accounts.length ? `${accounts.length} writable account(s) in your transaction` : "network-wide",
-      samples: fees.length, share_paying: fees.length ? Math.round((fees.filter((f) => f > 0).length / fees.length) * 100) / 100 : 0,
+      network, unit: "micro-lamports per compute unit", based_on: `${paid.length} transactions in slot${market.slots.length === 1 ? "" : "s"} ${market.slots.join(", ")}`
+        + (accounts.length ? `, and the lowest fees that landed on ${accounts.length} writable account(s) in your transaction` : ""),
+      samples: paid.length, share_paying: paid.length ? Math.round((paid.filter((f) => f > 0).length / paid.length) * 100) / 100 : 0,
       prices, compute_units: computeUnits, compute_units_from: computeUnitsSource,
       how_to_use: v1
         ? `This is a version 1 transaction: set computeUnitLimit to ${computeUnits} and priorityFeeLamports to ${prices.normal.priority_lamports} in its config. That fee is a lamport total, not a price per compute unit.`

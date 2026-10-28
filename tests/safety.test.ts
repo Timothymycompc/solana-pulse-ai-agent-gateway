@@ -56,7 +56,11 @@ test("check_tx and tx_matches read a version 1 transaction, with its fee from th
 });
 
 test("fee gives v1 advice for a v1 transaction, and explain_tx reads a landed v1 transaction", async () => {
-  assert.match((await replay(feeAdvice, "fee-v1")).how_to_use, /version 1 transaction: set computeUnitLimit to \d+ and priorityFeeLamports/);
+  const f = await replay(feeAdvice, "fee-v1");
+  assert.match(f.how_to_use, /version 1 transaction: set computeUnitLimit to \d+ and priorityFeeLamports/);
+  // Prices come from what the recorded blocks' transactions paid, not the per-slot minimum that answered "1" before.
+  assert.ok(f.samples > 100 && f.share_paying > 0.5, `${f.samples} sampled, ${f.share_paying} paying`);
+  assert.ok(f.prices.normal.compute_unit_price > 1, `normal ${f.prices.normal.compute_unit_price}`);
   const e = await replay(explainTransaction, "explain-v1");
   assert.equal(e.result, "success");
   assert.equal(e.programs[0].address, "11111111111111111111111111111111");

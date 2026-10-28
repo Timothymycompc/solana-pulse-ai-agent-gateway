@@ -31,7 +31,7 @@ export const TOOLS = [
   {
     name: "fee",
     title: "What fee to pay",
-    description: "Run before setting a priority fee. Gives the price in the unit Compute Budget expects (micro-lamports per compute unit) and the total in SOL, so a unit mix-up never overpays. Turns recent priority fees into three prices: cheap, normal, fast. Pass your transaction to get its compute limit and exact cost at each.",
+    description: "Run before setting a priority fee. Gives the price in the unit Compute Budget expects (micro-lamports per compute unit) and the total in SOL, so a unit mix-up never overpays. Turns what recent transactions paid for priority into three prices: cheap, normal, fast. Pass your transaction to get its compute limit and exact cost at each.",
     price: "$0.01 USDC per call after 25 free calls a day",
     example: {},
     schema: z.object({ tx: z.string().min(20).describe("Your transaction, so fees match its accounts and compute comes from a dry run. Before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or an aggregator's swap tx.").optional(), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
