@@ -122,3 +122,8 @@ Ranked by impact:
 5. BUG (false data, fix first): whats_this said "never received anything" for 5Gu1..., which had received dust and then emptied. Should say "previously active, now empty".
 6. why_failed / failure.explanation null for "`from` must not carry data" (common System transfer error).
 Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike-address (poisoning) dust, a fee payer co-signing for many unrelated wallets in one burst, known drainers, exchange-sized destinations. Must follow PRINCIPLES (every flag from real data with source; measured on real cases before shipping).
+
+## Tag-to-trace X bot (parked 2026-10-28; Tim hates doing social media himself)
+- Opt-in only: someone tags @solanapulsebots with a wallet, transaction or question; the bot runs the right Pulse tool (trace, why_failed, whats_this, explain_tx) and Claude writes ONE reply in plain words with the real result and a matching video link. Never replies unprompted (X bans keyword-based automated replies; AI reply bots need X's written approval).
+- Needs: X's AI reply bot approval (application text: draft it), X API pay-per-use credits (~$0.20 per reply with a link per third-party guides, unverified), an Anthropic API key (a few cents per reply).
+- Build after the grant's first payment or first income. Until then the X poster (pulse-x-post, PAUSED, 16 approved video posts, own timeline only) can run for ~$5 of credits if Tim wants.
