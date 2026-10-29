@@ -1,4 +1,5 @@
 // Client for the gateway's tool registry API. Everything the playground and docs show comes from here.
+import { parseTrail, type TrailStep } from './flow';
 
 export type InputDoc = { name: string; type: string; required: boolean; lookingFor: string; whereToGet: string };
 export type OutputDoc = { field: string; type: string; is: string; howWorkedOut: string };
@@ -39,6 +40,8 @@ export type RunResult = {
   status: number; latencyMs: number; body: unknown; headers: Record<string, string>;
   payment?: { amount: string; asset: string; network: string; payTo: string } | null;
   freeCallsRemaining: number | null;
+  // What the call asked the chain and outside services (HTTP calls only).
+  trail?: TrailStep[] | null;
 };
 
 const decodePaymentRequired = (header: string | null) => {
@@ -53,7 +56,7 @@ const decodePaymentRequired = (header: string | null) => {
 export async function runTool(tool: string, args: Record<string, unknown>, transport: 'http' | 'mcp'): Promise<RunResult> {
   const started = performance.now();
   if (transport === 'http') {
-    const r = await fetch(`/api/tools/${tool}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(args) });
+    const r = await fetch(`/api/tools/${tool}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-pulse-trail': '1' }, body: JSON.stringify(args) });
     const text = await r.text();
     let body: unknown = text;
     try { body = JSON.parse(text); } catch { /* plain text body */ }
@@ -61,6 +64,7 @@ export async function runTool(tool: string, args: Record<string, unknown>, trans
     return {
       status: r.status, latencyMs: Math.round(performance.now() - started), body, headers: Object.fromEntries(r.headers.entries()),
       payment: decodePaymentRequired(r.headers.get('payment-required')), freeCallsRemaining: remaining === null ? null : Number(remaining),
+      trail: parseTrail(r.headers.get('x-pulse-trail')),
     };
   }
   const r = await fetch('/mcp', {

@@ -9,11 +9,12 @@ import { CallsPage, ConnectPage, NotFoundPage, PricingPage, QuickstartPage, Stat
 import { OwnerPage } from './OwnerPage';
 import { ToolboxPage } from './ToolboxPage';
 import { TrackRecordPage } from './TrackRecordPage';
+import { FlowsPage } from './FlowsPage';
 
 const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1];
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
-  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/toolbox'].includes(path)) return true;
+  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/toolbox', '/docs/flows'].includes(path)) return true;
   const name = toolName(path);
   return Boolean(name && (!index || index.tools.some((t) => t.name === name)));
 }
@@ -28,8 +29,8 @@ export function pageFor(path: string, index: ToolsIndex | null, error: string): 
   if (path === '/status') return <StatusPage />;
   if (path === '/track-record') return <TrackRecordPage />;
   if (path === '/owner') return <OwnerPage />;
-  if (name || path === '/toolbox') {
-    if (index) return name ? <ToolPage name={name} index={index} /> : <ToolboxPage index={index} />;
+  if (name || path === '/toolbox' || path === '/docs/flows') {
+    if (index) return name ? <ToolPage name={name} index={index} /> : path === '/docs/flows' ? <FlowsPage index={index} /> : <ToolboxPage index={index} />;
     return error ? <p className="rounded-lg border border-danger-400/30 bg-danger-500/10 p-4 text-sm text-danger-100">Could not load the tools: {error}</p>
       : <div className="space-y-4"><div className="skeleton h-10 w-72 rounded-lg" /><div className="skeleton h-4 w-full max-w-2xl rounded" /><div className="skeleton h-64 rounded-xl" /></div>;
   }
@@ -44,6 +45,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/docs/connect': 'Connect Claude, ChatGPT, Cursor or any MCP client to Solana Pulse. One URL and every tool, with its documentation, is available to the model.',
   '/docs/pricing': 'Solana Pulse pricing: 25 free calls per tool per day, then a few cents in USDC per call through x402. Failed calls are never charged.',
   '/toolbox': 'Try every Solana Pulse tool live in the browser: edit the inputs, run it, and copy the call as curl, TypeScript or MCP.',
+  '/docs/flows': 'How every Solana Pulse tool answers, in one table: what you send, what it looks up on the chain (measured), and what it sends back.',
   '/track-record': 'Solana Pulse track record: what token_safety said about new and well-known tokens, against what really happened a day and a week later. Measured, not assumed.',
   '/status': 'Live Solana Pulse usage: real tool runs, callers and uptime pings, counted without storing IP addresses.',
 };

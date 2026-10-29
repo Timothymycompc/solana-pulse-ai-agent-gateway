@@ -33,6 +33,11 @@ body:
         - It said REVIEW or BLOCK, and it was right
     validations:
       required: true
+  - type: textarea
+    id: pulse_answer
+    attributes:
+      label: What Pulse answered (optional)
+      description: Filled in for you when you report from the toolbox.
   - type: input
     id: wallet
     attributes:

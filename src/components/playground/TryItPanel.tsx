@@ -16,6 +16,7 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   const [transport, setTransport] = useState<'http' | 'mcp'>('http');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
+  const [ranWith, setRanWith] = useState<{ args: Record<string, unknown>; transport: 'http' | 'mcp' } | undefined>();
   const [freeUsed, setFreeUsed] = useState<Record<string, number>>({});
   const [copied, setCopied] = useState(false);
 
@@ -32,6 +33,7 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
   const run = useCallback(async () => {
     if (running) return;
     setRunning(true);
+    setRanWith({ args, transport });
     try { setResult(await runTool(tool.name, args, transport)); }
     catch (e: any) { setResult({ status: 0, latencyMs: 0, body: { error: 'The browser could not reach the gateway.', fix: e.message }, headers: {}, freeCallsRemaining: null }); }
     finally { setRunning(false); if (tool.price) void loadFreeCallsUsed().then(setFreeUsed); }
@@ -84,7 +86,7 @@ export const TryItPanel: React.FC<{ tool: ToolDoc; freeCallsPerTool: number }> =
         </div>
         <p className="text-[12.5px] text-ink-500">{tool.price ? `${freeLeft} of ${freeCallsPerTool} free calls left today, then ${tool.price} USDC per call.` : 'Free tool, rate-limited.'}</p>
 
-        <ToolResult tool={tool} result={result} running={running} showFieldGuide={false} />
+        <ToolResult tool={tool} result={result} running={running} call={ranWith} showFieldGuide={false} />
       </div>
     </section>
   );

@@ -5,7 +5,6 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { Connection, clusterApiUrl } from "@solana/web3.js";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -27,13 +26,14 @@ import { runXPost } from "./x";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
-import { httpError } from "./tools/lib";
 import { VERSION } from "./version";
 import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
 import { trackRecord } from "./track-record";
 import { startWatch, tokenHistory, watchTick, worthWatching } from "./watch";
 import { mountTelegram } from "./telegram";
+import { encodeTrail, TRAIL_HEADER, withTrail } from "./trail";
+import { makeToolContext } from "./context";
 
 const GATEWAY_WALLET = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
@@ -53,7 +53,7 @@ async function startServer() {
 
   // Cloud Run terminates TLS before requests reach Express; send the policy to HTTPS clients.
   app.use((_req, res, next) => { res.setHeader("Strict-Transport-Security", "max-age=31536000"); next(); });
-  app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"], exposedHeaders: ["payment-required", "payment-response", "x-free-calls-remaining"] }));
+  app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"], exposedHeaders: ["payment-required", "payment-response", "x-free-calls-remaining", "x-pulse-trail"] }));
   app.use(express.json({ limit: "256kb" }));
 
   // Tools were renamed in October 2026 (preflight_transaction became check_tx, and so on). A call by an old name, or a
@@ -130,30 +130,7 @@ async function startServer() {
 
   const noCache = (_req: any, res: any, next: any) => { res.setHeader("Cache-Control", "no-store"); next(); };
 
-  const connections = {
-    "mainnet-beta": new Connection(process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl("mainnet-beta"), "confirmed"),
-    devnet: new Connection(process.env.SOLANA_DEVNET_RPC_URL || clusterApiUrl("devnet"), "confirmed"),
-  };
-  // The Jupiter key goes only to Jupiter's keyed host, never to any other site a tool fetches.
-  const jupiterKeyHeader = (url: string): Record<string, string> =>
-    process.env.JUPITER_API_KEY && new URL(url).host === "api.jup.ag" ? { "x-api-key": process.env.JUPITER_API_KEY } : {};
-  const ctx: ToolContext = {
-    connection: (network) => {
-      const conn = connections[network as keyof typeof connections];
-      if (!conn) throw new ToolError(400, 'Unsupported network. Use "mainnet-beta" or "devnet".');
-      return conn;
-    },
-    fetchJson: async (url, timeoutMs = 8000) => {
-      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", ...jupiterKeyHeader(url) } });
-      if (!res.ok) throw await httpError(res, url);
-      return res.json();
-    },
-    postJson: async (url, body, timeoutMs = 8000) => {
-      const res = await fetch(url, { method: "POST", signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json", "content-type": "application/json", ...jupiterKeyHeader(url) }, body: JSON.stringify(body) });
-      if (!res.ok) throw await httpError(res, url);
-      return res.json();
-    },
-  };
+  const ctx: ToolContext = makeToolContext();
 
   // Validate inputs against the tool's schema, run it, and map failures to a status and a fix.
   type ToolOutcome = { status: number; body: Record<string, unknown> };
@@ -227,8 +204,10 @@ async function startServer() {
 
   mountTelegram(app, (name, args) => runTool(TOOLS_BY_NAME.get(name)!, args), () => ctx.connection("mainnet-beta"));
 
+  // With "x-pulse-trail: 1" the response also lists what the call asked the chain and outside services (toolbox).
   app.post("/api/tools/:name", noCache, requireTool, paidRoute, async (req: any, res) => {
-    const outcome = await runTool(req.tool, req.body);
+    const { result: outcome, steps } = await withTrail(() => runTool(req.tool, req.body));
+    if (req.get(TRAIL_HEADER) === "1") res.setHeader(TRAIL_HEADER, encodeTrail(steps));
     res.locals.output = outcome.body;
     res.status(outcome.status).json(outcome.body);
   });
@@ -550,7 +529,7 @@ async function startServer() {
   // Every page and tool page, generated from the registry so new tools are indexed automatically.
   app.get("/sitemap.xml", noCache, (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
-    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
+    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 

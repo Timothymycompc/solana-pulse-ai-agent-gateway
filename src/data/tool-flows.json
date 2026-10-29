@@ -1,0 +1,375 @@
+{
+  "measuredAt": "2026-10-29T02:52:22.868Z",
+  "how": "Each tool's live mainnet example, run once by scripts/measure-flows.ts",
+  "tools": {
+    "check_tx": {
+      "ok": true,
+      "ms": 584,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "simulateTransaction",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/swap/v1/program-id-to-label",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "isBlockhashValid",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getBalance",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 6
+    },
+    "tx_matches": {
+      "ok": true,
+      "ms": 487,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 2,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "simulateTransaction",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 4
+    },
+    "explain_tx": {
+      "ok": true,
+      "ms": 136,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getTransaction",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 1
+    },
+    "fee": {
+      "ok": true,
+      "ms": 1799,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "simulateTransaction",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getSlot",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getBlock",
+          "count": 2,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getRecentPrioritizationFees",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 5
+    },
+    "find_token": {
+      "ok": true,
+      "ms": 409,
+      "lookups": [
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 1
+    },
+    "token_safety": {
+      "ok": true,
+      "ms": 6346,
+      "lookups": [
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getAccountInfo",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "RugCheck",
+          "what": "/v1/tokens/{address}/report",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getTokenLargestAccounts",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 2,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/swap/v1/quote",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/swap/v1/swap",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "simulateTransaction",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 9
+    },
+    "wallet": {
+      "ok": true,
+      "ms": 1973,
+      "lookups": [
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getBalance",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getTokenAccountsByOwner",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getSignaturesForAddress",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getTokenAccountsByOwner",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 3,
+          "failed": 0
+        }
+      ],
+      "calls": 8
+    },
+    "trace": {
+      "ok": true,
+      "ms": 1001,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getSignaturesForAddress",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getBalance",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getTransaction",
+          "count": 10,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getMultipleAccounts",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 14
+    },
+    "balance": {
+      "ok": true,
+      "ms": 149,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getBalance",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 1
+    },
+    "tokens": {
+      "ok": true,
+      "ms": 1026,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getTokenAccountsByOwner",
+          "count": 2,
+          "failed": 0
+        }
+      ],
+      "calls": 2
+    },
+    "history": {
+      "ok": true,
+      "ms": 120,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getSignaturesForAddress",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 1
+    },
+    "blockhash": {
+      "ok": true,
+      "ms": 121,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getLatestBlockhash",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Solana RPC",
+          "what": "getBlockHeight",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 2
+    },
+    "token_account": {
+      "ok": true,
+      "ms": 257,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getAccountInfo",
+          "count": 2,
+          "failed": 0
+        }
+      ],
+      "calls": 2
+    },
+    "whats_this": {
+      "ok": true,
+      "ms": 117,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getAccountInfo",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 1
+    },
+    "convert": {
+      "ok": true,
+      "ms": 424,
+      "lookups": [
+        {
+          "to": "Solana RPC",
+          "what": "getAccountInfo",
+          "count": 1,
+          "failed": 0
+        },
+        {
+          "to": "Jupiter",
+          "what": "/tokens/v2/search",
+          "count": 1,
+          "failed": 0
+        }
+      ],
+      "calls": 2
+    },
+    "why_failed": {
+      "ok": true,
+      "ms": 4,
+      "lookups": [],
+      "calls": 0
+    }
+  }
+}

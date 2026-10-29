@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { BookOpen, Check, Clock, Copy, Wallet } from 'lucide-react';
+import { BookOpen, Check, Clock, Copy, Flag, Wallet } from 'lucide-react';
 import { JsonView } from './JsonView';
 import { useCountUp } from '../../hooks/motion';
 import type { RunResult, ToolDoc } from '../../lib/toolsApi';
 import { CheckLine, isCheckStatus, Stamp } from '../ui/verdict';
+import { moneyFlow, reportUrl } from '../../lib/flow';
+import { MoneyFlow } from './MoneyFlow';
+import { CallFlow } from './CallFlow';
 
 const checkTitle = (id: string) => id.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
@@ -24,7 +27,9 @@ function VerdictReport({ body }: { body: any }) {
   );
 }
 
-export function ToolResult({ tool, result, running, showFieldGuide = true }: { tool: ToolDoc; result: RunResult | null; running: boolean; showFieldGuide?: boolean }) {
+type CallInfo = { args: Record<string, unknown>; transport: 'http' | 'mcp' };
+
+export function ToolResult({ tool, result, running, call, showFieldGuide = true }: { tool: ToolDoc; result: RunResult | null; running: boolean; call?: CallInfo; showFieldGuide?: boolean }) {
   const [copied, setCopied] = useState(false);
   const latency = useCountUp(result?.latencyMs ?? 0, 500);
   const present = new Set(result && typeof result.body === 'object' && result.body ? Object.keys(result.body as object) : []);
@@ -42,6 +47,8 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
 
   const ok = result.status >= 200 && result.status < 300;
   const body: any = result.body;
+  const flow = ok ? moneyFlow(tool.name, body) : null;
+  const report = ok && call ? reportUrl(tool.name, call.args, body) : null;
   const copy = async () => {
     try { await navigator.clipboard.writeText(typeof body === 'string' ? body : JSON.stringify(body, null, 2)); setCopied(true); window.setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
   };
@@ -61,7 +68,16 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
         </div>
       </div>
 
+      {flow && <MoneyFlow flow={flow} />}
       {ok && <VerdictReport body={body} />}
+      {report && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5">
+          <p className="text-[12.5px] text-ink-400">Real scam, or did Pulse get this wrong?</p>
+          <a href={report} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-gold-500/40 px-2.5 py-1 text-[12.5px] font-medium text-gold-200 transition hover:border-gold-400 hover:bg-gold-400/10">
+            <Flag className="h-3.5 w-3.5" />{tool.name === 'trace' ? 'Report this wallet' : 'Report this transaction'}
+          </a>
+        </div>
+      )}
       {result.status === 402 && (
         <div className="flex gap-3 rounded-xl border border-warning-400/30 bg-warning-500/10 p-3 text-warning-100">
           <Wallet className="mt-0.5 h-5 w-5 shrink-0" />
@@ -78,6 +94,8 @@ export function ToolResult({ tool, result, running, showFieldGuide = true }: { t
           {Array.isArray(body.issues) && <ul className="mt-1 list-disc pl-4">{body.issues.map((i: any) => <li key={i.field}><span className="font-mono">{i.field}</span>: {i.problem}</li>)}</ul>}
         </div>
       )}
+
+      {call && <CallFlow tool={tool.name} args={call.args} transport={call.transport} status={result.status} latencyMs={result.latencyMs} trail={result.trail} verdict={ok && typeof body?.verdict === 'string' ? body.verdict : null} />}
 
       <JsonView value={body} className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line surface-inset p-3 font-mono text-[12px] leading-[1.6] text-ink-200" />
 

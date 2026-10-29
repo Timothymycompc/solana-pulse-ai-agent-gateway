@@ -292,7 +292,7 @@ export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
               <h2 className="text-[14px] font-semibold text-ink-200">Response</h2>
               {current && <span className="text-[12.5px] text-ink-500">{ago(current.at)} over {current.transport.toUpperCase()}</span>}
             </div>
-            <ToolResult tool={tool} result={current?.result ?? null} running={running === name} />
+            <ToolResult tool={tool} result={current?.result ?? null} running={running === name} call={current ? { args: current.args, transport: current.transport } : undefined} />
           </div>
         </div>
       </section>
