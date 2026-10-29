@@ -85,6 +85,7 @@ export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: 
   { name: "dexra-oleg", keySha256: "1c9f0d7d7e5ff58c140491af56eb934d4409b86cfca8152e0f30095d37803ada", until: "2026-12-03T23:59:59Z", why: "Free trial, 6 weeks, granted 2026-10-22." },
   { name: "friend-chatgpt-trader", keySha256: "0ba0d02395643574ac434b4d30b1b4a1f7f5ae557458082177b75c099c84f9f7", until: "2027-01-18T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-26." },
   { name: "video-demo", keySha256: "16731387080eec5580cc0ac4edd9ea6398f92a23dbf1ceaa8bc0e0cb1fd2cc9c", until: "2026-11-10T23:59:59Z", why: "Shown on screen in the per-app setup videos (public on purpose), 2 weeks, granted 2026-10-27." },
+  { name: "gemini", keySha256: "00b1f36da5be2d01f46e576c3e293888d925c693730905b4222525b32e79a6a6", until: "2026-11-05T23:59:59Z", why: "Free trial, 1 week, granted 2026-10-29: Tim's Gemini." },
 ];
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys = TRIAL_KEYS) => {
