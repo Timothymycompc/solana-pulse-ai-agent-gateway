@@ -128,3 +128,7 @@ What it does and doesn't show:
 
 - The public test set: a scoring script any checker can run, and a way to run the cases live, since a recent blockhash
   in cases 01-08 expires about a minute after recording.
+
+## Cases from outside
+
+Anyone can report a real transaction through the [suspicious transaction form](https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/issues/new?template=suspicious-transaction.yml). A report becomes a case only after it's checked on the chain: the transaction is recorded with `record.ts`, the right answer is written down with its source, and the issue says what Pulse said and whether that was right. Reports that can't be confirmed stay as issues and are not counted.

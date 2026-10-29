@@ -1,0 +1,40 @@
+name: Report a suspicious transaction
+description: A real Solana transaction that robbed someone, or that Solana Pulse got wrong. Real cases become tests.
+title: "Suspicious tx: "
+labels: ["suspicious-tx"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Every rule in Solana Pulse comes from a real case, and yours can become one.
+        **Never paste a private key, seed phrase or password here.** A transaction signature and wallet addresses are already public on the chain, so they are safe to share.
+  - type: input
+    id: signature
+    attributes:
+      label: Transaction signature (or a Solscan / Solana Explorer link)
+      placeholder: 5Gu1... or https://solscan.io/tx/...
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, in your own words
+      placeholder: "I signed what looked like a claim and my USDC went to a wallet I didn't know."
+    validations:
+      required: true
+  - type: dropdown
+    id: pulse
+    attributes:
+      label: What did Solana Pulse say about it?
+      options:
+        - I didn't check it with Pulse
+        - It said OK, but it was a scam
+        - It said REVIEW or BLOCK, but it was fine
+        - It said REVIEW or BLOCK, and it was right
+    validations:
+      required: true
+  - type: input
+    id: wallet
+    attributes:
+      label: Wallet that lost something (optional)
+      description: Only if it's yours or the owner agreed. It helps trace where the money went.

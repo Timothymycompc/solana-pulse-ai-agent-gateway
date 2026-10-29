@@ -135,6 +135,17 @@ npm run everyday       # replay the 200 everyday transactions
 
 GitHub Actions runs the type check, the tool check and the tests on every push.
 
+**Seen a real transaction that robbed someone, or one Pulse got wrong?** [Report it here](https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/issues/new?template=suspicious-transaction.yml) (a GitHub account is needed). Paste the signature and say what happened. Each report is checked against the chain; confirmed ones are recorded and become test cases, and the issue says what Pulse got right or wrong.
+
+## Uptime, honestly
+
+Glama lists Pulse at 53.9% uptime over 54 days (2026-10-29), and that number is fair. Google Cloud's request counts show two long outages, when every request failed:
+
+- 2026-09-06 to 09-19 (14 days): cause unknown, the logs from then have expired (they're kept 30 days).
+- 2026-09-28 to 10-05 (8 days): billing on the Google Cloud project was off, so Cloud Run refused every request ("billing is disabled for this project").
+
+Since 2026-10-06 there have been only short spells of errors (two days with a few hundred), and none lasting a whole day since 10-18. Since 2026-10-13 a Google Cloud uptime check calls the server every 5 minutes and emails the owner when it's down; it has passed 100% of the time over the 16 days it has data for.
+
 If Pulse was useful to you, a ⭐ on GitHub helps other builders find it.
 
 ## License
