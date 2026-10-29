@@ -7,7 +7,7 @@ export const FREE_CALLS_TEXT = `${FREE_CALLS_PER_TOOL} free calls a day`;
 
 // Prices are USD strings understood by x402 ("$0.01" settles as 10000 base units of USDC). One cent is the floor:
 // comparable Solana tools in Coinbase's x402 directory have a median price of about $0.01 (October 2026).
-export type ToolPrice = null | "$0.01" | "$0.02";
+export type ToolPrice = null | "$0.01" | "$0.02" | "$0.03";
 
 export const TOOL_PRICES: Record<string, ToolPrice> = {
   // $0.01: basic reads, lookups, helpers and transaction forensics.
@@ -28,6 +28,8 @@ export const TOOL_PRICES: Record<string, ToolPrice> = {
   check_tx: "$0.02",
   tx_matches: "$0.02",
   trace: "$0.02",
+  // $0.03: builds and runs check_tx + tx_matches (and token_safety for swaps), cheaper than calling them one by one.
+  build_tx: "$0.03",
 };
 
 // Every tool is served at /api/tools/<name> over HTTP and by name over MCP; both share pricing and free calls.

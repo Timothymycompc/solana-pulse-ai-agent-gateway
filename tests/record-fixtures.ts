@@ -7,6 +7,7 @@ import "dotenv/config";
 import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
 import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { tokenVerdict } from "../server/tools/tokens";
+import { buildTransaction } from "../server/tools/build";
 import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, NATIVE_MINT, USDC_MINT } from "../server/tools/lib";
 import { jupiterSwap } from "../benchmark/cases";
 import type { ToolDef } from "../server/tools";
@@ -105,6 +106,11 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "token-verdict-xstock", tool: tokenVerdict, args: async () => ({ token: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB" }) },
   // A 2023 memecoin with no market left: Jupiter has no liquidity for it and its router answers TOKEN_NOT_TRADABLE.
   { name: "token-verdict-dead", tool: tokenVerdict, args: async () => ({ token: "EfJ2sLufzUZS7jA82N4VGF1syeFncjP7VpRtzaGyZrk2" }) },
+  // build_tx (2026-10-29): what it builds must pass check_tx and tx_matches; a swap into a rug token must be refused.
+  { name: "build-sol-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" }) },
+  { name: "build-usdt-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", amount: "1" }) },
+  { name: "build-swap-bonk", tool: buildTransaction, args: async () => ({ action: "swap", from: EXAMPLE_WALLET, token: "SOL", amount: "0.01", buy: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" }) },
+  { name: "build-swap-rugger", tool: buildTransaction, args: async () => ({ action: "swap", from: EXAMPLE_WALLET, token: "SOL", amount: "0.01", buy: "G2YQ1fjjKTXqcDDQNAnCuWp3K2pdjtmhWWG4FTFDpump" }) },
 ];
 
 // Name scenarios to record only those (`npm run test:record -- token-verdict-jup`); with none, all are recorded.

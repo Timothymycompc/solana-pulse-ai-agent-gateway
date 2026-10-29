@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { askPulse, askTools } from "../server/ask";
+import { TOOLS } from "../server/tools";
 import { handleUpdate, parseAsk, type BotDeps } from "../server/telegram";
 
 const WALLET = "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9";
@@ -16,7 +17,7 @@ const text = (t: string) => ({ stop_reason: "end_turn", content: [{ type: "text"
 
 test("every Pulse tool is offered to the model with its input schema", () => {
   const tools = askTools();
-  assert.equal(tools.length, 16);
+  assert.equal(tools.length, TOOLS.length);
   const trace = tools.find((t) => t.name === "trace")!;
   assert.ok((trace.input_schema as any).properties.wallet, "trace takes a wallet");
 });

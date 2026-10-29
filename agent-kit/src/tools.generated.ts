@@ -37,6 +37,14 @@ export const TOOLS = [
     schema: z.object({ tx: z.string().min(20).describe("Your transaction, so fees match its accounts and compute comes from a dry run. Before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or an aggregator's swap tx.").optional(), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
   },
   {
+    name: "build_tx",
+    title: "Build it, checked",
+    description: "Run when an agent needs to send SOL or a token, or swap through Jupiter: it returns the unsigned transaction already checked, with ready_to_sign and the reasons. Sign only when ready_to_sign is true. Builds a SOL or token transfer, or a Jupiter swap, as an unsigned transaction with a fresh blockhash and a fair priority fee, then runs check_tx and tx_matches on it (and token_safety on a token being bought). Never signs or sends.",
+    price: "$0.03 USDC per call after 25 free calls a day",
+    example: {"action":"transfer","from":"<wallet>","to":"<address>","token":"SOL","amount":"0.01"},
+    schema: z.object({ action: z.enum(["transfer", "swap"]).describe("Send a token to someone, or swap one token for another through Jupiter. From the request."), from: z.string().describe("The wallet that pays and will sign. The agent's or user's own wallet address."), to: z.string().describe("Transfers: who receives it. From the request. Check it with whats_this first if it came from someone else.").optional(), token: z.string().describe("The token to send (transfer) or to sell (swap). Default \"SOL\". find_token turns a name like USDC into its mint address. Never guess a mint.").default("SOL"), amount: z.string().describe("How much of token, in whole tokens: \"1.5\" means 1.5 USDC, not raw units. From the request."), buy: z.string().describe("Swaps: the token to buy. find_token gives the mint.").optional(), slippage_bps: z.number().int().min(1).max(300).describe("Swaps: the most the price may move against you, in basis points (50 = 0.5%). Default 50, at most 300. Leave the default unless the token is thinly traded.").default(50), allow_avoid: z.boolean().describe("Swaps: build even when token_safety says AVOID for the token being bought. Default false. Only when the user has read the AVOID reasons and still wants it.").default(false), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
+  },
+  {
     name: "find_token",
     title: "Ticker to token address",
     description: "Run whenever a user names a token (\"buy BONK\"). Tickers aren't unique; copycats reuse them. Never take an address from memory. Finds the real address for a ticker or name, ranks matches by verification and liquidity, and warns when copycats share the ticker.",

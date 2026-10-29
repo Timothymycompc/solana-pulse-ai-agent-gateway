@@ -50,6 +50,7 @@ export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   token_safety: { token: BONK_MINT },
   wallet: { wallet: EXAMPLE_WALLET },
   trace: { wallet: EXAMPLE_WALLET, how_many: 10 },
+  build_tx: { action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" },
 };
 
 export function discoveryFor(name: string) {

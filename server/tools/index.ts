@@ -4,6 +4,7 @@ import { BASIC_TOOLS } from "./basic";
 import { TOKEN_TOOLS } from "./tokens";
 import { TRANSACTION_TOOLS } from "./transactions";
 import { traceWallet } from "./trace";
+import { buildTransaction } from "./build";
 import { WALLET_TOOLS } from "./wallet";
 import type { ToolDef } from "./types";
 import { FREE_CALLS_TEXT, priceOf } from "../pricing";
@@ -26,7 +27,7 @@ function withInputDescriptions(tool: ToolDef): ToolDef {
   return tool;
 }
 
-export const TOOLS: ToolDef[] = [...TRANSACTION_TOOLS, ...TOKEN_TOOLS, ...WALLET_TOOLS, traceWallet, ...BASIC_TOOLS].map(withInputDescriptions);
+export const TOOLS: ToolDef[] = [...TRANSACTION_TOOLS, buildTransaction, ...TOKEN_TOOLS, ...WALLET_TOOLS, traceWallet, ...BASIC_TOOLS].map(withInputDescriptions);
 // Looks a tool up by its current name or the name it had before the October 2026 rename.
 export const TOOLS_BY_NAME = new Map(TOOLS.flatMap((t) => [[t.name, t], ...(t.oldName ? [[t.oldName, t]] : [])] as [string, ToolDef][]));
 

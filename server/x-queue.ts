@@ -110,6 +110,12 @@ One call follows a wallet's money:
 - swept out, someone else paying the fee
 - lookalike addresses sent as dust
 Every flag shows its transactions.${tags("#Web3Security")}` },
+  // Added 2026-10-29 with the tool; not approved until Tim approves the text and the video exists.
+  { key: "video:build_tx", approved: false, video: "build_tx.mp4", text: `build_tx: ask for a transfer or swap, get a transaction
+- built exactly as asked
+- dry run: check_tx must say OK
+- tx_matches must say MATCH
+Never signs. Ready only when all pass.${tags("#Web3Security")}` },
 ]);
 
 export const QUEUE: QueuePost[] = [

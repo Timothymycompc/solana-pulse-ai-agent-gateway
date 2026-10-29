@@ -10,6 +10,7 @@ import { VERSION } from "./version";
 // requires at least 24 characters.
 const SUMMARIES: Record<string, string> = {
   check_tx: "Check a Solana transaction before signing it",
+  build_tx: "Build a Solana transfer or swap, checked and ready to sign",
   tx_matches: "Check a transaction matches the requested transfer or swap",
   explain_tx: "Fetch what a confirmed Solana transaction did and why",
   fee: "Get priority fee prices for a Solana transaction",
