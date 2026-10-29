@@ -21,6 +21,13 @@ const DUST_LAMPORTS = 1_000_000n; // 0.001 SOL
 const LOOKALIKE_CHARS = 3;
 // Left with less than this after money went out = emptied.
 const EMPTY_LAMPORTS = 1_000_000n;
+// A collection wallet: a regular wallet (on curve, system-owned) whose last BUSY_TXS transactions all fall within
+// BUSY_HOURS. Measured 2026-10-29 on Tim's cash-out investigation: the exchange-style collector B48k…KAAn (1,000 in 5.5 h,
+// 739 SOL) and a bot service's 8psN…VRtf (1,000 in 1.3 h) are; Adilak's thief 7Lht…XGCX (146 in 4 months) isn't, and
+// Kunal's drain went to a program-controlled bridge address, which this never applies to. Busy fee payers can't be used
+// the same way: both real drains had them (FkaL…3MZp 1,000 in 12 min, 9WL2…YHx6 1,000 in 7.2 h).
+export const BUSY_TXS = 1000;
+export const BUSY_HOURS = 24;
 
 type TokenMove = { token: string; symbol: string | null; change: string; raw_change: string; decimals: number };
 export type Flow = {
@@ -90,7 +97,10 @@ export const drainPattern = (flags: { name: string }[]) => {
   return has("emptied") && (has("passed_straight_through") || has("fee_paid_by_other_wallet"));
 };
 
-export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | null): Flag[] {
+// busyDestination: the top destination is a collection wallet (see BUSY_TXS), with its address and how busy it is.
+export type Busy = { address: string; hours: number; sol: string };
+
+export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | null, busyDestination: Busy | null = null): Flag[] {
   const flags: Flag[] = [];
   const ok = flows.filter((f) => f.result === "success");
   const outs = ok.filter((f) => f.direction === "out" || f.direction === "both");
@@ -156,7 +166,13 @@ export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | nul
   // fee 7, emptied 3). Together, an emptied wallet that was swept is the drain pattern (Kunal, Adilak); only then are
   // they warnings. It matched 1 of the 45 in the first run and 5 in a second run hours later (throwaway bot wallets and
   // what look like exchange deposit addresses), so the summary says those look the same.
-  if (drainPattern(flags)) {
+  // Swept into a collection wallet: what exchange deposit addresses and bot wallets do all day (6 of the 7 false
+  // "drains" in Tim's 2026-10-29 cash-out investigation). Noted, and the drain signs stay notes, not warnings.
+  if (drainPattern(flags) && busyDestination) {
+    const ids = outs.filter((f) => f.counterparty === busyDestination.address).map((f) => f.tx_id);
+    flags.push({ name: "swept_to_collection_wallet", level: "info", tx_ids: ids,
+      detail: `The money went to ${busyDestination.address}, a regular wallet that made its last ${BUSY_TXS} transactions within ${busyDestination.hours} hours and holds ${busyDestination.sol} SOL: a collection wallet, the kind exchanges and bot services sweep deposits into. A deposit address an exchange gave you looks exactly like this. A thief's wallet usually isn't this busy, but that's not proof.` });
+  } else if (drainPattern(flags)) {
     for (const f of flags) if (["emptied", "passed_straight_through", "fee_paid_by_other_wallet"].includes(f.name)) f.level = "warn";
   }
   return flags;
@@ -176,10 +192,12 @@ const localTime = (iso: string, timeZone: string) => new Intl.DateTimeFormat("en
 // confidence is high only for the full drain pattern, medium for single signs, low when nothing matched.
 export function reportFor(o: { wallet: string; network: string; flows: Flow[]; destinations: Destination[]; flags: Flag[]; unread: number; timeZone?: string }) {
   const has = (name: string) => o.flags.some((f) => f.name === name);
-  const drain = drainPattern(o.flags);
+  const collected = has("swept_to_collection_wallet");
+  const drain = drainPattern(o.flags) && !collected;
   const top = o.destinations[0];
   const received = (d: Destination) => [...(d.sol_out !== "0" ? [`${d.sol_out} SOL`] : []), ...d.tokens_out.map((t) => `${t.amount} ${t.symbol ?? short(t.token)}`)].join(", ");
   const problem = drain ? `Money was swept out of this wallet${top ? `, mostly to ${short(top.address)} (${top.kind}: ${received(top)})` : ""}, and it was left empty.`
+    : collected ? `Money was swept out of this wallet into a busy collection wallet${top ? ` (${short(top.address)})` : ""}, which is what exchange deposit addresses and bot wallets do. If this is your own personal wallet and you didn't move it, treat it as a drain.`
     : has("lookalike_dust") ? "Someone is trying address poisoning on this wallet: lookalike addresses sent it dust."
     : has("fee_paid_by_other_wallet") || has("passed_straight_through") ? "Money left this wallet in a way a sweep can look, but the full drain pattern (swept and emptied) wasn't found."
     : o.flows.length ? "None of the drain patterns Pulse checks for were found in these transactions." : "No transactions found for this wallet.";
@@ -198,6 +216,7 @@ export function reportFor(o: { wallet: string; network: string; flows: Flow[]; d
   const signs = o.flags.map((f) => f.name.replace(/_/g, " "));
   const confidence = drain
     ? { level: "high", reason: "Swept and emptied: the pattern of the real drains this was tested on. Exchange deposit addresses and throwaway bot wallets look the same, so it holds if this is a personal wallet whose owner didn't move the funds." }
+    : collected ? { level: "medium", reason: "Swept and emptied, but into a collection wallet that handles over a thousand transactions a day, as exchanges and bot services do. On Tim's 2026-10-29 investigation this was 6 of 7 false drain alarms (exchange deposit addresses and a bot wallet). It is a drain only if this is a personal wallet whose owner didn't move the funds." }
     : o.flags.length ? { level: "medium", reason: `Signs found (${signs.join(", ")}), but not the full drain pattern; each of these alone also has innocent causes, given in each flag.` }
     : { level: "low", reason: `None of the patterns were found in the last ${o.flows.length} transactions. An older drain can be further back: trace again with before set to next_before.` };
   if (o.unread) confidence.reason += ` ${o.unread} transaction${o.unread === 1 ? "" : "s"} couldn't be read and ${o.unread === 1 ? "is" : "are"} left out.`;
@@ -205,6 +224,7 @@ export function reportFor(o: { wallet: string; network: string; flows: Flow[]; d
   const pointsTo: string[] = [];
   if (drain && has("fee_paid_by_other_wallet")) pointsTo.push("Someone else held this wallet's key: a sweeper signed with it while another wallet paid the fees. That usually means the seed phrase or private key leaked.");
   if (drain && has("passed_straight_through")) pointsTo.push("Funds were forwarded within seconds of arriving, which is how sweeper bots work.");
+  if (collected) pointsTo.push("The money went to a collection wallet, which exchanges and bot services use: if an exchange gave you this address to deposit to, this is normal.");
   if (has("lookalike_dust")) pointsTo.push("Address poisoning: dust from lookalike addresses, so the owner copies the wrong one from history.");
   if (has("dust_received")) pointsTo.push("Dust from unknown addresses, often the first step of address poisoning.");
   if (top) pointsTo.push(/program/.test(top.kind) ? `The money went to an address a program controls (${short(top.address)}): a bridge, exchange or app, not a person's wallet. Whoever runs it may see where it went next.`
@@ -216,6 +236,7 @@ export function reportFor(o: { wallet: string; network: string; flows: Flow[]; d
     ...(top ? [`Send the Solscan links below to whoever runs ${short(top.address)} (an exchange or bridge, if it is one) and to your wallet app's support.`] : []),
     "Report the theft: ic3.gov in the US, or your local police. Keep this report and the links.",
     "Ignore anyone who offers to recover the funds for a fee; that is usually a second scam.");
+  if (collected) nextSteps.push("If this is a deposit address from an exchange or a bot's wallet, nothing is wrong. If it's your own personal wallet and you didn't send this, treat it as compromised: move what's left to a new wallet with a new seed phrase.");
   if (has("lookalike_dust") || has("dust_received")) nextSteps.push("Never copy an address from your transaction history; check the whole address against one you saved yourself.");
   if (!drain && !o.flags.length && o.flows.length) nextSteps.push("If money is missing, it may be further back: trace again with before set to next_before.");
   return { problem, evidence, destinations: o.destinations.map((d) => ({ ...d, solscan: solscan("account", d.address, o.network) })), confidence, points_to: pointsTo, next_steps: nextSteps };
@@ -244,8 +265,8 @@ export const traceWallet: ToolDef = {
     { field: "sol_now", type: "string | null", is: "SOL the wallet holds now. null if it couldn't be read.", howWorkedOut: "getBalance." },
     { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
     { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown).", howWorkedOut: "Outgoing flows grouped by counterparty; kind from the account's owner and whether the address is on the ed25519 curve." },
-    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
-    { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied), medium for single signs, low when nothing matched. Built only from the fields above." },
+    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied, swept_to_collection_wallet.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
+    { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied) into anything but a busy collection wallet, medium for that case and for single signs, low when nothing matched. Built only from the fields above." },
     { field: "unread", type: "number", is: "Transactions listed for the wallet that couldn't be loaded; they're left out, never guessed.", howWorkedOut: "Signatures minus loaded transactions." },
     { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
@@ -306,7 +327,20 @@ export const traceWallet: ToolDef = {
     };
     const topDestinations = top.map((d, k) => ({ address: d.address, transactions: d.transactions, sol_out: lamportsToSol(d.sol_out),
       tokens_out: [...d.tokens.entries()].map(([token, e]) => ({ token, symbol: e.symbol, amount: formatUnits(e.raw, e.decimals) })), kind: kindOf(d.address, infos[k]) }));
-    const flags = flagsFor(address, flows, balance);
+    // Only when the drain pattern shows and the money went to a regular wallet: is that wallet a busy collection
+    // wallet? One more lookup. If it fails, busy stays null and the drain warning stands.
+    let busy: Busy | null = null;
+    const first = topDestinations[0];
+    if (first && /^wallet/.test(first.kind) && drainPattern(flagsFor(address, flows, balance))) {
+      busy = await conn.getSignaturesForAddress(new PublicKey(first.address), { limit: BUSY_TXS }, "confirmed").then((s) => {
+        const times = s.map((x) => x.blockTime).filter((t): t is number => typeof t === "number");
+        if (s.length < BUSY_TXS || times.length < 2) return null;
+        const hours = (times[0] - times[times.length - 1]) / 3600;
+        const info = infos[0] as any;
+        return hours <= BUSY_HOURS ? { address: first.address, hours: Math.max(1, Math.round(hours)), sol: info?.lamports !== undefined ? lamportsToSol(BigInt(info.lamports)) : "unknown" } : null;
+      }).catch(() => null);
+    }
+    const flags = flagsFor(address, flows, balance, busy);
 
     const inSol = flows.filter((f) => f.result === "success").reduce((s, f) => s + (BigInt(f.raw_sol_change) > 0n ? BigInt(f.raw_sol_change) : 0n), 0n);
     const outSol = flows.filter((f) => f.result === "success").reduce((s, f) => s + (BigInt(f.raw_sol_change) < 0n ? -BigInt(f.raw_sol_change) : 0n), 0n);
@@ -319,7 +353,7 @@ export const traceWallet: ToolDef = {
         + (flags.some((f) => f.level === "warn") ? ` Warning signs: ${flags.filter((f) => f.level === "warn").map((f) => f.name.replace(/_/g, " ")).join(", ")}.` : " None of the drain patterns Pulse checks for were found.")
         // Measured 2026-10-27: on ordinary active addresses the drain pattern also matched exchange deposit addresses and
         // throwaway bot wallets (5 of 45 in one run), which the chain can't tell apart from a drained personal wallet.
-        + (drainPattern(flags) ? " This is the drain pattern if it's a personal wallet whose owner didn't move the funds; exchange deposit addresses and short-lived bot wallets look the same on chain." : "")
+        + (drainPattern(flags) && !busy ? " This is the drain pattern if it's a personal wallet whose owner didn't move the funds; exchange deposit addresses and short-lived bot wallets look the same on chain." : "")
         + (flags.some((f) => f.level === "info") ? ` Noted: ${flags.filter((f) => f.level === "info").map((f) => f.name.replace(/_/g, " ")).join(", ")}.` : "")
         + (unread ? ` ${unread} transaction${unread === 1 ? "" : "s"} couldn't be read and ${unread === 1 ? "is" : "are"} left out.` : "");
     return {

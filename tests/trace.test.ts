@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { flagsFor, lookalike, type Flow } from "../server/tools/trace";
+import { flagsFor, lookalike, reportFor, type Flow } from "../server/tools/trace";
 import { traceWallet } from "../server/tools/trace";
 import { loadFixture, replayContext } from "./helpers/replay";
 
@@ -148,4 +148,28 @@ test("report: no signs means low confidence and the next step is to page back; a
   assert.equal(rep.evidence[0].time_local, null, "no time zone given: UTC only");
   const fixture = loadFixture("trace-kunal-sweep");
   await assert.rejects(traceWallet.run(z.object(traceWallet.inputs).parse({ ...fixture.args, time_zone: "Mars/Olympus" }), replayContext(fixture)), /Unknown time zone/);
+});
+
+// Tim's 2026-10-29 cash-out investigation: exchange deposit addresses swept 7 minutes after each deposit into the
+// collection wallet B48k…KAAn, fee paid by the exchange's sweeper. Same shape as Kunal's drain, but into a wallet that
+// makes 1,000 transactions in hours.
+test("swept into a busy collection wallet: noted, not a drain, and no 'seed leaked'", () => {
+  const B48K = "B48kNVXs4YK4amkBCH2XokQiv1SeiVQGHDR17xDeKAAn";
+  const flows = [
+    flow({ time: "2026-07-09T10:58:00.000Z", direction: "out", raw_sol_change: "-159000000000", counterparty: B48K, fee_payer: "3ddCq8Exchange" }),
+    flow({ time: "2026-07-09T10:50:00.000Z", direction: "in", raw_sol_change: "159000000000", counterparty: "Customer", fee_payer: "Customer", wallet_signed: false }),
+  ];
+  const busy = { address: B48K, hours: 6, sol: "739.22" };
+  const flags = flagsFor(W, flows, 0n, busy);
+  assert.deepEqual(names(flags), ["emptied", "fee_paid_by_other_wallet", "swept_to_collection_wallet"]);
+  assert.ok(flags.every((f) => f.level === "info"), "no warnings");
+  const report = reportFor({ wallet: W, network: "mainnet-beta", flows, destinations: [], flags, unread: 0 });
+  assert.equal(report.confidence.level, "medium");
+  assert.ok(!report.points_to.some((p) => /seed phrase/.test(p)), "doesn't claim the key leaked");
+  assert.match(report.problem, /collection wallet/);
+  assert.match(report.next_steps.join(" "), /personal wallet and you didn't send this/, "still says what to do if it is a drain");
+
+  const quiet = flagsFor(W, flows, 0n, null);
+  assert.ok(quiet.every((f) => f.level === "warn"), "the same sweep into a quiet wallet stays a drain");
+  assert.equal(reportFor({ wallet: W, network: "mainnet-beta", flows, destinations: [], flags: quiet, unread: 0 }).confidence.level, "high");
 });

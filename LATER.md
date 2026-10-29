@@ -142,3 +142,8 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - Custom rules in check_tx: caller passes simple limits (max SOL per tx, allowed recipients/programs, max approval amount, daily limit) and they are checked in the same call next to the default checks. Daily limit needs per-caller state; decide where it lives first.
 - DONE 2026-10-29: suspicious-transaction issue form (.github/ISSUE_TEMPLATE/suspicious-transaction.yml, label suspicious-tx), linked from the README Tests section. Label created on GitHub.
 - Self-host guide: the code is MIT but there is no step-by-step to run it locally or on someone's own Cloud Run (which secrets are needed, which tools work without payments).
+
+## trace false alarms from Tim's cash-out investigation (2026-10-29)
+- Fixed: 5 exchange deposit addresses swept into the collection wallet B48k…KAAn were "high, seed leaked"; now medium with swept_to_collection_wallet (benchmark/trace-cashout.ts, results file). Both real drains (Kunal, Adilak) still high.
+- Rejected on data: "don't escalate when the fee payer pays for many wallets". Both real drains had busy fee payers (FkaL…3MZp 1,000 tx in 12 min, 9WL2…YHx6 1,000 in 7.2 h).
+- Still open: 2 trading-bot wallets (FrJW…Eyc, Hvyu…59ix) stay "high". Their sweeps go to quiet wallets or pools, and their "other fee payers" (Fnca, HBQ2) are a bot service's relayers paid by the wallet. Needs more bot-wallet examples before a rule (one bot per pattern would be guessing).
