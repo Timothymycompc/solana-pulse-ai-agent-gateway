@@ -38,7 +38,7 @@ export const hashTelegramUser = (userId: number | string) => createHmac("sha256"
 
 const reserveFreeCall = (ip: string, tool: string) => reserveFreeCallFor(hashIp(ip), tool);
 
-export async function reserveFreeCallFor(callerHash: string, tool: string): Promise<number | null> {
+export async function reserveFreeCallFor(callerHash: string, tool: string, limit = FREE_CALLS_PER_TOOL): Promise<number | null> {
   const result = await pool.query(
     `INSERT INTO trial_tool_usage (ip_hash, tool, calls_used)
      VALUES ($1, $2, 1)
@@ -47,7 +47,7 @@ export async function reserveFreeCallFor(callerHash: string, tool: string): Prom
        last_call_at = NOW()
      WHERE ${NEW_DAY} OR trial_tool_usage.calls_used < $3
      RETURNING calls_used`,
-    [callerHash, tool, FREE_CALLS_PER_TOOL]
+    [callerHash, tool, limit]
   );
   return result.rowCount ? Number(result.rows[0].calls_used) : null;
 }

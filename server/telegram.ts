@@ -9,6 +9,7 @@ import { PublicKey, type Connection } from "@solana/web3.js";
 import { recordServiceUsage } from "./db";
 import { hashTelegramUser, refundFreeCallFor, reserveFreeCallFor } from "./meter";
 import { FREE_CALLS_PER_TOOL } from "./pricing";
+import { askPulse, ASK_DAILY_LIMIT, ASK_MODEL, type AskResult } from "./ask";
 
 const SITE = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 export const TELEGRAM_CLIENT = "Telegram bot (Solana Pulse)";
@@ -18,6 +19,7 @@ export type Ask =
   | { kind: "token_or_address"; address: string }
   | { kind: "tx"; signature: string }
   | { kind: "ticker"; name: string }
+  | { kind: "question"; text: string }
   | { kind: "help" }
   | { kind: "myid" }
   | { kind: "none" };
@@ -28,15 +30,19 @@ const B58_RUN = new RegExp(`(?<![${B58}])[${B58}]{32,88}(?![${B58}])`, "g");
 // Pulls the first address (32-44 base58 characters) or transaction signature (86-88) out of the text, so links
 // from Solscan, pump.fun or Dexscreener work as well as a bare address. A $TICKER or /find <name> searches by name.
 // In a group the bot only answers commands, so a chat's normal messages never use anyone's free calls.
-export function parseAsk(text: string, isGroup: boolean): Ask {
+// With plain-English answers on (smart), /ask and any private message of 4+ words go to Claude (ask.ts), even when
+// they contain an address; a bare address, signature or name keeps the direct, free check.
+export function parseAsk(text: string, isGroup: boolean, smart = false): Ask {
   const trimmed = text.trim();
   const command = trimmed.match(/^\/([a-z_]+)(?:@\w+)?\s*([\s\S]*)$/i);
   const name = command?.[1].toLowerCase();
   if (name === "start" || name === "help") return { kind: "help" };
   if (name === "myid") return { kind: "myid" };
+  if (name === "ask") return smart && command![2].trim() ? { kind: "question", text: command![2].trim() } : { kind: "help" };
   if (name === "find") return command![2].trim() ? { kind: "ticker", name: command![2].trim().replace(/^\$/, "").slice(0, 40) } : { kind: "help" };
   if (isGroup && name !== "check") return { kind: "none" };
   const body = name === "check" ? command![2] : trimmed;
+  if (smart && !name && !isGroup && wordCount(body.replace(B58_RUN, "")) >= 4) return { kind: "question", text: trimmed };
   for (const run of body.match(B58_RUN) ?? []) {
     if (run.length >= 86) return { kind: "tx", signature: run };
     if (run.length <= 44) return { kind: "token_or_address", address: run };
@@ -48,6 +54,7 @@ export function parseAsk(text: string, isGroup: boolean): Ask {
   if (word && !isGroup && !GREETINGS.test(word[0])) return { kind: "ticker", name: word[0] };
   return name === "check" || !isGroup ? { kind: "help" } : { kind: "none" };
 }
+const wordCount = (s: string) => s.split(/\s+/).filter((w) => /[a-z]/i.test(w)).length;
 const GREETINGS = /^(hi|hello|hey|gm|gn|yo|sup|thanks|thx|ty|help|start|menu|ok|okay)$/i;
 
 // How long a token has been trading, from its first pool: "3 years 5 months", "12 days", "5 hours".
@@ -104,6 +111,11 @@ export const HELP = [
   "",
   `🤖 Building an agent? The same checks over MCP and HTTP: ${SITE}`,
 ].join("\n");
+
+const ASK_HELP = `\n\n💬 <b>Or ask in plain words</b>, like "where did the SOL in &lt;wallet&gt; go?" (in a group: /ask). ${ASK_DAILY_LIMIT} questions a day.`;
+const askFailed = (stopped: AskResult["stopped"]) => stopped === "refusal"
+  ? "I can't help with that one. Paste a token, wallet or transaction and I'll check it."
+  : "Couldn't answer that right now, and it didn't count against your questions. Try again, or paste the address on its own.";
 
 const VERDICT_LINE: Record<string, string> = {
   SAFE: "🟢 <b>SAFE</b>: none of the scam traps we know about were found",
@@ -194,6 +206,8 @@ export type BotDeps = {
   refund: (userId: number, tool: string) => Promise<void>;
   record: (o: { userId: number; tool: string; status: number; input: unknown; output: unknown; owner: boolean }) => Promise<void>;
   ownerIds: Set<number>;
+  // Plain-English questions (ask.ts); absent when ANTHROPIC_API_KEY isn't set.
+  ask?: (question: string) => Promise<AskResult>;
 };
 
 const WHAT: Record<string, string> = { token_safety: "token checks", explain_tx: "transaction lookups", whats_this: "address lookups", find_token: "name searches" };
@@ -202,11 +216,24 @@ export async function handleUpdate(update: any, deps: BotDeps): Promise<void> {
   const msg = update?.message ?? update?.edited_message;
   if (!msg?.text || !msg.chat || !msg.from || msg.from.is_bot) return;
   const isGroup = msg.chat.type !== "private";
-  const ask = parseAsk(msg.text, isGroup);
+  const ask = parseAsk(msg.text, isGroup, Boolean(deps.ask));
   const reply = (html: string) => deps.send(msg.chat.id, html, isGroup ? msg.message_id : undefined);
   if (ask.kind === "none") return;
-  if (ask.kind === "help") return reply(HELP);
+  if (ask.kind === "help") return reply(deps.ask ? HELP + ASK_HELP : HELP);
   if (ask.kind === "myid") return reply(`Your Telegram user ID is ${code(String(msg.from.id))}.`);
+  const owner = deps.ownerIds.has(msg.from.id);
+
+  if (ask.kind === "question") {
+    if (!deps.ask) return reply(HELP);
+    await deps.typing(msg.chat.id);
+    if (!owner && !(await deps.reserve(msg.from.id, "ask"))) return reply(`You've used today's ${ASK_DAILY_LIMIT} questions. They reset at 00:00 UTC. Pasting an address still works.`);
+    const result = await deps.ask(ask.text);
+    const failed = !result.answer;
+    if (failed && !owner) await deps.refund(msg.from.id, "ask");
+    await deps.record({ userId: msg.from.id, tool: "ask", status: failed ? 502 : 200, input: { question: ask.text }, output: result, owner });
+    const checked = [...new Set(result.tools.map((t) => t.name))];
+    return reply(failed ? askFailed(result.stopped) : clip(esc(result.answer)) + (checked.length ? `\n\n<i>Checked with ${checked.join(", ")}.</i>` : ""));
+  }
 
   await deps.typing(msg.chat.id);
   let tool: string, args: Record<string, unknown>, format: (b: any) => string;
@@ -215,7 +242,6 @@ export async function handleUpdate(update: any, deps: BotDeps): Promise<void> {
   else if (await deps.isToken(ask.address)) [tool, args, format] = ["token_safety", { token: ask.address }, (b) => formatTokenSafety(b, ask.address)];
   else [tool, args, format] = ["whats_this", { address: ask.address }, (b) => formatWhatsThis(b, ask.address)];
 
-  const owner = deps.ownerIds.has(msg.from.id);
   if (!owner && !(await deps.reserve(msg.from.id, tool))) return reply(limitReply(WHAT[tool]));
   const result = await deps.runTool(tool, args);
   if (result.status >= 400 && !owner) await deps.refund(msg.from.id, tool);
@@ -257,20 +283,21 @@ export function mountTelegram(app: Express, runTool: BotDeps["runTool"], mainnet
   const ownerIds = new Set((process.env.TELEGRAM_OWNER_IDS ?? "").split(",").map((s) => Number(s.trim())).filter(Boolean));
   app.post("/telegram/webhook", telegramWebhook(botToken, {
     runTool, ownerIds, send: api.send, typing: api.typing,
+    ask: process.env.ANTHROPIC_API_KEY ? (question) => askPulse(question, runTool) : undefined,
     isToken: async (address) => {
       try {
         const info = await mainnet().getParsedAccountInfo(new PublicKey(address));
         return (info.value?.data as any)?.parsed?.type === "mint";
       } catch { return false; }
     },
-    reserve: async (userId, tool) => (await reserveFreeCallFor(hashTelegramUser(userId), tool)) !== null,
+    reserve: async (userId, tool) => (await reserveFreeCallFor(hashTelegramUser(userId), tool, tool === "ask" ? ASK_DAILY_LIMIT : undefined)) !== null,
     refund: (userId, tool) => refundFreeCallFor(hashTelegramUser(userId), tool),
     record: ({ userId, tool, status, input, output, owner }) => recordServiceUsage({
       endpoint: `/telegram/tools/${tool}`, method: "POST", status, callerHash: hashTelegramUser(userId), client: TELEGRAM_CLIENT,
       via: owner ? "owner" : "free_call", input, output, testName: owner ? "telegram" : null,
     }),
   }));
-  console.log(`Telegram bot on (${ownerIds.size} owner account${ownerIds.size === 1 ? "" : "s"})`);
+  console.log(`Telegram bot on (${ownerIds.size} owner account${ownerIds.size === 1 ? "" : "s"}; plain-English questions ${process.env.ANTHROPIC_API_KEY ? `on, ${ASK_MODEL}` : "off"})`);
 }
 
 export function telegramApi(botToken: string) {
