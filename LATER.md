@@ -135,3 +135,10 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - fee: optional `accounts` or `intent` (transfer/swap) input for local fee markets before the tx is built (after the fee-market.ts fix ships).
 - find_token: `can_mint_more` as an enum (none / wallet / program-controlled) instead of boolean|null; LST mints are program-controlled.
 - x402lens.com lists the service as "Unreachable": find which path its crawler checks.
+
+## From an outside review (2026-10-29), checked against the code and our own uptime check
+- Its "~53% uptime" is not what our Google uptime check shows (100% passed over its 16 days of data, 2026-10-29). Likely a directory robot (Glama showed 45.1%) counting 402/405 answers on /mcp as down. Find which request it sends and make it pass (same family as the x402lens "Unreachable" item above).
+- check_tx: a "what to do" line for every REVIEW/BLOCK check, not only failed dry runs (today only simulation carries "Fix:"). E.g. unlimited approval -> approve the exact amount; authority change -> don't sign unless you meant to hand it over; outflow to an extra wallet -> rebuild without that instruction; stale blockhash -> rebuild with a fresh one.
+- Custom rules in check_tx: caller passes simple limits (max SOL per tx, allowed recipients/programs, max approval amount, daily limit) and they are checked in the same call next to the default checks. Daily limit needs per-caller state; decide where it lives first.
+- A way for anyone to submit a real suspicious transaction (issue template or form) that feeds the benchmark after review, so the public accuracy numbers grow from outside cases too.
+- Self-host guide: the code is MIT but there is no step-by-step to run it locally or on someone's own Cloud Run (which secrets are needed, which tools work without payments).
