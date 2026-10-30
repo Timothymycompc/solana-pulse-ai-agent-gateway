@@ -7,6 +7,7 @@ import "dotenv/config";
 import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
 import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
 import { txVersion } from "../server/tools/version";
+import { liveCount } from "../server/reports";
 import { tokenVerdict } from "../server/tools/tokens";
 import { buildTransaction } from "../server/tools/build";
 import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, NATIVE_MINT, USDC_MINT } from "../server/tools/lib";
@@ -97,6 +98,9 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "fee-v1", tool: feeAdvice, args: async (c) => ({ tx: await buildV1(c) }) },
   { name: "explain-v1", tool: explainTransaction, args: async () => ({ tx_id: V1_SIGNATURE }) },
   { name: "version-v1", tool: txVersion, args: async () => ({ tx_id: V1_SIGNATURE }) },
+  // /mine: the live count of a key holder's watched address (CrawlHive's treasury), on real recent transactions.
+  { name: "mine-live-treasury", tool: { inputs: { address: z.string() }, run: async ({ address }: any, ctx: any) => liveCount(ctx.connection("mainnet-beta"), { label: "BUYBACK_TREASURY", address, kind: "wallet", source: "test" }) } as any,
+    args: async () => ({ address: "DgCogtUuki6MZzypK1dKHYWfHLMUnKkNUBQwo6rWTGUJ" }) },
   { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ token: USDC_MINT }) },
   // An established token that should pass every check, sell test included.
   { name: "token-verdict-jup", tool: tokenVerdict, args: async () => ({ token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" }) },

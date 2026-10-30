@@ -55,11 +55,13 @@ const Segmented = <T extends string>({ label, value, options, onChange, tone = '
   </div>
 );
 
-export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
+// apiKey: set on a key holder's /mine page, so every call runs under their key.
+// startTool: the tool shown first (report pages open on tx_version); ?tool= in the address still wins.
+export const ToolboxPage: React.FC<{ index: ToolsIndex; apiKey?: string; startTool?: string }> = ({ index, apiKey, startTool }) => {
   const { tools, freeCallsPerTool } = index;
   const [name, setName] = useState(() => {
     const asked = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tool');
-    return tools.some((t) => t.name === asked) ? asked! : tools[0].name;
+    return tools.some((t) => t.name === asked) ? asked! : tools.some((t) => t.name === startTool) ? startTool! : tools[0].name;
   });
   const tool = tools.find((t) => t.name === name) ?? tools[0];
 
@@ -136,14 +138,14 @@ export const ToolboxPage: React.FC<{ index: ToolsIndex }> = ({ index }) => {
     if (running) return;
     setRunning(toolName);
     let result: RunResult;
-    try { result = await runTool(toolName, callArgs, via); }
+    try { result = await runTool(toolName, callArgs, via, apiKey); }
     catch (e: any) { result = { status: 0, latencyMs: 0, body: { error: 'The browser could not reach the gateway.', fix: e.message }, headers: {}, freeCallsRemaining: null }; }
     const call: Call = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: Date.now(), tool: toolName, transport: via, args: callArgs, result };
     setShown((s) => ({ ...s, [toolName]: call }));
     setCalls((c) => [toStored(call), ...c].slice(0, MAX_CALLS));
     setRunning(null);
     void loadFreeCallsUsed().then(setFreeUsed);
-  }, [running]);
+  }, [running, apiKey]);
 
   const blocked = mode === 'json' && Boolean(jsonError);
   const runCurrent = useCallback(() => { if (!blocked) void run(name, args, transport); }, [blocked, run, name, args, transport]);

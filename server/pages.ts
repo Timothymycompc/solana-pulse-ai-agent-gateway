@@ -7,7 +7,7 @@ import type { Request, Response } from "express";
 import { renderPage } from "../src/ssr";
 
 const PUBLIC_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
-const NO_RENDER = new Set(["/owner"]); // private, and it reads the browser's saved owner key while rendering
+const NO_RENDER = new Map([["/owner", "Owner dashboard"], ["/mine", "Your report"]]); // private pages: never indexed, rendered in the browser only
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 // JSON inside <script>: "<" escaped so a "</script>" in any text cannot end the tag.
@@ -40,7 +40,7 @@ export function pageHandler(distPath: string, toolsIndex: () => unknown) {
     let page = cache.get(p);
     if (!page) {
       if (NO_RENDER.has(p)) {
-        page = { status: 200, body: fillTemplate(template, { html: "", title: "Owner dashboard · Solana Pulse", description: "", path: p, noindex: true }) };
+        page = { status: 200, body: fillTemplate(template, { html: "", title: `${NO_RENDER.get(p)} · Solana Pulse`, description: "", path: p, noindex: true }) };
       } else {
         const index = toolsIndex() as any;
         try {

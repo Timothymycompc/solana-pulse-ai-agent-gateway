@@ -38,7 +38,7 @@ export const txVersion: ToolDef = {
   name: "tx_version",
   title: "Which transaction version is this?",
   category: "transactions",
-  benefit: { kind: "money", text: "About 45% of Solana transactions are version 1 since September 15, 2026, and apps that read with version 0 silently miss them: payments rejected, trades not copied, burns not credited." },
+  benefit: { kind: "money", text: "Over 40% of Solana transactions are version 1 since September 15, 2026 (42% in Oct 16-30), and apps that read with version 0 silently miss them: payments rejected, trades not copied, burns not credited." },
   useWhen: "Run when code can't find or read a transaction that is on chain, or before relying on code that reads other people's transactions.",
   usage: '{"tx_id": "<signature>"}  or  {"tx": "<base64 transaction>"}',
   description: "Says whether a transaction is legacy, version 0 or version 1, and which readers (RPC settings and library versions) can read it.",

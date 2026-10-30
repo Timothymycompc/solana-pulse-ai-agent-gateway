@@ -17,6 +17,7 @@ import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./ou
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServedExample, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
+import { liveCount, publishedReports, reportFor } from "./reports";
 import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
@@ -210,6 +211,25 @@ async function startServer() {
     if (req.get(TRAIL_HEADER) === "1") res.setHeader(TRAIL_HEADER, encodeTrail(steps));
     res.locals.output = outcome.body;
     res.status(outcome.status).json(outcome.body);
+  });
+
+  // A trial-key holder's private report: the key comes only from the x-api-key header (never the address, which lands
+  // in request logs), opens only the report filed under its own name, and the watched addresses are re-read live.
+  app.post("/api/mine", noCache, async (req: any, res) => {
+    const key = keyFromReq(req);
+    const as = typeof req.query.as === "string" && isOwnerKey(key) ? req.query.as : null;
+    const found = reportFor(key, Date.now(), undefined, undefined, as);
+    if (found.status !== 200) return res.status(found.status).json({ error: found.error });
+    const live = await Promise.all(found.report.watched.map((w) => liveCount(ctx.connection("mainnet-beta"), w).catch(() => null)));
+    res.json({ name: found.name, keyValidUntil: found.until, report: found.report, live });
+  });
+
+  // Public reports (only published ones): the list, and each one's watched addresses re-read live (cached 5 minutes).
+  app.get("/api/reports", noCache, (_req, res) => res.json({ reports: publishedReports() }));
+  app.get("/api/reports/:name/live", noCache, async (req: any, res) => {
+    const report = publishedReports().find((r) => r.name === req.params.name);
+    if (!report) return res.status(404).json({ error: "No public report by that name." });
+    res.json({ live: await Promise.all(report.watched.map((w) => liveCount(ctx.connection("mainnet-beta"), w).catch(() => null))) });
   });
 
   app.get("/api/trial/status", noCache, async (req: any, res) => {
@@ -529,7 +549,7 @@ async function startServer() {
   // Every page and tool page, generated from the registry so new tools are indexed automatically.
   app.get("/sitemap.xml", noCache, (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
-    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
+    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", "/reports", ...publishedReports().map((r) => `/reports/${r.name}`), ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 

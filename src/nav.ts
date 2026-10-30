@@ -15,6 +15,7 @@ const GUIDE_PAGES: NavItem[] = [
   { title: 'Toolbox', path: '/toolbox', keywords: 'playground try run every tool edit inputs json history calls' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
   { title: 'Connect an agent', path: '/docs/connect', keywords: 'mcp claude claude-code chatgpt openai gemini antigravity cursor elizaos agentkit coinbase config agent' },
+  { title: 'Reports', path: '/reports', keywords: 'findings bugs projects audit version 1 v1 transactions wallets search' },
   { title: 'Track record', path: '/track-record', keywords: 'accuracy results measured rug pull watch history new tokens false alarms proof' },
   { title: 'How every tool answers', path: '/docs/flows', keywords: 'flow table inputs outputs lookups rpc what goes out came in response' },
 ];
@@ -40,6 +41,7 @@ export const DOCS_MENU: { title: string; items: (NavItem & { about: string })[] 
     { title: 'Quickstart', path: '/docs/quickstart', about: 'A real call in under a minute' },
     { title: 'What is a call?', path: '/docs/calls', about: 'Requests and answers, explained with a restaurant' },
     { title: 'Live usage', path: '/status', about: 'Tool runs and callers, as they happen' },
+    { title: 'Reports', path: '/reports', about: 'Projects we checked, with proof and fixes' },
     { title: 'Track record', path: '/track-record', about: 'What token_safety said, against what really happened' },
     { title: 'How every tool answers', path: '/docs/flows', about: 'What comes in, what goes out, what comes back' },
   ] },

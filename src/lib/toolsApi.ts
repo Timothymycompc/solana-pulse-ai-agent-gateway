@@ -53,10 +53,12 @@ const decodePaymentRequired = (header: string | null) => {
   } catch { return null; }
 };
 
-export async function runTool(tool: string, args: Record<string, unknown>, transport: 'http' | 'mcp'): Promise<RunResult> {
+// apiKey: a trial key holder's key (the /mine page), sent as x-api-key so their calls run under it.
+export async function runTool(tool: string, args: Record<string, unknown>, transport: 'http' | 'mcp', apiKey?: string): Promise<RunResult> {
   const started = performance.now();
+  const key: Record<string, string> = apiKey ? { 'x-api-key': apiKey } : {};
   if (transport === 'http') {
-    const r = await fetch(`/api/tools/${tool}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-pulse-trail': '1' }, body: JSON.stringify(args) });
+    const r = await fetch(`/api/tools/${tool}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-pulse-trail': '1', ...key }, body: JSON.stringify(args) });
     const text = await r.text();
     let body: unknown = text;
     try { body = JSON.parse(text); } catch { /* plain text body */ }
@@ -68,7 +70,7 @@ export async function runTool(tool: string, args: Record<string, unknown>, trans
     };
   }
   const r = await fetch('/mcp', {
-    method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...key },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } }),
   });
   const rpc = await r.json().catch(() => null);

@@ -10,11 +10,17 @@ import { OwnerPage } from './OwnerPage';
 import { ToolboxPage } from './ToolboxPage';
 import { TrackRecordPage } from './TrackRecordPage';
 import { FlowsPage } from './FlowsPage';
+import { MinePage } from './MinePage';
+import { ReportPage, ReportsPage } from './ReportsPage';
+import { publishedReports } from '../../server/reports/list';
 
 const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1];
+// A public report's page; unpublished reports don't exist publicly.
+const reportOf = (path: string) => { const n = path.match(/^\/reports\/([a-z0-9-]+)$/)?.[1]; return n ? publishedReports().find((r) => r.name === n) : undefined; };
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
-  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/toolbox', '/docs/flows'].includes(path)) return true;
+  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/reports', '/toolbox', '/docs/flows'].includes(path)) return true;
+  if (reportOf(path)) return true;
   const name = toolName(path);
   return Boolean(name && (!index || index.tools.some((t) => t.name === name)));
 }
@@ -29,6 +35,10 @@ export function pageFor(path: string, index: ToolsIndex | null, error: string): 
   if (path === '/status') return <StatusPage />;
   if (path === '/track-record') return <TrackRecordPage />;
   if (path === '/owner') return <OwnerPage />;
+  if (path === '/mine') return <MinePage index={index} />;
+  if (path === '/reports') return <ReportsPage />;
+  const report = reportOf(path);
+  if (report) return <ReportPage name={report.name} index={index} />;
   if (name || path === '/toolbox' || path === '/docs/flows') {
     if (index) return name ? <ToolPage name={name} index={index} /> : path === '/docs/flows' ? <FlowsPage index={index} /> : <ToolboxPage index={index} />;
     return error ? <p className="rounded-lg border border-danger-400/30 bg-danger-500/10 p-4 text-sm text-danger-100">Could not load the tools: {error}</p>
@@ -47,6 +57,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/toolbox': 'Try every Solana Pulse tool live in the browser: edit the inputs, run it, and copy the call as curl, TypeScript or MCP.',
   '/docs/flows': 'How every Solana Pulse tool answers, in one table: what you send, what it looks up on the chain (measured), and what it sends back.',
   '/track-record': 'Solana Pulse track record: what token_safety said about new and well-known tokens, against what really happened a day and a week later. Measured, not assumed.',
+  '/reports': 'Solana projects we checked: what was broken, the on-chain numbers behind it and the fix, with every source named. Searchable.',
   '/status': 'Live Solana Pulse usage: real tool runs, callers and uptime pings, counted without storing IP addresses.',
 };
 
@@ -54,7 +65,9 @@ export function metaFor(path: string, sections: NavSection[], index: ToolsIndex 
   if (path === '/') return { title: SITE_TITLE, description: SITE_DESCRIPTION };
   const item = sections.flatMap((s) => s.items).find((i) => i.path === path);
   const tool = index?.tools.find((t) => t.name === toolName(path));
-  const title = path === '/owner' ? 'Owner dashboard' : tool ? `${tool.name}: ${tool.title}` : item?.title ?? 'Not found';
+  const report = reportOf(path);
+  if (report) return { title: `${report.project}: what we found · Solana Pulse reports`, description: report.summary.slice(0, 300) };
+  const title = path === '/owner' ? 'Owner dashboard' : path === '/mine' ? 'Your report' : path === '/reports' ? 'Reports' : tool ? `${tool.name}: ${tool.title}` : item?.title ?? 'Not found';
   const sentence = (s: string) => (/[.?!]$/.test(s) ? s : `${s}.`);
   const description = tool ? `${tool.name}: ${sentence(tool.title)} ${tool.useWhen}` : DESCRIPTIONS[path] ?? SITE_DESCRIPTION;
   return { title: `${title} · Solana Pulse`, description };

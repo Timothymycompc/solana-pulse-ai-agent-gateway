@@ -39,7 +39,7 @@ Use it to:
 - get the failing program and the reason when it failed
 Facts, not a model guessing from logs.${tags("#MCP")}`],
   ["tx_version", `tx_version: legacy, version 0 or version 1?
-About 45% of Solana transactions are version 1 now, and code that asks for version 0 never sees them:
+Over 40% of Solana transactions are version 1 now, and code that asks for version 0 never sees them:
 - payments rejected
 - trades not copied
 - burns not credited
