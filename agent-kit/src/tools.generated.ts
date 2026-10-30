@@ -37,6 +37,14 @@ export const TOOLS = [
     schema: z.object({ tx: z.string().min(20).describe("Your transaction, so fees match its accounts and compute comes from a dry run. Before signing: Buffer.from(tx.serialize({ requireAllSignatures: false })).toString('base64'), or an aggregator's swap tx.").optional(), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
   },
   {
+    name: "tx_version",
+    title: "Which transaction version is this?",
+    description: "Run when code can't find or read a transaction that is on chain, or before relying on code that reads other people's transactions. Says whether a transaction is legacy, version 0 or version 1, and which readers (RPC settings and library versions) can read it.",
+    price: "$0.01 USDC per call after 25 free calls a day",
+    example: {"tx_id":"<signature>"},
+    schema: z.object({ tx_id: z.string().min(64).max(100).describe("A landed transaction's signature. Give this or tx. Returned when it was sent, or from history. Never make one up.").optional(), tx: z.string().describe("A raw transaction, signed or not. Give this or tx_id. The bytes a wallet or builder gave you, base64-encoded.").optional(), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
+  },
+  {
     name: "build_tx",
     title: "Build it, checked",
     description: "Run when an agent needs to send SOL or a token, or swap through Jupiter: it returns the unsigned transaction already checked, with ready_to_sign and the reasons. Sign only when ready_to_sign is true. Builds a SOL or token transfer, or a Jupiter swap, as an unsigned transaction with a fresh blockhash and a fair priority fee, then runs check_tx and tx_matches on it (and token_safety on a token being bought). Never signs or sends.",

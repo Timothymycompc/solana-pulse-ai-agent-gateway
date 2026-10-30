@@ -38,6 +38,12 @@ Use it to:
 - see which programs ran
 - get the failing program and the reason when it failed
 Facts, not a model guessing from logs.${tags("#MCP")}`],
+  ["tx_version", `tx_version: legacy, version 0 or version 1?
+About 45% of Solana transactions are version 1 now, and code that asks for version 0 never sees them:
+- payments rejected
+- trades not copied
+- burns not credited
+It names the fix.${tags("#MCP")}`],
   ["fee", `fee: what priority fee to pay, in micro-lamports per compute unit (the unit setComputeUnitPrice takes).
 Use it to:
 - price economy, standard and fast tiers

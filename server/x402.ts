@@ -45,6 +45,8 @@ export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   check_tx: { tx: SOL_TRANSFER },
   tx_matches: { tx: SOL_TRANSFER, expected: { token: "SOL", amount: "0.01", to: EXAMPLE_RECIPIENT } },
   explain_tx: { tx_id: "3VC82Y2Uq42qczUPPzxuyUqeDPzgqKQf5utk1sKUsjgaTn9JZqDwMxqBb73U1FetJLF8WZqjrRyjsXovESSq3Phv" },
+  // tx_version, the version 1 swap recorded in v1-ready (slot 463371847).
+  tx_version: { tx_id: "33H9WFGP5sbhujwe8FvhCXi99Y3js3eUcrc8ABoTNm9VCdxKh3QkWe2CZteXfaEv6YytRYr1YX4ykJ9jtLmsGGD1" },
   fee: { tx: SOL_TRANSFER },
   find_token: { name: "BONK" },
   token_safety: { token: BONK_MINT },

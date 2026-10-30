@@ -23,6 +23,7 @@ export const TOOL_PRICES: Record<string, ToolPrice> = {
   fee: "$0.01",
   wallet: "$0.01",
   explain_tx: "$0.01",
+  tx_version: "$0.01",
   // $0.02: decisions that protect funds.
   token_safety: "$0.02",
   check_tx: "$0.02",

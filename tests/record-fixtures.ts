@@ -6,6 +6,7 @@ import { z } from "zod";
 import "dotenv/config";
 import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
 import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
+import { txVersion } from "../server/tools/version";
 import { tokenVerdict } from "../server/tools/tokens";
 import { buildTransaction } from "../server/tools/build";
 import { EXAMPLE_RECIPIENT, EXAMPLE_WALLET, NATIVE_MINT, USDC_MINT } from "../server/tools/lib";
@@ -95,6 +96,7 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "intent-v1-sol-match", tool: checkTransactionIntent, args: async (c) => ({ tx: await buildV1(c), expected: intent("SOL", "0.01") }) },
   { name: "fee-v1", tool: feeAdvice, args: async (c) => ({ tx: await buildV1(c) }) },
   { name: "explain-v1", tool: explainTransaction, args: async () => ({ tx_id: V1_SIGNATURE }) },
+  { name: "version-v1", tool: txVersion, args: async () => ({ tx_id: V1_SIGNATURE }) },
   { name: "token-verdict-usdc", tool: tokenVerdict, args: async () => ({ token: USDC_MINT }) },
   // An established token that should pass every check, sell test included.
   { name: "token-verdict-jup", tool: tokenVerdict, args: async () => ({ token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN" }) },
