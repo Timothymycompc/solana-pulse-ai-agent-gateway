@@ -6,3 +6,7 @@ dist/
 *.swp
 .env
 agent-kit/
+# Not needed to build or run the server (npm run build reads src/ and server/ only); kept out so the upload
+# from the phone stays small (~7 MB instead of ~32 MB). Tests run on this device in deploy step 2.
+tests/
+scratch/
