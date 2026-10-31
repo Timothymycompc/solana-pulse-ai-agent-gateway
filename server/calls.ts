@@ -93,11 +93,31 @@ function inputPreview(text: string | null): string | null {
 
 // Every tool call in the period, each labelled with who made it (test, you, bot, outside), its input kind and whether its
 // network poses as several browsers. The owner explorer and the public usage page both count from this, so they agree.
+// Who made one call, by one rule set shared by the owner explorer and the public usage page.
+type WhoRow = { caller_hash: string | null; client: string | null; via: string | null; test_name?: string | null };
+type Lookups = { ownerNets: Set<string>; mcpOf: Map<string, string> };
+const lookupsQueries = (hours: number) => [
+  pool.query(`SELECT caller_hash FROM owner_networks`),
+  pool.query(`SELECT caller_hash, client, MAX(mcp_client) AS mcp_client FROM service_usage
+    WHERE mcp_client IS NOT NULL AND created_at >= NOW() - make_interval(hours => $1::int) GROUP BY caller_hash, client`, [hours]),
+];
+const lookupsOf = (owners: { rows: any[] }, mcpRows: { rows: any[] }): Lookups => ({
+  ownerNets: new Set<string>(owners.rows.map((r: any) => r.caller_hash)),
+  mcpOf: new Map<string, string>(mcpRows.rows.map((r: any) => [`${r.caller_hash}|${r.client}`, r.mcp_client])),
+});
+function whoMade(r: WhoRow, { ownerNets, mcpOf }: Lookups) {
+  const mcpClient = mcpOf.get(`${r.caller_hash}|${r.client}`) ?? null;
+  const info = classifyClient(r.client, mcpClient);
+  const test = testOf(r);
+  const ownerNet = Boolean(r.caller_hash && ownerNets.has(r.caller_hash));
+  const mine = Boolean(test) || (info.kind !== "bot" && (ownerNet || r.via === "owner"));
+  const madeBy: MadeBy = test ? "test" : mine ? "you" : info.kind === "bot" ? "bot" : "outside";
+  return { mcpClient, info, test, ownerNet, mine, madeBy };
+}
+
 async function classifiedCalls(hours: number, search: string | null) {
   const [owners, mcpRows, rowsRes, ioHits] = await Promise.all([
-    pool.query(`SELECT caller_hash FROM owner_networks`),
-    pool.query(`SELECT caller_hash, client, MAX(mcp_client) AS mcp_client FROM service_usage
-      WHERE mcp_client IS NOT NULL AND created_at >= NOW() - make_interval(hours => $1::int) GROUP BY caller_hash, client`, [hours]),
+    ...lookupsQueries(hours),
     pool.query(`
       SELECT s.id, s.endpoint, s.caller_hash, s.client, s.via, s.status, s.payment_tx, s.note_sent, s.created_at, s.test_name, s.came_from,
         LEFT(s.input::text, 400) AS input_text,
@@ -116,8 +136,7 @@ async function classifiedCalls(hours: number, search: string | null) {
   ]);
   const ioMatch = new Set<number>(ioHits.rows.map((r: any) => Number(r.id)));
 
-  const ownerNets = new Set<string>(owners.rows.map((r: any) => r.caller_hash));
-  const mcpOf = new Map<string, string>(mcpRows.rows.map((r: any) => [`${r.caller_hash}|${r.client}`, r.mcp_client]));
+  const lookups = lookupsOf(owners, mcpRows);
   const osByNet = new Map<string, Set<string>>();
   for (const r of rowsRes.rows) {
     const os = desktopOs(r.client);
@@ -125,13 +144,8 @@ async function classifiedCalls(hours: number, search: string | null) {
   }
 
   const all = rowsRes.rows.map((r: any) => {
-    const mcpClient = mcpOf.get(`${r.caller_hash}|${r.client}`) ?? null;
-    const info = classifyClient(r.client, mcpClient);
-    const test = testOf(r);
-    const ownerNet = Boolean(r.caller_hash && ownerNets.has(r.caller_hash));
-    const mine = Boolean(test) || (info.kind !== "bot" && (ownerNet || r.via === "owner"));
+    const { mcpClient, info, test, ownerNet, mine, madeBy } = whoMade(r, lookups);
     const kind: Kind = mine ? "you" : info.kind;
-    const madeBy: MadeBy = test ? "test" : mine ? "you" : info.kind === "bot" ? "bot" : "outside";
     const transport = transportOf(String(r.endpoint));
     const rotatesBrowsers = (osByNet.get(r.caller_hash)?.size ?? 0) >= 2;
     return {
@@ -255,20 +269,43 @@ export const KNOWN_NON_USERS: Record<string, string> = {
 // A possible outside user is a caller that passed every check: not a known bot, not the owner (key, network or test),
 // not a network posing as several browsers, not a known monitor, and it typed its own input rather than an example.
 // Only counts leave here: no callers, networks, inputs or outputs.
+// Counted in the database over the whole period, folded by caller, user agent and input kind, so a busy week (80,000
+// runs, mostly bots) is counted in full rather than cut at the explorer's 20,000-row window.
 export async function publicUsage(hours = 168) {
-  const { all, capped } = await classifiedCalls(hours, null);
-  const monitor = (c: (typeof all)[number]) => Object.keys(KNOWN_NON_USERS).some((k) => (c.caller.userAgent ?? "").startsWith(k));
-  const group = (c: (typeof all)[number]) =>
-    c.madeBy === "test" || c.madeBy === "you" ? "owner"
-      : c.madeBy === "bot" || c.caller.rotatesBrowsers ? "bots"
-        : monitor(c) ? "monitors"
-          : c.inputKind !== "own" ? "examples" : "possibleUsers";
+  const [owners, mcpRows, groups] = await Promise.all([
+    ...lookupsQueries(hours),
+    pool.query(`
+      SELECT caller_hash, client, via_owner, test_name, input_kind, paid, COUNT(*)::int AS n FROM (
+        SELECT s.caller_hash, s.client, s.via = 'owner' AS via_owner, s.test_name, COALESCE(p.amount_base_units, 0) > 0 AS paid,
+          CASE WHEN s.input IS NULL OR s.input = '{}'::jsonb THEN 'empty'
+            WHEN EXISTS (SELECT 1 FROM served_examples e WHERE e.input_hash = md5(s.input::text)) THEN 'example'
+            ELSE 'own' END AS input_kind
+        FROM service_usage s LEFT JOIN x402_payments p ON p.tx_signature = s.payment_tx
+        WHERE ${TOOL_RUN_SQL} AND s.created_at >= NOW() - make_interval(hours => $1::int)) t
+      GROUP BY 1, 2, 3, 4, 5, 6`, [hours]),
+  ]);
+  const lookups = lookupsOf(owners, mcpRows);
+  const osByNet = new Map<string, Set<string>>();
+  for (const r of groups.rows) {
+    const os = desktopOs(r.client);
+    if (os && r.caller_hash) (osByNet.get(r.caller_hash) ?? osByNet.set(r.caller_hash, new Set()).get(r.caller_hash)!).add(os);
+  }
   const out = { owner: 0, bots: 0, monitors: 0, examples: 0, possibleUsers: 0 };
   const users = new Set<string>();
-  for (const c of all) {
-    const g = group(c);
-    out[g]++;
-    if (g === "possibleUsers") users.add(c.caller.id);
+  let calls = 0, paidByOthers = 0;
+  for (const r of groups.rows) {
+    const n = Number(r.n);
+    const { info, madeBy } = whoMade({ ...r, via: r.via_owner ? "owner" : null }, lookups);
+    const rotatesBrowsers = (osByNet.get(r.caller_hash)?.size ?? 0) >= 2;
+    const monitor = Object.keys(KNOWN_NON_USERS).some((k) => (r.client ?? "").startsWith(k));
+    const g = madeBy === "test" || madeBy === "you" ? "owner"
+      : madeBy === "bot" || rotatesBrowsers ? "bots"
+        : monitor ? "monitors"
+          : r.input_kind !== "own" ? "examples" : "possibleUsers";
+    out[g] += n;
+    calls += n;
+    if (g === "possibleUsers") users.add(`net:${r.caller_hash}|${info.name}`);
+    if (madeBy === "outside" && r.paid) paidByOthers += n;
   }
-  return { hours, calls: all.length, capped, ...out, possibleUserCallers: users.size, paidByOthers: all.filter((c) => c.madeBy === "outside" && c.paidUsdc > 0).length };
+  return { hours, calls, ...out, possibleUserCallers: users.size, paidByOthers };
 }
