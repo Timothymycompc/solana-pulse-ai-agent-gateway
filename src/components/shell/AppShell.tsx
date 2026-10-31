@@ -98,11 +98,14 @@ export const AppShell: React.FC<{ sections: NavSection[]; path: string; tools: T
                 Tools<ChevronDown className={`h-3.5 w-3.5 text-ink-500 transition-transform duration-200 ${menu === 'tools' ? 'rotate-180' : ''}`} />
                 {onToolPage && <ActiveTick />}
               </button>
-              {TOP_LINKS.map((item) => (
-                <Link key={item.path} to={item.path} aria-current={path === item.path ? 'page' : undefined} className={navItem(path === item.path)}>
-                  {item.title}{path === item.path && <ActiveTick />}
-                </Link>
-              ))}
+              {TOP_LINKS.map((item) => {
+                const on = path === item.path || path.startsWith(`${item.path}/`); // a single report keeps Reports lit
+                return (
+                  <Link key={item.path} to={item.path} aria-current={on ? 'page' : undefined} className={navItem(on)}>
+                    {item.title}{on && <ActiveTick />}
+                  </Link>
+                );
+              })}
               {isOwner && <Link to="/owner" aria-current={path === '/owner' ? 'page' : undefined} className={navItem(path === '/owner')}>
                 Owner{path === '/owner' && <ActiveTick />}
               </Link>}

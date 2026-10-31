@@ -11,7 +11,13 @@ import { ToolboxPage } from './ToolboxPage';
 // Public findings: every project we checked and told, searchable, and rendered on the server so search engines read it.
 // Reports go public only after the project has been told (server/reports, `published`).
 
-const haystack = (r: Report) => [r.project, r.name, r.repo, r.summary, ...r.findings.flatMap((f) => [f.title, f.what, ...f.where]), ...r.watched.flatMap((w) => [w.label, w.address])].join(' ').toLowerCase();
+const haystack = (r: Report) => [r.project, r.name, r.repo, r.site, r.summary, r.status, ...r.findings.flatMap((f) => [f.title, f.what, f.fix, ...f.where]), ...r.watched.flatMap((w) => [w.label, w.address]), ...r.proof.map((p) => p.signature)].join(' ').toLowerCase();
+
+const GROUPS: { kind: Report['kind']; title: string }[] = [
+  { kind: 'code', title: 'Code we checked' },
+  { kind: 'scam', title: 'Casinos and earn apps we checked' },
+];
+const where = (r: Report) => r.repo?.replace('https://github.com/', '') ?? r.site ?? '';
 
 export const ReportsPage: React.FC = () => {
   const all = publishedReports();
@@ -22,7 +28,7 @@ export const ReportsPage: React.FC = () => {
   }, [q, all]);
   return (
     <article className="max-w-4xl">
-      <PageHeader title="Reports" lead="Solana projects we checked, what was broken, the on-chain numbers behind it, and the fix. Every report names its sources and goes public only after the project has been told." />
+      <PageHeader title="Reports" lead="Every check we've run: Solana code that breaks on version 1 transactions, with the fix, and casino and earn apps that take players' money. Every report names its sources and says what is and isn't proven. A code report goes public only after the project has been told." />
       <label className="mb-6 flex items-center gap-2 rounded-lg border border-line bg-code px-3 py-2">
         <Search size={16} className="text-ink-400" />
         <span className="sr-only">Search reports</span>
@@ -30,15 +36,24 @@ export const ReportsPage: React.FC = () => {
       </label>
       {!all.length && <p className="text-ink-400">No reports are public yet. Each one goes up after the project has been told about it.</p>}
       {all.length > 0 && !shown.length && <p className="text-ink-400">No report matches “{q}”.</p>}
-      <ul className="space-y-3">
-        {shown.map((r) => (
-          <li key={r.name} className="rounded-xl border border-line p-5">
-            <Link to={`/reports/${r.name}`} className="text-[18px] font-semibold text-white underline-offset-4 hover:underline">{r.project}</Link>
-            <p className="mt-1 text-[13px] text-ink-400">{r.findings.length} findings · {r.repo.replace('https://github.com/', '')} · public since {r.published ? r.published.at.slice(0, 10) : ''}</p>
-            <p className="mt-2 text-[15px] leading-[1.6] text-ink-300">{r.summary}</p>
-          </li>
-        ))}
-      </ul>
+      {GROUPS.map((g) => {
+        const group = shown.filter((r) => r.kind === g.kind);
+        return group.length > 0 && (
+          <section key={g.kind}>
+            <H2>{g.title} ({group.length})</H2>
+            <ul className="space-y-3">
+              {group.map((r) => (
+                <li key={r.name} className="rounded-xl border border-line p-5">
+                  <Link to={`/reports/${r.name}`} className="text-[18px] font-semibold text-white underline-offset-4 hover:underline">{r.project}</Link>
+                  <p className="mt-1 text-[13px] text-ink-400">{r.findings.length} findings · {where(r)} · public since {r.published ? r.published.at.slice(0, 10) : ''}</p>
+                  {r.status && <p className="mt-1 text-[13px] text-ink-300">{r.status}</p>}
+                  <p className="mt-2 text-[15px] leading-[1.6] text-ink-300">{r.summary}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </article>
   );
 };
@@ -56,11 +71,11 @@ export const ReportPage: React.FC<{ name: string; index: ToolsIndex | null }> = 
   return (
     <article>
       <PageHeader kicker={<Link to="/reports" className="underline">Reports</Link>} title={`${report.project}: what we found`} lead={report.summary} />
-      {report.published && <p className="mb-6 text-[13px] text-ink-400">Public since {report.published.at.slice(0, 10)}, after {report.published.told}.</p>}
+      {report.published && <p className="mb-6 text-[13px] text-ink-400">Public since {report.published.at.slice(0, 10)}. {report.published.told}.</p>}
       <ReportView report={report} live={live} liveState={state} />
       <H2>Check it yourself</H2>
-      <P>Every Pulse tool, live on mainnet, starting with tx_version. Paste any signature from this report, or your own.</P>
-      {index ? <ToolboxPage index={index} startTool="tx_version" /> : <p className="text-ink-400">Loading the tools…</p>}
+      <P>{report.kind === 'scam' ? 'Every Pulse tool, live on mainnet, starting with whats_this. Paste a Solana address a casino or game asks you to pay, before you pay it.' : 'Every Pulse tool, live on mainnet, starting with tx_version. Paste any signature from this report, or your own.'}</P>
+      {index ? <ToolboxPage index={index} startTool={report.kind === 'scam' ? 'whats_this' : 'tx_version'} /> : <p className="text-ink-400">Loading the tools…</p>}
     </article>
   );
 };

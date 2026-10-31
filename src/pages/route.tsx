@@ -57,7 +57,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/toolbox': 'Try every Solana Pulse tool live in the browser: edit the inputs, run it, and copy the call as curl, TypeScript or MCP.',
   '/docs/flows': 'How every Solana Pulse tool answers, in one table: what you send, what it looks up on the chain (measured), and what it sends back.',
   '/track-record': 'Solana Pulse track record: what token_safety said about new and well-known tokens, against what really happened a day and a week later. Measured, not assumed.',
-  '/reports': 'Solana projects we checked: what was broken, the on-chain numbers behind it and the fix, with every source named. Searchable.',
+  '/reports': 'Every check we ran, searchable: Solana code that breaks on version 1 transactions (with the fix) and casino and earn apps that take players\' money. Every source named.',
   '/status': 'Live Solana Pulse usage: real tool runs, callers and uptime pings, counted without storing IP addresses.',
 };
 
