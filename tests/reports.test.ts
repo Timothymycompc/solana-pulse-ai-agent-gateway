@@ -13,6 +13,10 @@ import { publishedReports, REPORTS } from "../server/reports/list";
 import { crawlhive } from "../server/reports/crawlhive";
 import { parseBody } from "../server/reports/parse-issue";
 import { ReportView } from "../src/components/report/ReportView";
+import { ON_SITE } from "../server/site";
+
+// The public pages are tested while reports are on the site (server/site.ts); while off, the last test checks they are hidden.
+const onSite = { skip: !ON_SITE.reports && "reports are off the site (server/site.ts)" };
 
 let base = "";
 let server: any;
@@ -33,7 +37,7 @@ test("a report stays private until the project has been told", () => {
   assert.ok(crawlhive.published && crawlhive.issue, "CrawlHive was told in a GitHub issue before going public");
 });
 
-test("the list and a published report render for search engines; an unknown report is a 404 and not indexed", async () => {
+test("the list and a published report render for search engines; an unknown report is a 404 and not indexed", onSite, async () => {
   const list = await get("/reports");
   assert.equal(list.status, 200);
   assert.match(list.html, /<title>Reports · Solana Pulse<\/title>/);
@@ -98,7 +102,7 @@ test("no public report carries the owner's own payments, test-account addresses,
   for (const s of PRIVATE) assert.ok(!text.includes(s.toLowerCase()), `public reports must not contain ${s}`);
 });
 
-test("casino and earn-app pages render for search engines, and never link to the site they warn about", async () => {
+test("casino and earn-app pages render for search engines, and never link to the site they warn about", onSite, async () => {
   for (const name of ["luckquexa", "4kgame", "boomwins", "progcoin", "luckyvaults", "agent402"]) {
     const page = await get(`/reports/${name}`);
     assert.equal(page.status, 200, name);
@@ -121,7 +125,7 @@ test("only scanned projects are public: no other project's measurements", () => 
   assert.ok(publishedReports().every((r) => ["code", "scam", "token", "drain"].includes(r.kind)));
 });
 
-test("Reports is a tab in the top bar on every page, lit on a single report too", async () => {
+test("Reports is a tab in the top bar on every page, lit on a single report too", onSite, async () => {
   for (const p of ["/", "/toolbox", "/reports/luckquexa"]) {
     const { html } = await get(p);
     assert.match(html, /<a[^>]*href="\/reports"[^>]*>Reports/, p);
@@ -144,7 +148,17 @@ test("drain reports never name or link the people who were drained", async () =>
     const text = JSON.stringify(r).toLowerCase();
     for (const who of ["kunal", "adilak", "@", "x.com", "twitter"]) assert.ok(!text.includes(who), `${r.name} mentions ${who}`);
     assert.ok(!text.includes("hkxcf2jz6jmi5ovmyxjfucqqwgzagfkv3q3jbltvsenp") && !text.includes("avlelvhjdes9jg54ev3pq8qgptyycweedugqb1gdpmaj"), `${r.name}: the drained wallets' full addresses stay out`);
-    assert.equal((await get(`/reports/${r.name}`)).status, 200);
+    if (ON_SITE.reports) assert.equal((await get(`/reports/${r.name}`)).status, 200);
   }
-  assert.equal((await get(`/reports/token-${publishedReports().find((r) => r.kind === "token")!.watched[0].address}`)).status, 200, "token pages keep the address's capital letters");
+  if (ON_SITE.reports) assert.equal((await get(`/reports/token-${publishedReports().find((r) => r.kind === "token")!.watched[0].address}`)).status, 200, "token pages keep the address's capital letters");
+});
+
+test("while reports are off the site: no Reports tab, the list and every report page are 404 and not indexed", { skip: ON_SITE.reports && "reports are on the site" }, async () => {
+  for (const p of ["/", "/toolbox", "/track-record"]) assert.ok(!/href="\/reports"/.test((await get(p)).html), `${p} links to /reports`);
+  for (const p of ["/reports", "/reports/crawlhive", "/reports/luckquexa", `/reports/${publishedReports().find((r) => r.kind === "drain")!.name}`]) {
+    const page = await get(p);
+    assert.equal(page.status, 404, p);
+    assert.match(page.html, /noindex/, p);
+  }
+  assert.ok(publishedReports().length > 100, "the reports themselves are kept, only hidden");
 });

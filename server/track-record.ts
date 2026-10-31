@@ -6,6 +6,7 @@
 // Only aggregates and public token addresses leave here: no callers, inputs or keys.
 import { accuracyReport, FOLLOW_UP_DAYS, isSampled, LATER_CHECK_DAYS, MIN_LIQUIDITY_USD, SAMPLE_COHORT, SAMPLE_GOAL, YOUNG_DAYS } from "./accuracy";
 import { latestResearch } from "./research";
+import { ON_SITE } from "./site";
 import { NEW_PER_DAY, SNAP_EVERY_HOURS, WATCH_DAYS, watchRecord } from "./watch";
 
 export async function trackRecord() {
@@ -35,6 +36,7 @@ export async function trackRecord() {
       about: `Up to ${NEW_PER_DAY} new tokens a day from Jupiter's activity lists, plus young tokens people check with token_safety, re-read every ${SNAP_EVERY_HOURS} hours for ${WATCH_DAYS} days (liquidity, price, holders, top-10 share, mint and freeze authority). "Liquidity pulled" means it fell 90% or more, or Jupiter stopped listing the token. A rate counts only tokens watched for the whole period.`,
       ...watch,
     },
-    research,
+    // The research keeps running daily (research.ts); the public page shows it only while it is switched on (site.ts).
+    research: ON_SITE.research ? research : null,
   };
 }

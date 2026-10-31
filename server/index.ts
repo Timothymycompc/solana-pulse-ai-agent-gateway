@@ -17,7 +17,8 @@ import { outreachNotes, refreshOutreach, listOutreach, stopOutreach } from "./ou
 import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServedExample, recordServiceUsage, clearOldToolIo, TOOL_RUN_SQL } from "./db";
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
-import { liveCount, publishedReports, reportFor } from "./reports";
+import { liveCount, reportFor } from "./reports";
+import { siteReports } from "./reports/list";
 import { reportRuns, syncReportRuns } from "./reports/runs";
 import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
@@ -240,15 +241,15 @@ async function startServer() {
   });
 
   // Public reports (only published ones): the list, and each one's watched addresses re-read live (cached 5 minutes).
-  app.get("/api/reports", noCache, (_req, res) => res.json({ reports: publishedReports() }));
+  app.get("/api/reports", noCache, (_req, res) => res.json({ reports: siteReports() }));
   // Every Pulse tool run on the report's own addresses, oldest first: ours and visitors', never who the visitor was.
   app.get("/api/reports/:name/runs", noCache, async (req: any, res) => {
-    if (!publishedReports().some((r) => r.name === req.params.name)) return res.status(404).json({ error: "No public report by that name." });
+    if (!siteReports().some((r) => r.name === req.params.name)) return res.status(404).json({ error: "No public report by that name." });
     try { res.json({ runs: await reportRuns(req.params.name) }); }
     catch (error: any) { res.status(500).json({ error: String(error?.message ?? error).slice(0, 200) }); }
   });
   app.get("/api/reports/:name/live", noCache, async (req: any, res) => {
-    const report = publishedReports().find((r) => r.name === req.params.name);
+    const report = siteReports().find((r) => r.name === req.params.name);
     if (!report) return res.status(404).json({ error: "No public report by that name." });
     res.json({ live: await Promise.all(report.watched.map((w) => liveCount(ctx.connection("mainnet-beta"), w).catch(() => null))) });
   });
@@ -576,7 +577,7 @@ async function startServer() {
   // Every page and tool page, generated from the registry so new tools are indexed automatically.
   app.get("/sitemap.xml", noCache, (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
-    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", "/reports", ...publishedReports().map((r) => `/reports/${r.name}`), ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
+    const paths = ["/", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", ...(siteReports().length ? ["/reports"] : []), ...siteReports().map((r) => `/reports/${r.name}`), ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 

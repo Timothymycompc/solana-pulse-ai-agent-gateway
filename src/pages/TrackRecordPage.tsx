@@ -4,6 +4,7 @@ import { toolPath } from '../nav';
 import { Code, H2, P, PageHeader, Table } from '../components/docs/DocParts';
 import { CheckLine, Stamp, isCheckStatus } from '../components/ui/verdict';
 import { useCountUp } from '../hooks/motion';
+import { ON_SITE } from '../../server/site';
 
 // The public track record: token_safety's answers against what really happened, from GET /api/track-record
 // (server/track-record.ts). The explanations render on the server; the numbers load in the browser.
@@ -98,6 +99,7 @@ export const TrackRecordPage: React.FC = () => {
             b.laterChecks.after30Days?.readAgain ? `lost most: ${b.laterChecks.after30Days.lostMost}` : 'not yet', b.laterChecks.after90Days?.readAgain ? `lost most: ${b.laterChecks.after90Days.lostMost}` : 'not yet'])} />
       </div></Box> : <p className="mb-10 text-[14px] text-ink-500">{dash}</p>}
 
+      {ON_SITE.research && <>
       <H2>What winners and losers had in common</H2>
       <P>Worked out again every day on Google Cloud from every new token with a week-later result, and kept as a weekly report. It describes tokens that already happened; it is not a buy signal and doesn't say what any token will do next.</P>
       {r ? <Box><div className="px-5 py-5 sm:px-6">
@@ -123,6 +125,7 @@ export const TrackRecordPage: React.FC = () => {
           : <p className="text-[14px] text-ink-500">None yet.</p>}
         <p className="mt-4 text-[12.5px] text-ink-500">Ranges are 95% intervals: with a few dozen tokens they are wide. Last run {new Date(r.ranAt).toLocaleString()}.</p>
       </div></Box> : <p className="mb-10 text-[14px] text-ink-500">{failed ? 'n/a' : 'The first daily run hasn\'t happened yet.'}</p>}
+      </>}
 
       <H2>Well-known tokens (false alarms)</H2>
       <P>{g?.about ?? 'Established, liquid, verified tokens should come out SAFE. AVOID on one of them is a false alarm.'}</P>

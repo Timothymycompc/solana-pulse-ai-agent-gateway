@@ -12,14 +12,16 @@ import { TrackRecordPage } from './TrackRecordPage';
 import { FlowsPage } from './FlowsPage';
 import { MinePage } from './MinePage';
 import { ReportPage, ReportsPage } from './ReportsPage';
-import { publishedReports } from '../../server/reports/list';
+import { siteReports } from '../../server/reports/list';
+import { ON_SITE } from '../../server/site';
 
 const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1];
 // A public report's page; unpublished reports don't exist publicly.
-const reportOf = (path: string) => { const n = path.match(/^\/reports\/([A-Za-z0-9-]+)$/)?.[1]; return n ? publishedReports().find((r) => r.name === n) : undefined; };
+const reportOf = (path: string) => { const n = path.match(/^\/reports\/([A-Za-z0-9-]+)$/)?.[1]; return n ? siteReports().find((r) => r.name === n) : undefined; };
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
-  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/reports', '/toolbox', '/docs/flows'].includes(path)) return true;
+  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/toolbox', '/docs/flows'].includes(path)) return true;
+  if (path === '/reports' && ON_SITE.reports) return true;
   if (reportOf(path)) return true;
   const name = toolName(path);
   return Boolean(name && (!index || index.tools.some((t) => t.name === name)));
@@ -36,7 +38,7 @@ export function pageFor(path: string, index: ToolsIndex | null, error: string): 
   if (path === '/track-record') return <TrackRecordPage />;
   if (path === '/owner') return <OwnerPage />;
   if (path === '/mine') return <MinePage index={index} />;
-  if (path === '/reports') return <ReportsPage />;
+  if (path === '/reports' && ON_SITE.reports) return <ReportsPage />;
   const report = reportOf(path);
   if (report) return <ReportPage name={report.name} index={index} />;
   if (name || path === '/toolbox' || path === '/docs/flows') {
