@@ -2,7 +2,7 @@
 
 [![Solana Pulse: agent safety layer MCP connector – tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/io.github.Timothymycompc/solana-pulse-gateway/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.Timothymycompc/solana-pulse-gateway)
 
-**An intelligence layer between Solana and AI agents.** It checks transactions before an agent signs them, confirms a transaction does exactly what the agent meant, gives token safety verdicts, explains failures, and converts amounts with real on-chain decimals, so agents stop losing money to hallucinated values.
+**Transaction safety for AI agents on Solana.** It checks transactions before an agent signs them, confirms a transaction does exactly what the agent meant, gives token safety verdicts, explains failures, and converts amounts with real on-chain decimals, so agents stop losing money to hallucinated values.
 
 - **Add it to your AI in a minute** (Claude, ChatGPT, Cursor, VS Code, Codex and more): step-by-step on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect)
 - Live: https://solana-pulse-gateway-1021990235790.us-central1.run.app
@@ -20,6 +20,7 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 | Tool | Prevents | Price |
 |---|---|---|
 | `check_tx` | Signing a drainer or a transaction that will fail: shows each wallet's exact gains and losses, flags approvals, authority changes and account closures, expired blockhashes and fee overpay | $0.02 |
+| `build_tx` | Hand-built transactions nobody checked: builds a SOL or token transfer, or a Jupiter swap, unsigned, then runs `check_tx` and `tx_matches` on it and says whether it's ready to sign. Never signs or sends | $0.03 |
 | `tx_matches` | A transaction that differs from what was asked ("send 5 USDC to X", or "swap 1 USDC for JUP"): compares token, exact amount, recipient and sender, checks a swap pays the bought token back to you, and flags anything extra | $0.02 |
 | `token_safety` | Buying scam tokens: SAFE / CAUTION / AVOID from a simulated sale by a real holder, whether the liquidity can be pulled, the creator's rug record, insider wallet networks, mint and freeze powers, Token-2022 traps, verification, liquidity, who holds it and age | $0.02 |
 | `explain_tx` | Guessing from logs: real balance changes by wallet, programs used, and why it failed | $0.01 |
@@ -35,6 +36,7 @@ Automated accounts fail on Solana far more often than people expect: a study of 
 | `tokens` | Fake holdings: tokens held, ranked by USD value, with unverified (often spam) tokens flagged | $0.01 |
 | `history` | Made-up transaction IDs: a wallet's recent transactions, real and checkable | $0.01 |
 | `blockhash` | Expired blockhashes: a fresh one with the seconds it has left | $0.01 |
+| `tx_version` | "Transaction not found" for a transaction that is on chain: says whether it is legacy, version 0 or version 1, and which RPC settings and library versions can read it | $0.01 |
 
 Every input and returned field is documented in plain words: what an input is looking for and where to get it, what each returned value is and how it's worked out (`GET /api/tools/<name>`). The tools and their fields were renamed in October 2026 to short, plain names (`preflight_transaction` became `check_tx`, `transaction` became `tx`, `walletChanges` became `balance_changes`). The old tool names and input names still work.
 
