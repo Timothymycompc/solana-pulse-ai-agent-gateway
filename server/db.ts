@@ -45,7 +45,7 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE service_usage ADD COLUMN IF NOT EXISTS caller_hash TEXT, ADD COLUMN IF NOT EXISTS client TEXT,
     ADD COLUMN IF NOT EXISTS mcp_client TEXT, ADD COLUMN IF NOT EXISTS via TEXT, ADD COLUMN IF NOT EXISTS payment_tx TEXT,
     ADD COLUMN IF NOT EXISTS input JSONB, ADD COLUMN IF NOT EXISTS output JSONB, ADD COLUMN IF NOT EXISTS note_sent BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS test_name TEXT;`);
+    ADD COLUMN IF NOT EXISTS test_name TEXT, ADD COLUMN IF NOT EXISTS came_from TEXT;`);
   try {
     await pool.query(`DROP INDEX IF EXISTS service_usage_wallet_idx;`);
     await pool.query(`ALTER TABLE service_usage DROP COLUMN IF EXISTS wallet_address;`);
@@ -261,13 +261,15 @@ export async function recordServiceUsage(params: {
   endpoint: string; method: string; status: number; callerHash: string | null; client: string | null;
   mcpClient?: string | null; via?: string | null; paymentTx?: string | null; input?: unknown; output?: unknown; noteSent?: boolean;
   testName?: string | null;
+  // Where a call came from, recorded from 31 October 2026: "site" (this site's toolbox) or the host of the web page that sent it.
+  cameFrom?: string | null;
 }) {
   try {
     await pool.query(
-      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx, input, output, note_sent, test_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12)`,
+      `INSERT INTO service_usage (endpoint, method, status, caller_hash, client, mcp_client, via, payment_tx, input, output, note_sent, test_name, came_from)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13)`,
       [params.endpoint, params.method, params.status, params.callerHash, params.client, params.mcpClient ?? null, params.via ?? null,
-        params.paymentTx ?? null, capJson(params.input), capJson(params.output), params.noteSent ?? false, params.testName ?? null]
+        params.paymentTx ?? null, capJson(params.input), capJson(params.output), params.noteSent ?? false, params.testName ?? null, params.cameFrom ?? null]
     );
   } catch (e) {
     console.error("service_usage insert failed:", e);

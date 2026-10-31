@@ -60,14 +60,19 @@ export async function loadOwnerOverview(key: string, days: number): Promise<Owne
 export type InputKind = 'own' | 'example' | 'empty';
 export type MadeBy = 'test' | 'you' | 'bot' | 'outside';
 export type CallStatus = 'ok' | 'error' | 'payment';
+// Where a call came from: this site's toolbox, another web page (host only), the Telegram bot, an MCP client or the HTTP API.
+export type FromChannel = 'site' | 'web' | 'telegram' | 'mcp' | 'api';
 export type CallRow = {
   id: number; at: string; tool: string; transport: 'http' | 'mcp' | 'telegram'; status: number; outcome: string; statusGroup: CallStatus;
   inputKind: InputKind; paidUsdc: number; noteSent: boolean; verdict: string | null; headline: string | null;
   // Who made it: one of the owner's tests (test names which), the owner, a bot, or someone outside.
-  madeBy: MadeBy; test: string | null;
+  madeBy: MadeBy; test: string | null; madeByWhy: string;
+  from: { channel: FromChannel; label: string; page: string | null };
+  // How it was let in (free_call, owner, x402), the payment's transaction, and the input's values in one short line.
+  via: string | null; paymentTx: string | null; inputPreview: string | null;
   caller: CallerRef & { userAgent: string | null; mcpClient: string | null; homepage: string | null; rotatesBrowsers: boolean };
 };
-export type GroupBy = 'caller' | 'network' | 'tool' | 'kind' | 'input';
+export type GroupBy = 'caller' | 'network' | 'tool' | 'kind' | 'input' | 'from';
 export type GroupSort = 'calls' | 'recent' | 'own' | 'errors' | 'paid';
 export type CallGroup = {
   key: string; label: string; filter: Partial<CallFilters>; kind: Kind | null; network: string | null; userAgent: string | null;
@@ -80,12 +85,12 @@ export type OwnerCalls = {
   summary: {
     calls: number; hidden: number; capped: boolean; networks: number; rotatingNetworks: number;
     byTool: Record<string, number>; byKind: Record<string, number>; byInput: Record<string, number>; byStatus: Record<string, number>;
-    byMadeBy: Record<string, number>;
+    byMadeBy: Record<string, number>; byFrom: Record<string, number>;
   };
 };
 export type CallFilters = {
   hours: number; tool?: string; kind?: string; input?: string; status?: string; q?: string; caller?: string; network?: string;
-  group?: GroupBy; sort?: GroupSort; madeBy?: MadeBy;
+  group?: GroupBy; sort?: GroupSort; madeBy?: MadeBy; from?: FromChannel;
   // '1' hides directory and uptime bots plus fake-browser networks / the owner's own calls.
   hideBots?: '1'; hideMine?: '1';
 };

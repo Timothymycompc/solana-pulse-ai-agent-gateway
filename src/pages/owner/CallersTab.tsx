@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Search, X } from 'lucide-react';
 import { stopOutreach, type CallerStats, type OwnerOverview } from '../../lib/ownerApi';
+import { CallList } from './ExplorerTab';
 import { ago, byNum, byText, byTime, Card, Empty, Footnote, KindChips, KindTag, num, OpenRow, SHOWN, shown, type ShownKind, type SortOption, TableShell, td, usd, useSorted } from './ui';
 
 // Callers: everyone who called the API (bots, AI apps, scripts, people), and the people you sent a personal note.
+// A search box finds a caller by anything shown (name, kind, network, user agent, MCP client, tools); opening one shows
+// what is known about it and every call it made in the period: date, time, tool, where from and the answer.
 
 const CALLER_SORTS: SortOption<CallerStats>[] = [
   { label: 'Most tool runs', compare: byNum((c) => c.runs) },
@@ -14,17 +17,32 @@ const CALLER_SORTS: SortOption<CallerStats>[] = [
   { label: 'Most errors', compare: byNum((c) => c.errors) },
   { label: 'Name A–Z', compare: byText((c) => c.name) },
 ];
-const Callers: React.FC<{ data: OwnerOverview }> = ({ data }) => {
+// The explorer keeps calls for 1 hour, 24 hours, 7 or 30 days: a caller's calls open for the closest period that covers this one.
+const hoursFor = (days: number) => [24, 168, 720].find((h) => h >= days * 24) ?? 720;
+const Callers: React.FC<{ data: OwnerOverview; ownerKey: string }> = ({ data, ownerKey }) => {
   const [filter, setFilter] = useState<ShownKind | 'all'>('all');
+  const [typed, setTyped] = useState('');
   const counts = SHOWN.map((k) => {
     const callers = k === 'other' ? data.kinds.other.callers + data.kinds.unknown.callers : data.kinds[k].callers;
     const runs = k === 'other' ? data.kinds.other.runs + data.kinds.unknown.runs : data.kinds[k].runs;
     return { kind: k, note: `${num.format(callers)} · ${num.format(runs)} runs` };
   });
-  const filtered = useMemo(() => data.callers.filter((c) => filter === 'all' || shown(c.kind) === filter), [data.callers, filter]);
+  const q = typed.trim().toLowerCase();
+  const filtered = useMemo(() => data.callers.filter((c) => (filter === 'all' || shown(c.kind) === filter) && (!q ||
+    [c.name, c.kind, c.network, c.userAgent, c.mcpClient, c.homepage, ...c.tools.map((t) => t.tool)].filter(Boolean).join('\n').toLowerCase().includes(q))),
+  [data.callers, filter, q]);
   const [rows, sortPicker] = useSorted(filtered, CALLER_SORTS);
   return (
     <Card id="callers" title={`${num.format(data.callerCount)} callers`} aside={sortPicker}>
+      <div className="px-4 pt-3">
+        <label className="relative block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} type="search" placeholder="Search callers: name, network, user agent, MCP client, tool…"
+            className="w-full rounded-lg border border-white/10 bg-black/25 py-2 pl-9 pr-9 text-[13px] text-ink-100 placeholder:text-ink-500 focus:border-accent-400/60 focus:outline-none" />
+          {typed && <button onClick={() => setTyped('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-500 hover:text-white"><X className="h-3.5 w-3.5" /></button>}
+        </label>
+        {q && <p className="mt-1.5 text-[11px] text-ink-500">{num.format(filtered.length)} of {num.format(data.callers.length)} callers match</p>}
+      </div>
       <KindChips kinds={counts} value={filter} onChange={setFilter} />
       <TableShell head={['Caller', 'Kind', 'Tool runs', 'Other requests', 'Paid', 'Most used', 'Last seen']} minWidth={860}>
         {rows.slice(0, 80).map((c) => <OpenRow key={c.id}
@@ -44,6 +62,10 @@ const Callers: React.FC<{ data: OwnerOverview }> = ({ data }) => {
             {c.mcpClient && <div><span className="text-ink-500">MCP client name: </span><code className="font-mono text-ink-200">{c.mcpClient}</code></div>}
             <div><span className="text-ink-500">First seen </span>{new Date(c.firstSeen).toLocaleString()} · <span className="text-ink-500">MCP pings </span>{num.format(c.pings)} · <span className="text-ink-500">other reads </span>{num.format(c.reads)}</div>
             {c.tools.length > 0 && <div><span className="text-ink-500">Tools: </span><span className="font-mono">{c.tools.map((t) => `${t.tool} ${t.runs}`).join(' · ')}</span></div>}
+            {c.runs > 0 && <div className="-mx-3 mt-2 border-l-2 border-accent-500/40 bg-black/15">
+              <p className="px-3 pt-2 text-[11.5px] font-semibold text-ink-300">Every call by {c.name} (open one for when, where from, who and what)</p>
+              <CallList ownerKey={ownerKey} filters={{ hours: hoursFor(data.days), caller: c.id }} />
+            </div>}
           </div>} />)}
       </TableShell>
       <Footnote>A caller is a network plus the client it says it is; bots are grouped by name across all the networks they probe from. "You" is any network this dashboard was opened from, or a call made with the owner key. Networks are shown as the first characters of a keyed hash, never the IP address.</Footnote>
@@ -78,7 +100,7 @@ const Outreach: React.FC<{ data: OwnerOverview; ownerKey: string; onChange: () =
 
 export const CallersTab: React.FC<{ data: OwnerOverview; ownerKey: string; onChange: () => void }> = ({ data, ownerKey, onChange }) => (
   <div className="space-y-4">
-    <Callers data={data} />
+    <Callers data={data} ownerKey={ownerKey} />
     <Outreach data={data} ownerKey={ownerKey} onChange={onChange} />
   </div>
 );

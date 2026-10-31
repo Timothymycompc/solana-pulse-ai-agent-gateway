@@ -95,6 +95,18 @@ async function startServer() {
     catch { return null; }
   };
 
+  // Where a call came from, for the owner dashboard: "site" when this site's toolbox sent it (it asks for x-pulse-trail),
+  // otherwise only the host name of the web page that sent it (never the path or query, which can carry personal data).
+  const SITE_HOST = new URL(PUBLIC_URL).host;
+  const cameFromOf = (req: any): string | null => {
+    if (req.headers["x-pulse-trail"] === "1") return "site";
+    const page = String(req.headers.origin || req.headers.referer || "");
+    try {
+      const host = page ? new URL(page).host.toLowerCase().slice(0, 80) : "";
+      return !host ? null : host === SITE_HOST ? "site" : host;
+    } catch { return null; }
+  };
+
   // Record route-level usage without query strings or raw IPs: a keyed hash of the caller network and the client name,
   // plus the MCP client's own name on initialize and, for tool calls, how the call was admitted and paid, the tool's
   // arguments (never the MCP _meta, which carries the payment) and its result (res.locals.output, set where it runs).
@@ -108,6 +120,7 @@ async function startServer() {
     // The owner's own tests name themselves (x-pulse-test: deploy), so the dashboard labels their calls "Test (you)".
     const testHeader = String(req.headers["x-pulse-test"] || "");
     const testName = /^[a-z0-9_-]{1,40}$/i.test(testHeader) ? testHeader.toLowerCase() : null;
+    const cameFrom = cameFromOf(req);
     res.once("finish", () => {
       const toolName = req.body?.method === "tools/call" ? req.body?.params?.name : null;
       const isMcpMessage = pathOnly === "/mcp" || pathOnly === "/mcp/messages";
@@ -116,7 +129,7 @@ async function startServer() {
       const isToolCall = req.method === "POST" && (pathOnly.startsWith("/api/tools/") || endpoint.startsWith("/mcp/tools/"));
       const input = !isToolCall ? null : endpoint.startsWith("/mcp/tools/") ? req.body?.params?.arguments : req.body;
       void recordServiceUsage({ endpoint, method: req.method, status: res.statusCode, callerHash, client, mcpClient, via: res.locals.via ?? null, paymentTx,
-        input, output: isToolCall ? res.locals.output : null, noteSent: res.locals.noteSent === true, testName });
+        input, output: isToolCall ? res.locals.output : null, noteSent: res.locals.noteSent === true, testName, cameFrom });
     });
     next();
   };
@@ -370,7 +383,7 @@ async function startServer() {
       res.json(await ownerCalls({ hours: n(q.hours) ?? 24, tool: q.tool || undefined, kind: q.kind || undefined, input: q.input || undefined,
         status: q.status || undefined, q: q.q ? String(q.q).slice(0, 200) : undefined, caller: q.caller || undefined, network: q.network || undefined,
         group: q.group || undefined, sort: q.sort || undefined, before: n(q.before), after: n(q.after), limit: n(q.limit),
-        hideBots: q.hideBots === "1", hideMine: q.hideMine === "1", madeBy: q.madeBy || undefined }));
+        hideBots: q.hideBots === "1", hideMine: q.hideMine === "1", madeBy: q.madeBy || undefined, from: q.from || undefined }));
     } catch (error) {
       console.error("owner calls failed:", error);
       res.status(503).json({ error: "The calls are temporarily unavailable." });
