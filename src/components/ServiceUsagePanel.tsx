@@ -11,6 +11,9 @@ interface ServiceUsage {
   pings24h: number;
   lastToolRunAt: string | null;
   tools: { endpoint: string; runs: number; otherCallers: number; lastRunAt: string }[];
+  // This week's tool runs by who made them (server/calls.ts publicUsage), by the owner dashboard's own rules.
+  whoMadeThem7d: null | { calls: number; owner: number; bots: number; monitors: number; examples: number; possibleUsers: number;
+    possibleUserCallers: number; paidByOthers: number };
   note: string;
 }
 
@@ -44,11 +47,14 @@ export const ServiceUsagePanel: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
+  // Honest first: most tool runs come from bots that list and test every MCP server, not from people or agents.
+  const w = usage?.whoMadeThem7d ?? null;
+  const show = (n: number | undefined) => (w && n !== undefined ? <CountUp value={n} /> : '—');
   const stats = [
-    { label: 'Tool runs in the last 24 hours', value: usage ? <CountUp value={usage.toolRuns24h} /> : '—' },
-    { label: 'Callers besides you, 24 hours', value: usage ? <CountUp value={usage.otherCallers24h} /> : '—' },
-    { label: `Runs by others this week, from ${usage ? number.format(usage.otherCallers7d) : '—'} callers`, value: usage ? <CountUp value={usage.otherToolRuns7d} /> : '—' },
-    { label: 'Uptime pings, 24 hours', value: usage ? <CountUp value={usage.pings24h} /> : '—' },
+    { label: `Possible outside users this week (${w ? number.format(w.possibleUsers) : '—'} runs)`, value: show(w?.possibleUserCallers) },
+    { label: 'Runs by directory, uptime and scanner bots, this week', value: show(w?.bots) },
+    { label: 'Runs by a known monitor or with the site\'s example inputs, this week', value: show(w ? w.monitors + w.examples : undefined) },
+    { label: 'Runs by the owner\'s own tests, this week', value: show(w?.owner) },
   ];
 
   return (
@@ -70,13 +76,14 @@ export const ServiceUsagePanel: React.FC = () => {
           </div>)}
         </dl>
         <div className="px-5 py-5 sm:px-6">
-          <h3 className="mb-2 flex items-baseline justify-between gap-3 text-[14px] font-semibold text-ink-200"><span>Most used tools this week</span><span className="text-[12px] font-normal text-ink-500">runs, and callers besides you</span></h3>
+          <h3 className="mb-2 flex items-baseline justify-between gap-3 text-[14px] font-semibold text-ink-200"><span>Most called tools this week</span><span className="text-[12px] font-normal text-ink-500">all runs, bots included, and networks besides yours</span></h3>
           {usage?.tools.length ? <ul className="grid gap-x-10 sm:grid-cols-2">
             {usage.tools.slice(0, 6).map((tool) => <li key={tool.endpoint} className="flex min-w-0 items-baseline justify-between gap-3 border-t border-line py-2">
               <code className="truncate font-mono text-[12.5px] text-ink-300">{tool.endpoint}</code>
               <span className="shrink-0 text-[13px] tabular-nums text-ink-400">{number.format(tool.runs)} <span className="text-ink-600">/</span> {number.format(tool.otherCallers)}</span>
             </li>)}
           </ul> : <p className="py-3 text-[13px] text-ink-500">{loading ? 'Loading tool counts…' : 'No tool runs recorded in the last 7 days.'}</p>}
+          {w && <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.55] text-ink-400">Of {number.format(w.calls)} tool runs this week, {number.format(w.possibleUsers)} came from callers that passed every check (not a bot, not the owner, not a monitor, and typed their own input). That is a possible outside user, not a confirmed one. Paid runs by others: {number.format(w.paidByOthers)}.</p>}
           {usage?.note && <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.55] text-ink-500">{usage.note}</p>}
         </div>
       </>}

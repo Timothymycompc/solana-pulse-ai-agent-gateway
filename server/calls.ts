@@ -91,11 +91,9 @@ function inputPreview(text: string | null): string | null {
   } catch { return text.slice(0, 60); } // a cut-off input (over 400 characters) is not valid JSON: show its start
 }
 
-export async function ownerCalls(o: CallsQuery) {
-  const hours = CALL_HOURS.includes(o.hours) ? o.hours : 24;
-  const limit = Math.min(Math.max(o.limit ?? 100, 1), PAGE_MAX);
-  const q = o.q?.trim().toLowerCase() || null;
-  const search = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
+// Every tool call in the period, each labelled with who made it (test, you, bot, outside), its input kind and whether its
+// network poses as several browsers. The owner explorer and the public usage page both count from this, so they agree.
+async function classifiedCalls(hours: number, search: string | null) {
   const [owners, mcpRows, rowsRes, ioHits] = await Promise.all([
     pool.query(`SELECT caller_hash FROM owner_networks`),
     pool.query(`SELECT caller_hash, client, MAX(mcp_client) AS mcp_client FROM service_usage
@@ -150,6 +148,15 @@ export async function ownerCalls(o: CallsQuery) {
       },
     };
   });
+  return { all, ioMatch, capped: rowsRes.rows.length >= WINDOW_MAX };
+}
+
+export async function ownerCalls(o: CallsQuery) {
+  const hours = CALL_HOURS.includes(o.hours) ? o.hours : 24;
+  const limit = Math.min(Math.max(o.limit ?? 100, 1), PAGE_MAX);
+  const q = o.q?.trim().toLowerCase() || null;
+  const search = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
+  const { all, ioMatch, capped } = await classifiedCalls(hours, search);
   // Search finds a call by anything on its row or in its drop-down (tool, where from, who, input, answer, date, call id),
   // or anywhere in its full input and output.
   const words = (c: (typeof all)[number]) => [`#${c.id}`, c.at, c.tool, c.transport, c.from.label, c.madeBy, MADE_BY_WORD[c.madeBy], c.test,
@@ -163,7 +170,7 @@ export async function ownerCalls(o: CallsQuery) {
   const count = <T extends string>(pick: (c: (typeof all)[number]) => T) =>
     visible.reduce((m, c) => ((m[pick(c)] = (m[pick(c)] ?? 0) + 1), m), {} as Record<string, number>);
   const summary = {
-    calls: visible.length, hidden: found.length - visible.length, capped: rowsRes.rows.length >= WINDOW_MAX,
+    calls: visible.length, hidden: found.length - visible.length, capped,
     networks: new Set(visible.filter((c) => c.caller.network).map((c) => c.caller.network)).size,
     rotatingNetworks: new Set(found.filter((c) => c.caller.rotatesBrowsers).map((c) => c.caller.network)).size,
     byTool: count((c) => c.tool), byKind: count((c) => shownKind(c.caller.kind)), byInput: count((c) => c.inputKind), byStatus: count((c) => c.statusGroup),
@@ -236,4 +243,32 @@ export async function ownerCall(id: number) {
   const r = await pool.query(`SELECT id, input, output FROM service_usage WHERE id = $1 AND ${TOOL_RUN_SQL}`, [id]);
   const row = r.rows[0];
   return row ? { id: Number(row.id), input: row.input ?? null, output: row.output ?? null } : null;
+}
+
+// Callers known not to be users, matched by user agent prefix, with the reason (the same list ~/bin/pulse-stats uses).
+export const KNOWN_NON_USERS: Record<string, string> = {
+  "algebra-executor": "a monitor that checks USDC with token_safety over and over from many networks and never pays",
+  "pulse-demo-video": "the owner's own demo recording",
+};
+
+// The public usage page (/status and the home page): who really made the calls, by the owner explorer's own rules.
+// A possible outside user is a caller that passed every check: not a known bot, not the owner (key, network or test),
+// not a network posing as several browsers, not a known monitor, and it typed its own input rather than an example.
+// Only counts leave here: no callers, networks, inputs or outputs.
+export async function publicUsage(hours = 168) {
+  const { all, capped } = await classifiedCalls(hours, null);
+  const monitor = (c: (typeof all)[number]) => Object.keys(KNOWN_NON_USERS).some((k) => (c.caller.userAgent ?? "").startsWith(k));
+  const group = (c: (typeof all)[number]) =>
+    c.madeBy === "test" || c.madeBy === "you" ? "owner"
+      : c.madeBy === "bot" || c.caller.rotatesBrowsers ? "bots"
+        : monitor(c) ? "monitors"
+          : c.inputKind !== "own" ? "examples" : "possibleUsers";
+  const out = { owner: 0, bots: 0, monitors: 0, examples: 0, possibleUsers: 0 };
+  const users = new Set<string>();
+  for (const c of all) {
+    const g = group(c);
+    out[g]++;
+    if (g === "possibleUsers") users.add(c.caller.id);
+  }
+  return { hours, calls: all.length, capped, ...out, possibleUserCallers: users.size, paidByOthers: all.filter((c) => c.madeBy === "outside" && c.paidUsdc > 0).length };
 }

@@ -24,7 +24,7 @@ import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMi
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
-import { ownerCall, ownerCalls } from "./calls";
+import { ownerCall, ownerCalls, publicUsage } from "./calls";
 import { runXPost } from "./x";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
@@ -264,9 +264,16 @@ async function startServer() {
     }
   });
 
+  // Who really made this week's calls (calls.ts publicUsage), worked out at most every 5 minutes: the page asks every 15 s.
+  let whoCache: { at: number; value: Awaited<ReturnType<typeof publicUsage>> } | null = null;
+  const whoMadeThem = async () => {
+    if (!whoCache || Date.now() - whoCache.at > 5 * 60_000) whoCache = { at: Date.now(), value: await publicUsage(168) };
+    return whoCache.value;
+  };
   app.get("/api/analytics/usage", noCache, async (req, res) => {
     const you = req.ip ? hashIp(req.ip) : "";
     try {
+      const who = await whoMadeThem().catch((error) => { console.error("public usage breakdown failed:", error); return null; });
       const [totals, tools] = await Promise.all([
         pool.query(`
           SELECT
@@ -289,6 +296,8 @@ async function startServer() {
         otherToolRuns7d: Number(row.other_tool_runs_7d || 0), otherCallers7d: Number(row.other_callers_7d || 0), pings24h: Number(row.pings_24h || 0),
         lastToolRunAt: row.last_tool_run_at || null,
         tools: tools.rows.map((t: any) => ({ endpoint: t.endpoint, runs: Number(t.runs), otherCallers: Number(t.other_callers), lastRunAt: t.last_run_at })),
+        // This week's tool runs split by who made them, by the same rules as the owner dashboard. Most runs are bots.
+        whoMadeThem7d: who,
         note: "A tool run is a tool call over HTTP or MCP. Callers are counted by network, so \"besides you\" means a different network from the one viewing this page. Pings are MCP connections and tool listings, mostly directory uptime checks.",
       });
     } catch (error: any) {
