@@ -57,6 +57,7 @@ export const ReportView: React.FC<{ report: Report; live: Live[] | null; liveSta
   <>
     {r.repo && <P>Code: <a className="underline" href={r.repo} target="_blank" rel="noreferrer">{r.repo.replace('https://github.com/', '')}</a>{r.commit && <>, {r.commit.startsWith('their ') ? r.commit : <>commit <Code>{r.commit}</Code></>}</>}.{r.issue && <> Reported to them: <a className="underline" href={r.issue} target="_blank" rel="noreferrer">{r.issue.replace('https://github.com/', '')}</a>.</>}</P>}
     {r.site && <P>Site: <Code>{r.site}</Code> (written out, not linked: don't open it with a wallet connected).</P>}
+    {(r.kind === 'token' || r.kind === 'drain') && r.watched[0] && <P>{r.kind === 'token' ? 'Token' : 'Address'}: <a className="font-mono text-[13px] underline" href={`https://solscan.io/${r.kind === 'token' ? 'token' : 'account'}/${r.watched[0].address}`} target="_blank" rel="noreferrer">{r.watched[0].address}</a></P>}
     {r.status && <p className="mb-6 rounded-lg border border-line bg-code px-4 py-3 text-[15px] text-ink-200"><span className="font-semibold text-white">Status:</span> {r.status}</p>}
 
     <H2>Findings</H2>
@@ -67,7 +68,7 @@ export const ReportView: React.FC<{ report: Report; live: Live[] | null; liveSta
         <Text text={f.what} />
         <ul className="mb-3 flex flex-wrap gap-1.5">{f.where.map((w) => <li key={w}><Code>{w}</Code></li>)}</ul>
         {f.example && <div className="mb-3"><CodeBlock code={f.example} /></div>}
-        {f.fix && <p className="text-[14px] text-ink-200"><span className="font-semibold">{r.kind === 'scam' ? 'What to do:' : 'Fix:'}</span> {inline(f.fix)}</p>}
+        {f.fix && <p className="text-[14px] text-ink-200"><span className="font-semibold">{r.kind === 'code' ? 'Fix:' : 'What to do:'}</span> {inline(f.fix)}</p>}
       </section>
     ))}
 

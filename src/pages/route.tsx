@@ -16,7 +16,7 @@ import { publishedReports } from '../../server/reports/list';
 
 const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1];
 // A public report's page; unpublished reports don't exist publicly.
-const reportOf = (path: string) => { const n = path.match(/^\/reports\/([a-z0-9-]+)$/)?.[1]; return n ? publishedReports().find((r) => r.name === n) : undefined; };
+const reportOf = (path: string) => { const n = path.match(/^\/reports\/([A-Za-z0-9-]+)$/)?.[1]; return n ? publishedReports().find((r) => r.name === n) : undefined; };
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
   if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/reports', '/toolbox', '/docs/flows'].includes(path)) return true;

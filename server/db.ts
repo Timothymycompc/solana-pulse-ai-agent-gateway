@@ -187,6 +187,44 @@ export async function ensureSchema() {
       PRIMARY KEY (mint, at)
     );
   `);
+  // Sampled tokens read again 30 and 90 days after their verdict (accuracy.ts LATER_CHECK_DAYS).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accuracy_rechecks (
+      cohort TEXT NOT NULL,
+      mint TEXT NOT NULL,
+      after_days INT NOT NULL,
+      at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      rugcheck_rugged BOOLEAN,
+      liquidity DOUBLE PRECISION,
+      price DOUBLE PRECISION,
+      PRIMARY KEY (cohort, mint, after_days)
+    );
+  `);
+  // Pulse tool runs on a public report's own addresses (reports/runs.ts): kept after the usage log clears inputs at 30 days.
+  // Only the report's own public address is kept, never the caller or the rest of their input.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS report_tool_runs (
+      usage_id BIGINT NOT NULL,
+      report TEXT NOT NULL,
+      tool TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      at TIMESTAMPTZ NOT NULL,
+      field TEXT NOT NULL,
+      value TEXT NOT NULL,
+      status INT NOT NULL,
+      mine BOOLEAN NOT NULL,
+      PRIMARY KEY (usage_id, report, value)
+    );
+  `);
+  await pool.query(`CREATE TABLE IF NOT EXISTS report_runs_sync (one BOOLEAN PRIMARY KEY DEFAULT TRUE, last_id BIGINT NOT NULL);`);
+  // One row per day: what new winners and losers had in common, worked out from everything collected so far (research.ts).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS research_runs (
+      day DATE PRIMARY KEY,
+      ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      result JSONB NOT NULL
+    );
+  `);
 
   // Tables from the retired SOL-credit system and the old cookie trial. Cleanup must never stop the server
   // from starting: CASCADE removes foreign keys that point at these tables, and failures are only logged.

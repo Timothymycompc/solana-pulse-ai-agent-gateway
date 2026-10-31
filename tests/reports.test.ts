@@ -112,13 +112,13 @@ test("casino and earn-app pages render for search engines, and never link to the
     assert.ok(html.includes("What to do:") || !r.findings.some((f) => f.fix), r.name);
   }
   const list = await get("/reports");
-  for (const heading of ["Code we checked", "Casinos and earn apps we checked"]) assert.ok(list.html.includes(heading), heading);
+  for (const heading of ["Projects: code we checked", "Casinos and earn apps we checked", "Wallet drains", "Tokens: what Pulse said, and what happened"]) assert.ok(list.html.includes(heading), heading);
 });
 
 test("only scanned projects are public: no other project's measurements", () => {
   const text = JSON.stringify(publishedReports());
   assert.ok(!/V1 Ready|how-we-check/i.test(text));
-  assert.ok(publishedReports().every((r) => r.kind === "code" || r.kind === "scam"));
+  assert.ok(publishedReports().every((r) => ["code", "scam", "token", "drain"].includes(r.kind)));
 });
 
 test("Reports is a tab in the top bar on every page, lit on a single report too", async () => {
@@ -127,4 +127,24 @@ test("Reports is a tab in the top bar on every page, lit on a single report too"
     assert.match(html, /<a[^>]*href="\/reports"[^>]*>Reports/, p);
   }
   assert.match((await get("/reports/luckquexa")).html, /<a[^>]*href="\/reports"[^>]*aria-current="page"/);
+});
+
+test("four kinds of report, each with what makes it that kind", () => {
+  const all = publishedReports();
+  const of = (k: string) => all.filter((r) => r.kind === k);
+  for (const r of of("token")) assert.ok(r.watched[0]?.kind === "token" && r.status, `${r.name}: the token itself, and what happened`);
+  for (const r of of("drain")) assert.ok(r.watched.length && r.findings.some((f) => f.fix), `${r.name}: the address, and what to do`);
+  const lost = of("token").filter((r) => r.status!.startsWith("Lost")).length, well = of("token").filter((r) => r.status!.startsWith("Did well")).length;
+  assert.deepEqual([of("token").length, lost, well], [110, 72, 4], "the same 110 real tokens the research run counts");
+  assert.ok(of("token").every((r) => r.findings[1].what.includes("not a prediction or a buy signal")));
+});
+
+test("drain reports never name or link the people who were drained", async () => {
+  for (const r of publishedReports().filter((r) => r.kind === "drain")) {
+    const text = JSON.stringify(r).toLowerCase();
+    for (const who of ["kunal", "adilak", "@", "x.com", "twitter"]) assert.ok(!text.includes(who), `${r.name} mentions ${who}`);
+    assert.ok(!text.includes("hkxcf2jz6jmi5ovmyxjfucqqwgzagfkv3q3jbltvsenp") && !text.includes("avlelvhjdes9jg54ev3pq8qgptyycweedugqb1gdpmaj"), `${r.name}: the drained wallets' full addresses stay out`);
+    assert.equal((await get(`/reports/${r.name}`)).status, 200);
+  }
+  assert.equal((await get(`/reports/token-${publishedReports().find((r) => r.kind === "token")!.watched[0].address}`)).status, 200, "token pages keep the address's capital letters");
 });

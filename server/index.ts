@@ -18,6 +18,7 @@ import { pool, ensureSchema, noteOwnerNetwork, recordPageView, recordServedExamp
 import { keyFromReq } from "./auth";
 import { loadSecrets } from "./secrets";
 import { liveCount, publishedReports, reportFor } from "./reports";
+import { reportRuns, syncReportRuns } from "./reports/runs";
 import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
@@ -30,6 +31,7 @@ import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOL
 import { VERSION } from "./version";
 import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
+import { researchTick } from "./research";
 import { trackRecord } from "./track-record";
 import { startWatch, tokenHistory, watchTick, worthWatching } from "./watch";
 import { mountTelegram } from "./telegram";
@@ -226,6 +228,12 @@ async function startServer() {
 
   // Public reports (only published ones): the list, and each one's watched addresses re-read live (cached 5 minutes).
   app.get("/api/reports", noCache, (_req, res) => res.json({ reports: publishedReports() }));
+  // Every Pulse tool run on the report's own addresses, oldest first: ours and visitors', never who the visitor was.
+  app.get("/api/reports/:name/runs", noCache, async (req: any, res) => {
+    if (!publishedReports().some((r) => r.name === req.params.name)) return res.status(404).json({ error: "No public report by that name." });
+    try { res.json({ runs: await reportRuns(req.params.name) }); }
+    catch (error: any) { res.status(500).json({ error: String(error?.message ?? error).slice(0, 200) }); }
+  });
   app.get("/api/reports/:name/live", noCache, async (req: any, res) => {
     const report = publishedReports().find((r) => r.name === req.params.name);
     if (!report) return res.status(404).json({ error: "No public report by that name." });
@@ -385,7 +393,13 @@ async function startServer() {
   const safetyVerdict = async (mint: string) => (await TOOLS_BY_NAME.get("token_safety")!.run({ token: mint, network: "mainnet-beta" }, ctx)) as any;
   app.post("/api/owner/accuracy/tick", noCache, async (req, res) => {
     if (!ownerOnly(req, res)) return;
-    try { res.json({ ...(await accuracyTick(ctx, safetyVerdict)), watch: await watchTick(ctx, safetyVerdict) }); }
+    try {
+      const done = { ...(await accuracyTick(ctx, safetyVerdict)), watch: await watchTick(ctx, safetyVerdict) };
+      // The daily research run must never fail the tick that collects the data it reads.
+      const research = await researchTick().catch((error) => ({ ran: false, error: String(error?.message ?? error).slice(0, 200) }));
+      const reportRunsAdded = await syncReportRuns().catch((error) => ({ error: String(error?.message ?? error).slice(0, 200) }));
+      res.json({ ...done, research, reportRuns: reportRunsAdded });
+    }
     catch (error: any) { console.error("Accuracy tick failed:", error); res.status(500).json({ error: String(error?.message ?? error).slice(0, 400) }); }
   });
   app.post("/api/owner/accuracy/add", noCache, async (req, res) => {

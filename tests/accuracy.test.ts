@@ -3,6 +3,7 @@
 // most" and the arithmetic of the answers are what's tested.
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
 import { accuracyReport, accuracyTick, addToQueue, knownGood, outcome, SAMPLE_COHORT } from "../server/accuracy";
@@ -132,4 +133,40 @@ test("sampled tokens whose check gave up are replaced, so the goal counts real v
   const tick = await accuracyTick({ ...world, fetchJson: async (url: string) => url.includes("/tokens/v2/toptrending/5m") ? [listed[N]] : world.fetchJson(url) }, fakeVerdict);
   assert.equal(tick.sampled, 1, "100 rows, but only 2 real verdicts: keep sampling");
   assert.equal((await accuracyReport()).cohorts[SAMPLE_COHORT].errors, 98, "the ones that gave up are still reported");
+});
+
+test("a full batch of 100 starts the next one by itself, and earlier batches are read again at 30 and 90 days", async () => {
+  // Real tokens and real price moves: the 100 first-week tokens as recorded (tests/fixtures/research-real.json), moved
+  // 31 days back in time; the market answers each one's real recorded price, liquidity and RugCheck flag.
+  const fixture = JSON.parse(fs.readFileSync("tests/fixtures/research-real.json", "utf8"));
+  const real = new Map<string, any>(fixture.accuracy.map((t: any) => [t.mint, t]));
+  clearJupCache();
+  await pool.query(`DELETE FROM accuracy_tokens`);
+  for (const t of fixture.accuracy) {
+    await pool.query(`INSERT INTO accuracy_tokens (cohort, mint, found_in, checked_at, verdict, checks, first_pool_at, liquidity_then, price_then) VALUES ($1, $2, $3, NOW() - INTERVAL '31 days', $4, $5, $6, $7, $8)`,
+      [SAMPLE_COHORT, t.mint, t.found_in, t.verdict, JSON.stringify(t.checks), t.first_pool_at, t.liquidity_then, t.price_then]);
+  }
+  const w = fixture.watch[0]; // a real token from the token watch, as Jupiter listed it when the watch first read it
+  const fresh = { id: w.mint, liquidity: w.reading_then.liquidity_usd, usdPrice: w.reading_then.usd_price, firstPool: { createdAt: hoursAgo(2) } };
+  const answer = async (url: string) => {
+    if (url.includes("/tokens/v2/toptrending/5m")) return [fresh];
+    if (/tokens\/v2\/(toptraded|toporganicscore)/.test(url)) return [];
+    const search = url.match(/search\?query=(\w+)/);
+    if (search && real.has(search[1])) { const t = real.get(search[1]); return t.liquidity_now === null ? [] : [{ id: t.mint, symbol: "X", name: "X", decimals: 6, liquidity: t.liquidity_now, usdPrice: t.price_now }]; }
+    if (search && search[1] === w.mint) return [{ symbol: w.symbol ?? "X", name: "X", decimals: 6, ...fresh }];
+    const rug = url.match(/tokens\/(\w+)\/report/);
+    if (rug) { const flag = real.get(rug[1])?.rugcheck_rugged; if (flag === null || flag === undefined) throw new Error("RugCheck gave no answer for this token"); return { rugged: flag }; }
+    throw new Error(`unexpected ${url}`);
+  };
+  const tick = await accuracyTick({ ...world, fetchJson: answer }, fakeVerdict);
+  assert.equal(tick.sampled, 1);
+  const next = `young-tokens-${new Date().toISOString().slice(0, 10)}`;
+  assert.equal((await pool.query(`SELECT cohort FROM accuracy_tokens WHERE mint = $1`, [w.mint])).rows[0].cohort, next, "the new token goes into a new batch");
+  assert.equal(tick.rechecked, 15, "15 a tick, oldest first");
+  const again = (await pool.query(`SELECT * FROM accuracy_rechecks`)).rows;
+  assert.ok(again.every((r: any) => r.after_days === 30));
+  const expected = again.map((r: any) => { const t = real.get(r.mint); return outcome({ ...t, liquidity_now: t.liquidity_now ?? 0, price_now: t.price_now }).lostMost; }).filter((x: any) => x !== null);
+  const report = (await accuracyReport()).cohorts[SAMPLE_COHORT];
+  assert.equal(report.laterChecks.after30Days.lostMost, `${Math.round((expected.filter(Boolean).length / expected.length) * 100)}% (${expected.filter(Boolean).length} of ${expected.length})`, "the same lost-most rule on the later reading");
+  assert.equal(report.laterChecks.after90Days.readAgain, 0, "not 90 days yet");
 });

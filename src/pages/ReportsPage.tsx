@@ -5,6 +5,7 @@ import type { Report } from '../../server/reports/types';
 import { Link } from '../router';
 import { H2, P, PageHeader } from '../components/docs/DocParts';
 import { ReportView, type Live } from '../components/report/ReportView';
+import { ReportRuns } from '../components/report/ReportRuns';
 import type { ToolsIndex } from '../lib/toolsApi';
 import { ToolboxPage } from './ToolboxPage';
 
@@ -14,10 +15,12 @@ import { ToolboxPage } from './ToolboxPage';
 const haystack = (r: Report) => [r.project, r.name, r.repo, r.site, r.summary, r.status, ...r.findings.flatMap((f) => [f.title, f.what, f.fix, ...f.where]), ...r.watched.flatMap((w) => [w.label, w.address]), ...r.proof.map((p) => p.signature)].join(' ').toLowerCase();
 
 const GROUPS: { kind: Report['kind']; title: string }[] = [
-  { kind: 'code', title: 'Code we checked' },
+  { kind: 'code', title: 'Projects: code we checked' },
   { kind: 'scam', title: 'Casinos and earn apps we checked' },
+  { kind: 'drain', title: 'Wallet drains' },
+  { kind: 'token', title: 'Tokens: what Pulse said, and what happened' },
 ];
-const where = (r: Report) => r.repo?.replace('https://github.com/', '') ?? r.site ?? '';
+const where = (r: Report) => r.repo?.replace('https://github.com/', '') ?? r.site ?? r.watched[0]?.address ?? '';
 
 export const ReportsPage: React.FC = () => {
   const all = publishedReports();
@@ -73,6 +76,7 @@ export const ReportPage: React.FC<{ name: string; index: ToolsIndex | null }> = 
       <PageHeader kicker={<Link to="/reports" className="underline">Reports</Link>} title={`${report.project}: what we found`} lead={report.summary} />
       {report.published && <p className="mb-6 text-[13px] text-ink-400">Public since {report.published.at.slice(0, 10)}. {report.published.told}.</p>}
       <ReportView report={report} live={live} liveState={state} />
+      <ReportRuns report={report} index={index} />
       <H2>Check it yourself</H2>
       <P>{report.kind === 'scam' ? 'Every Pulse tool, live on mainnet, starting with whats_this. Paste a Solana address a casino or game asks you to pay, before you pay it.' : 'Every Pulse tool, live on mainnet, starting with tx_version. Paste any signature from this report, or your own.'}</P>
       {index ? <ToolboxPage index={index} startTool={report.kind === 'scam' ? 'whats_this' : 'tx_version'} /> : <p className="text-ink-400">Loading the tools…</p>}
