@@ -63,7 +63,7 @@ export const TOOLS = [
   {
     name: "token_safety",
     title: "Is this token safe?",
-    description: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with exact reasons from chain and market data. Simulates a real holder selling, then checks if liquidity can be pulled, the creator's record, insider wallet networks, issuer powers (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, for one verdict.",
+    description: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with exact reasons from chain and market data, plus rug_chance (high, with reasons, or null). Simulates a real holder selling, then checks if liquidity can be pulled, the creator's record, insider wallet networks, issuer powers (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, for one verdict.",
     price: "$0.02 USDC per call after 25 free calls a day",
     example: {"token":"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"},
     schema: z.object({ token: z.string().describe("The token's address. From find_token (for a ticker) or tokens (for a wallet's tokens)."), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),

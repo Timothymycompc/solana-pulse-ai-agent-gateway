@@ -1,0 +1,17 @@
+{
+ "mint": "FdKdpz11GsTofLaNiddrhxrsE4APZYSSfLFqQ9YKpump",
+ "creator": "2t8AvLKVgfYhRK8b9ykujpBcZNUFfy3Rth9WFDf1HpQQ",
+ "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+ "creator_token_account": "3dPPYbZBD3WRMy93Ghdx8bMUkGFTrKBeAsPiNmCotid7",
+ "txs_on_account": 2,
+ "launch_unix": 1793469180,
+ "read": 2,
+ "sends": [
+  {
+   "t": 19,
+   "to": "Ht4GxW1pL2SfamcfC3qcZEcjDHpE55TtjUjnKVs2nhxr",
+   "amount": "3520918746848",
+   "sig": "5vLmZo3BHenswQJ9svaGW6Z1wqtWY2reX3zmau68h5afh3hWnPCwUUpy3i5snkdZPghXqFAgADvJ97hWdcvQiGd7"
+  }
+ ]
+}

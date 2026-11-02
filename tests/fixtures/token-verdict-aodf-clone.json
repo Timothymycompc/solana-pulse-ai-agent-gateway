@@ -1,0 +1,3056 @@
+{
+ "name": "token-verdict-aodf-clone",
+ "recordedAt": "2026-11-01T17:52:03.889Z",
+ "args": {
+  "token": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump"
+ },
+ "recording": {
+  "calls": {
+   "getParsedAccountInfo": [
+    {
+     "context": {
+      "slot": 464182709,
+      "apiVersion": "4.3.0-alpha.2"
+     },
+     "value": {
+      "lamports": 2646680,
+      "data": {
+       "program": "spl-token-2022",
+       "parsed": {
+        "info": {
+         "decimals": 6,
+         "extensions": [
+          {
+           "extension": "metadataPointer",
+           "state": {
+            "authority": null,
+            "metadataAddress": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump"
+           }
+          },
+          {
+           "extension": "tokenMetadata",
+           "state": {
+            "additionalMetadata": [],
+            "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+            "name": "AODF",
+            "symbol": "AODF",
+            "updateAuthority": null,
+            "uri": "https://ipfs.io/ipfs/QmRAqZaue3oGKmpV8A4B86iyKp56vw2MD7zwZjDkqxUECU"
+           }
+          }
+         ],
+         "freezeAuthority": null,
+         "isInitialized": true,
+         "mintAuthority": null,
+         "supply": "999987867620407"
+        },
+        "type": "mint"
+       },
+       "space": 393
+      },
+      "owner": {
+       "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 393
+     }
+    }
+   ],
+   "getTokenLargestAccounts": [
+    {
+     "context": {
+      "slot": 464182711,
+      "apiVersion": "4.3.0-alpha.2"
+     },
+     "value": [
+      {
+       "address": {
+        "__pk": "6s47gP1C7L33QP7S6QTTe9N599MmEGpe3HuGVhE1cTSR"
+       },
+       "uiAmount": 11848548.118115,
+       "decimals": 6,
+       "amount": "11848548118115",
+       "uiAmountString": "11848548.118115"
+      },
+      {
+       "address": {
+        "__pk": "9t8k45423Mwp6tkW1wpevMQXoePWVbU24cvwFLcFEU3n"
+       },
+       "uiAmount": 1352519.182478,
+       "decimals": 6,
+       "amount": "1352519182478",
+       "uiAmountString": "1352519.182478"
+      },
+      {
+       "address": {
+        "__pk": "BaLiXkxBMcti2dG9kFNXt1ety6vwAVQEoi67onfq1pWj"
+       },
+       "uiAmount": 1143985.471003,
+       "decimals": 6,
+       "amount": "1143985471003",
+       "uiAmountString": "1143985.471003"
+      },
+      {
+       "address": {
+        "__pk": "beJoaw12YJD2KPdeoBhJ559wi2ZG6UQeyUXADbm13Y1"
+       },
+       "uiAmount": 582262.456973,
+       "decimals": 6,
+       "amount": "582262456973",
+       "uiAmountString": "582262.456973"
+      },
+      {
+       "address": {
+        "__pk": "GTqrc6Gjr7BrHsmoRTDF18AqbbB4W1TGGEYeafh5jpEQ"
+       },
+       "uiAmount": 582262.197679,
+       "decimals": 6,
+       "amount": "582262197679",
+       "uiAmountString": "582262.197679"
+      },
+      {
+       "address": {
+        "__pk": "Hjake4fSZcw48iLke1NW5csp5iLxuWtJ4bKL4mASan7z"
+       },
+       "uiAmount": 582260.544178,
+       "decimals": 6,
+       "amount": "582260544178",
+       "uiAmountString": "582260.544178"
+      },
+      {
+       "address": {
+        "__pk": "41B4iDDUpWvSLRUQn5F8hrPbYuhPYpUJkCKsGgnfa2yg"
+       },
+       "uiAmount": 582260.487533,
+       "decimals": 6,
+       "amount": "582260487533",
+       "uiAmountString": "582260.487533"
+      },
+      {
+       "address": {
+        "__pk": "3BnWcGw3kVzEfodUsZ2WuuRoBKTUx4igFB3CFAQXnaZN"
+       },
+       "uiAmount": 582260.461731,
+       "decimals": 6,
+       "amount": "582260461731",
+       "uiAmountString": "582260.461731"
+      },
+      {
+       "address": {
+        "__pk": "AZybpWkQt6Rv2SPDHAeaLuKm9pAnMt1oiYLTXHUGL74y"
+       },
+       "uiAmount": 582260.309823,
+       "decimals": 6,
+       "amount": "582260309823",
+       "uiAmountString": "582260.309823"
+      },
+      {
+       "address": {
+        "__pk": "CvYtqn2RDrJqeeuAQhadDKvhyk7z2kiwpzv5N8YUdHE"
+       },
+       "uiAmount": 582260.295924,
+       "decimals": 6,
+       "amount": "582260295924",
+       "uiAmountString": "582260.295924"
+      },
+      {
+       "address": {
+        "__pk": "HwQYGJ8uMxgzAHFsjDVx8k3J2kDs7c63tNWCmPQzhXHC"
+       },
+       "uiAmount": 582260.189403,
+       "decimals": 6,
+       "amount": "582260189403",
+       "uiAmountString": "582260.189403"
+      },
+      {
+       "address": {
+        "__pk": "2Tg7Ww79Too9CPj4HtshhDpnwNfW4TJcBycK9KMdBkKv"
+       },
+       "uiAmount": 582260.163638,
+       "decimals": 6,
+       "amount": "582260163638",
+       "uiAmountString": "582260.163638"
+      },
+      {
+       "address": {
+        "__pk": "J2LeGaCbuJDL4LbC2GEE2fRun9zt8RiWkjnLqgxUwQ39"
+       },
+       "uiAmount": 582260.054586,
+       "decimals": 6,
+       "amount": "582260054586",
+       "uiAmountString": "582260.054586"
+      },
+      {
+       "address": {
+        "__pk": "3cDCTN45hRLrkWZscmHqLvj5MmSaSQjecWLRG2ihYGtT"
+       },
+       "uiAmount": 582260.019471,
+       "decimals": 6,
+       "amount": "582260019471",
+       "uiAmountString": "582260.019471"
+      },
+      {
+       "address": {
+        "__pk": "5n8j9GKYnVdfoGcmYgpGYUT2VHiCewZiziQe486EkU88"
+       },
+       "uiAmount": 582260.007965,
+       "decimals": 6,
+       "amount": "582260007965",
+       "uiAmountString": "582260.007965"
+      },
+      {
+       "address": {
+        "__pk": "HJQuUWUMXuSqrAwwUGE27Cdu58Pp8oMFEihzTeVphbTv"
+       },
+       "uiAmount": 582259.978122,
+       "decimals": 6,
+       "amount": "582259978122",
+       "uiAmountString": "582259.978122"
+      },
+      {
+       "address": {
+        "__pk": "5L38rKnKdbKi3EhvhmwJWNyy8iuWhKXFrNmWGAMWURMR"
+       },
+       "uiAmount": 582259.976543,
+       "decimals": 6,
+       "amount": "582259976543",
+       "uiAmountString": "582259.976543"
+      },
+      {
+       "address": {
+        "__pk": "6jBYf1fNewiQrv8raPG3Wb8WGDE6BVd8PFmhXwrWwEJn"
+       },
+       "uiAmount": 582259.971461,
+       "decimals": 6,
+       "amount": "582259971461",
+       "uiAmountString": "582259.971461"
+      },
+      {
+       "address": {
+        "__pk": "9LvzJW1CPmsc6puwgXS8EjWz1UWpL1jEvqk3uHCHAcbj"
+       },
+       "uiAmount": 582259.910074,
+       "decimals": 6,
+       "amount": "582259910074",
+       "uiAmountString": "582259.910074"
+      },
+      {
+       "address": {
+        "__pk": "F1Wb5EtMp9MnedGDqe5qyFbJMY3HC1KwAB1HfF7KyUMm"
+       },
+       "uiAmount": 582259.84087,
+       "decimals": 6,
+       "amount": "582259840870",
+       "uiAmountString": "582259.84087"
+      }
+     ]
+    }
+   ],
+   "getMultipleParsedAccounts": [
+    {
+     "context": {
+      "slot": 464182712,
+      "apiVersion": "4.3.0-alpha.2"
+     },
+     "value": [
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "11848548118115",
+           "decimals": 6,
+           "uiAmount": 11848548.118115,
+           "uiAmountString": "11848548.118115"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "3CENdk7MJ8beDF4MZgHXEX9ypGcdLbaPfEFht1tTfPW6",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "1352519182478",
+           "decimals": 6,
+           "uiAmount": 1352519.182478,
+           "uiAmountString": "1352519.182478"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "BV2LUoRAE86RN83ZHmeNWKZ9ZAdojmcrjCcyXFcRQpzo",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "1143985471003",
+           "decimals": 6,
+           "uiAmount": 1143985.471003,
+           "uiAmountString": "1143985.471003"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "7MDZo6aKzEayoDP1VCoZcdxZ3c7iPxWHBPUnP6HLpe2t",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582262456973",
+           "decimals": 6,
+           "uiAmount": 582262.456973,
+           "uiAmountString": "582262.456973"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "D6uwF2vCLikVVwaXePsCqVfv11iaQwWU6KhKYUSXcq9G",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582262197679",
+           "decimals": 6,
+           "uiAmount": 582262.197679,
+           "uiAmountString": "582262.197679"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "88w2oeFc9myzVSukczBNMQdeDL8AM2EVFmP2cLMEhVsq",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260544178",
+           "decimals": 6,
+           "uiAmount": 582260.544178,
+           "uiAmountString": "582260.544178"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "B6E7i4ku2rKS8KNvWLffpc8RZ63v5ArHr6LNYVtRMK6o",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260487533",
+           "decimals": 6,
+           "uiAmount": 582260.487533,
+           "uiAmountString": "582260.487533"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "4wR2bgArwseCLvh5wZoDJYeYYhGWGgFjLLFzZqGnjbBo",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260461731",
+           "decimals": 6,
+           "uiAmount": 582260.461731,
+           "uiAmountString": "582260.461731"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "G4yzHVWzK4FxotKhJXErwCLjc4Aj4Cki9ZVKkXCP9Bs",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260309823",
+           "decimals": 6,
+           "uiAmount": 582260.309823,
+           "uiAmountString": "582260.309823"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "7Q7Ci9BzQfVzx6pAGshnQ8Zs3zaLyvcjCBSKZbYfqE4m",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260295924",
+           "decimals": 6,
+           "uiAmount": 582260.295924,
+           "uiAmountString": "582260.295924"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "9TC73drRSqaHvvnJ1AYrvo9q9FGndgM5KzMtgyhko7MH",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260189403",
+           "decimals": 6,
+           "uiAmount": 582260.189403,
+           "uiAmountString": "582260.189403"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      },
+      {
+       "lamports": 1513840,
+       "data": {
+        "program": "spl-token-2022",
+        "parsed": {
+         "info": {
+          "extensions": [
+           {
+            "extension": "immutableOwner"
+           }
+          ],
+          "isNative": false,
+          "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+          "owner": "BqiaNpNaT8UVYVzHAqi3NtZuMHDW6SyQK2eFZYh8eJBD",
+          "state": "initialized",
+          "tokenAmount": {
+           "amount": "582260163638",
+           "decimals": 6,
+           "uiAmount": 582260.163638,
+           "uiAmountString": "582260.163638"
+          }
+         },
+         "type": "account"
+        },
+        "space": 170
+       },
+       "owner": {
+        "__pk": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+       },
+       "executable": false,
+       "rentEpoch": 18446744073709552000,
+       "space": 170
+      }
+     ]
+    }
+   ],
+   "getMultipleAccountsInfo": [
+    [
+     {
+      "lamports": 786447676822,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 750382029744,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 64232882,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 63890890,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 64400723,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 66484863,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 61716496,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 65615776,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 65327436,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 63806109,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     },
+     {
+      "lamports": 64365967,
+      "data": {
+       "__buf": ""
+      },
+      "owner": {
+       "__pk": "11111111111111111111111111111111"
+      },
+      "executable": false,
+      "rentEpoch": 18446744073709552000,
+      "space": 0
+     }
+    ]
+   ],
+   "simulateTransaction": [
+    {
+     "context": {
+      "apiVersion": "4.3.2",
+      "slot": 464182714
+     },
+     "value": {
+      "accounts": null,
+      "err": null,
+      "fee": 5195,
+      "innerInstructions": null,
+      "loadedAccountsDataSize": 14990367,
+      "loadedAddresses": {
+       "readonly": [
+        "So11111111111111111111111111111111111111112",
+        "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+        "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+        "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
+        "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw",
+        "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR"
+       ],
+       "writable": [
+        "6s47gP1C7L33QP7S6QTTe9N599MmEGpe3HuGVhE1cTSR",
+        "F5vkU6LE3MD65t7mVXAWS6UiMGaz3NyK5VQ6XYACjFkV",
+        "GYH1Gae1wJytMSvMvw8JVcv7nuAbxi8i9erNVbERnzXd",
+        "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4"
+       ]
+      },
+      "logs": [
+       "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+       "Program ComputeBudget111111111111111111111111111111 success",
+       "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+       "Program ComputeBudget111111111111111111111111111111 success",
+       "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+       "Program log: CreateIdempotent",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 88687 compute units",
+       "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+       "Program 11111111111111111111111111111111 invoke [2]",
+       "Program 11111111111111111111111111111111 success",
+       "Program log: Initialize the associated token account",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 83598 compute units",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 81137 compute units",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+       "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16413 of 97038 compute units",
+       "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [1]",
+       "Program log: Instruction: Route",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+       "Program log: Instruction: SellV2",
+       "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]",
+       "Program log: Instruction: TransferChecked",
+       "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2977 of 42424 compute units",
+       "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 36807 compute units",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 33776 compute units",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+       "Program data: Pi83CqUD3CpEfOdqAAAAAJwS8GMAAAAAAAAAAAAAAACO6GzoOgEAAAAAAAAAAAAAY26AtMYKAAAUP/LlWAEAAJUSpAwAAAAAFAAAAAAAAADfeAYAAAAAAAUAAAAAAAAAOJ4BAAAAAAC2mZ0MAAAAAEZdmgwAAAAA+zce3CyHlr+La5KPyqoRCXCEnRgoOaPZ0e+NeZ49jYMgl+I2X7LXfB5zeGJpoBPkR6RtiILXQErlflEybMObn4P23vQFkcQN1PiBPhLo6rb021l4ZBOhu/nfmqDGypj1NWf9LqfVNd207lDnVu2BdUi7WLaxkjQCenULDGZCPfoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkKXJClefkVtyjQ9KkmY58qBbPqpw6OC2wVJicFn/FOsFAAAAAAAAADieAQAAAAAAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAHM8AAAAAAAC9hPgXBAAAAAAAAAAAAAAAATcUodF7jQMAAAAAAAAAAAAAAAAAAAAAAG7YIAAAAAAAAAAAAAAAAAA=",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [3]",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 26101 compute units",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 54623 of 76415 compute units",
+       "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [2]",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 91 of 19885 compute units",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 61447 of 80625 compute units",
+       "Program return: JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 Rl2aDAAAAAA=",
+       "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 19178 compute units",
+       "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success"
+      ],
+      "postBalances": [
+       786659114641,
+       0,
+       1513840,
+       1346200,
+       1,
+       1,
+       6973116527,
+       230130698,
+       3388612899,
+       6711053,
+       1513840,
+       1481116600554,
+       555481535,
+       2179320,
+       1862659897475,
+       70228638,
+       1260746836,
+       2646680,
+       33103977,
+       9272823,
+       4641093
+      ],
+      "postTokenBalances": [
+       {
+        "accountIndex": 2,
+        "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+        "owner": "3CENdk7MJ8beDF4MZgHXEX9ypGcdLbaPfEFht1tTfPW6",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "uiTokenAmount": {
+         "amount": "1350842504690",
+         "decimals": 6,
+         "uiAmount": 1350842.50469,
+         "uiAmountString": "1350842.50469"
+        }
+       },
+       {
+        "accountIndex": 10,
+        "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+        "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "uiTokenAmount": {
+         "amount": "11850224795903",
+         "decimals": 6,
+         "uiAmount": 11850224.795903,
+         "uiAmountString": "11850224.795903"
+        }
+       },
+       {
+        "accountIndex": 11,
+        "mint": "So11111111111111111111111111111111111111112",
+        "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+        "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "uiTokenAmount": {
+         "amount": "1481115112114",
+         "decimals": 9,
+         "uiAmount": 1481.115112114,
+         "uiAmountString": "1481.115112114"
+        }
+       },
+       {
+        "accountIndex": 12,
+        "mint": "So11111111111111111111111111111111111111112",
+        "owner": "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
+        "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "uiTokenAmount": {
+         "amount": "553993095",
+         "decimals": 9,
+         "uiAmount": 0.553993095,
+         "uiAmountString": "0.553993095"
+        }
+       }
+      ],
+      "preBalances": [
+       786447676822,
+       0,
+       1513840,
+       1346200,
+       1,
+       1,
+       6973116527,
+       230130698,
+       3388612899,
+       6711053,
+       1513840,
+       1481328096588,
+       555428515,
+       2179320,
+       1862659897475,
+       70228638,
+       1260746836,
+       2646680,
+       33103977,
+       9272823,
+       4641093
+      ],
+      "preTokenBalances": [
+       {
+        "accountIndex": 2,
+        "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+        "owner": "3CENdk7MJ8beDF4MZgHXEX9ypGcdLbaPfEFht1tTfPW6",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "uiTokenAmount": {
+         "amount": "1352519182478",
+         "decimals": 6,
+         "uiAmount": 1352519.182478,
+         "uiAmountString": "1352519.182478"
+        }
+       },
+       {
+        "accountIndex": 10,
+        "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+        "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+        "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "uiTokenAmount": {
+         "amount": "11848548118115",
+         "decimals": 6,
+         "uiAmount": 11848548.118115,
+         "uiAmountString": "11848548.118115"
+        }
+       },
+       {
+        "accountIndex": 11,
+        "mint": "So11111111111111111111111111111111111111112",
+        "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+        "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "uiTokenAmount": {
+         "amount": "1481326608148",
+         "decimals": 9,
+         "uiAmount": 1481.326608148,
+         "uiAmountString": "1481.326608148"
+        }
+       },
+       {
+        "accountIndex": 12,
+        "mint": "So11111111111111111111111111111111111111112",
+        "owner": "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
+        "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "uiTokenAmount": {
+         "amount": "553940075",
+         "decimals": 9,
+         "uiAmount": 0.553940075,
+         "uiAmountString": "0.553940075"
+        }
+       }
+      ],
+      "replacementBlockhash": {
+       "blockhash": "3b2X7rWRrdMJS9qbZBjP6VTGmhmDadqLsgTFyu2cvZFq",
+       "lastValidBlockHeight": 442204330
+      },
+      "returnData": null,
+      "unitsConsumed": 78278
+     }
+    }
+   ]
+  },
+  "http": {
+   "https://lite-api.jup.ag/tokens/v2/search?query=pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump": [
+    {
+     "id": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HV-A5ZwbYAAoDLv?format=png&name=small",
+     "decimals": 6,
+     "dev": "AjeL8cez6PWxqTAfD6ixqfxArzSx7Ywor2gH6R5aKi6e",
+     "circSupply": 999987867.620407,
+     "totalSupply": 999987867.620407,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+     "graduatedAt": "2026-10-31T23:49:36Z",
+     "holderCount": 3003,
+     "fdv": 11928205.578006124,
+     "mcap": 11928205.578006124,
+     "usdPrice": 0.011928350297279849,
+     "priceBlockId": 464182590,
+     "liquidity": 140064.73839506716,
+     "stats5m": {
+      "priceChange": -0.39732310380051794,
+      "liquidityChange": -0.040037423082461505,
+      "volumeChange": 5.448092802756953,
+      "buyVolume": 288.043830294747,
+      "sellVolume": 180.57450861358046,
+      "buyOrganicVolume": 4.997010925349918,
+      "numBuys": 14,
+      "numSells": 5,
+      "numTraders": 3,
+      "numNetBuyers": 3
+     },
+     "stats1h": {
+      "priceChange": -98.85135269464527,
+      "holderChange": -0.628722700198544,
+      "liquidityChange": -89.35726963540468,
+      "volumeChange": 756.3540767412362,
+      "buyVolume": 6486.893111267029,
+      "sellVolume": 1180589.3386542597,
+      "buyOrganicVolume": 44.00112605341984,
+      "numBuys": 285,
+      "numSells": 80,
+      "numTraders": 164,
+      "numNetBuyers": 141
+     },
+     "stats6h": {
+      "priceChange": -96.59650675701626,
+      "holderChange": 1.486988847583643,
+      "liquidityChange": -81.69628248584893,
+      "volumeChange": 639.7342768935547,
+      "buyVolume": 676788.882341819,
+      "sellVolume": 1307856.0244954433,
+      "buyOrganicVolume": 771.5002558062288,
+      "numBuys": 15989,
+      "numSells": 1225,
+      "numTraders": 2928,
+      "numNetBuyers": 2890
+     },
+     "stats24h": {
+      "priceChange": -91.2767300073001,
+      "holderChange": 29930,
+      "liquidityChange": -70.71562114943842,
+      "buyVolume": 1506507.2958085726,
+      "sellVolume": 1375725.0063990697,
+      "buyOrganicVolume": 2476.652800409166,
+      "numBuys": 43850,
+      "numSells": 1923,
+      "numTraders": 2954,
+      "numNetBuyers": 2899
+     },
+     "firstPool": {
+      "id": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+      "createdAt": "2026-10-31T23:49:36Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.7157335580498138,
+      "devBalancePercentage": 0.713798660076297,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-31T23:49:36Z",
+     "updatedAt": "2026-11-01T17:51:58.121250625Z"
+    }
+   ],
+   "https://api.rugcheck.xyz/v1/tokens/pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump/report": {
+    "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "creator": "AjeL8cez6PWxqTAfD6ixqfxArzSx7Ywor2gH6R5aKi6e",
+    "creatorBalance": 0,
+    "token": {
+     "mintAuthority": null,
+     "supply": 999987867620407,
+     "decimals": 6,
+     "isInitialized": true,
+     "freezeAuthority": null
+    },
+    "token_extensions": {
+     "nonTransferable": false,
+     "transferFeeConfig": null,
+     "defaultAccountState": null,
+     "permanentDelegate": null,
+     "metadataPointer": {
+      "authority": null,
+      "metadataAddress": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump"
+     },
+     "groupPointer": null,
+     "groupMemberPointer": null,
+     "tokenMetadata": {
+      "authority": null,
+      "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+      "name": "AODF",
+      "symbol": "AODF",
+      "uri": "https://ipfs.io/ipfs/QmRAqZaue3oGKmpV8A4B86iyKp56vw2MD7zwZjDkqxUECU",
+      "additionalMetadata": {}
+     },
+     "mintCloseAuthority": null,
+     "confidentialTransferMint": null,
+     "interestBearingConfig": null,
+     "transferHook": null,
+     "confidentialTransferFeeConfig": null,
+     "tokenGroup": null,
+     "tokenGroupMember": null,
+     "scaledUiAmountConfig": null,
+     "pausableConfig": null
+    },
+    "tokenMeta": {
+     "name": "AODF",
+     "symbol": "AODF",
+     "uri": "https://ipfs.io/ipfs/QmRAqZaue3oGKmpV8A4B86iyKp56vw2MD7zwZjDkqxUECU",
+     "mutable": false,
+     "updateAuthority": "11111111111111111111111111111111"
+    },
+    "topHolders": [
+     {
+      "address": "6s47gP1C7L33QP7S6QTTe9N599MmEGpe3HuGVhE1cTSR",
+      "amount": 11848548118115,
+      "decimals": 6,
+      "pct": 1.1848691870942458,
+      "uiAmount": 11848548.118115,
+      "uiAmountString": "11848548.118115",
+      "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+      "insider": false
+     },
+     {
+      "address": "9t8k45423Mwp6tkW1wpevMQXoePWVbU24cvwFLcFEU3n",
+      "amount": 1352519182478,
+      "decimals": 6,
+      "pct": 0.13525355919532148,
+      "uiAmount": 1352519.182478,
+      "uiAmountString": "1352519.182478",
+      "owner": "3CENdk7MJ8beDF4MZgHXEX9ypGcdLbaPfEFht1tTfPW6",
+      "insider": false
+     },
+     {
+      "address": "BaLiXkxBMcti2dG9kFNXt1ety6vwAVQEoi67onfq1pWj",
+      "amount": 1143985471003,
+      "decimals": 6,
+      "pct": 0.11439993504373737,
+      "uiAmount": 1143985.471003,
+      "uiAmountString": "1143985.471003",
+      "owner": "BV2LUoRAE86RN83ZHmeNWKZ9ZAdojmcrjCcyXFcRQpzo",
+      "insider": false
+     },
+     {
+      "address": "beJoaw12YJD2KPdeoBhJ559wi2ZG6UQeyUXADbm13Y1",
+      "amount": 582262456973,
+      "decimals": 6,
+      "pct": 0.058226952128785765,
+      "uiAmount": 582262.456973,
+      "uiAmountString": "582262.456973",
+      "owner": "7MDZo6aKzEayoDP1VCoZcdxZ3c7iPxWHBPUnP6HLpe2t",
+      "insider": false
+     },
+     {
+      "address": "GTqrc6Gjr7BrHsmoRTDF18AqbbB4W1TGGEYeafh5jpEQ",
+      "amount": 582262197679,
+      "decimals": 6,
+      "pct": 0.05822692619907118,
+      "uiAmount": 582262.197679,
+      "uiAmountString": "582262.197679",
+      "owner": "D6uwF2vCLikVVwaXePsCqVfv11iaQwWU6KhKYUSXcq9G",
+      "insider": false
+     },
+     {
+      "address": "Hjake4fSZcw48iLke1NW5csp5iLxuWtJ4bKL4mASan7z",
+      "amount": 582260544178,
+      "decimals": 6,
+      "pct": 0.05822676084696507,
+      "uiAmount": 582260.544178,
+      "uiAmountString": "582260.544178",
+      "owner": "88w2oeFc9myzVSukczBNMQdeDL8AM2EVFmP2cLMEhVsq",
+      "insider": false
+     },
+     {
+      "address": "41B4iDDUpWvSLRUQn5F8hrPbYuhPYpUJkCKsGgnfa2yg",
+      "amount": 582260487533,
+      "decimals": 6,
+      "pct": 0.05822675518239634,
+      "uiAmount": 582260.487533,
+      "uiAmountString": "582260.487533",
+      "owner": "B6E7i4ku2rKS8KNvWLffpc8RZ63v5ArHr6LNYVtRMK6o",
+      "insider": false
+     },
+     {
+      "address": "3BnWcGw3kVzEfodUsZ2WuuRoBKTUx4igFB3CFAQXnaZN",
+      "amount": 582260461731,
+      "decimals": 6,
+      "pct": 0.05822675260216504,
+      "uiAmount": 582260.461731,
+      "uiAmountString": "582260.461731",
+      "owner": "4wR2bgArwseCLvh5wZoDJYeYYhGWGgFjLLFzZqGnjbBo",
+      "insider": false
+     },
+     {
+      "address": "AZybpWkQt6Rv2SPDHAeaLuKm9pAnMt1oiYLTXHUGL74y",
+      "amount": 582260309823,
+      "decimals": 6,
+      "pct": 0.05822673741118073,
+      "uiAmount": 582260.309823,
+      "uiAmountString": "582260.309823",
+      "owner": "G4yzHVWzK4FxotKhJXErwCLjc4Aj4Cki9ZVKkXCP9Bs",
+      "insider": false
+     },
+     {
+      "address": "CvYtqn2RDrJqeeuAQhadDKvhyk7z2kiwpzv5N8YUdHE",
+      "amount": 582260295924,
+      "decimals": 6,
+      "pct": 0.058226736021263874,
+      "uiAmount": 582260.295924,
+      "uiAmountString": "582260.295924",
+      "owner": "7Q7Ci9BzQfVzx6pAGshnQ8Zs3zaLyvcjCBSKZbYfqE4m",
+      "insider": false
+     },
+     {
+      "address": "HwQYGJ8uMxgzAHFsjDVx8k3J2kDs7c63tNWCmPQzhXHC",
+      "amount": 582260189403,
+      "decimals": 6,
+      "pct": 0.05822672536903463,
+      "uiAmount": 582260.189403,
+      "uiAmountString": "582260.189403",
+      "owner": "9TC73drRSqaHvvnJ1AYrvo9q9FGndgM5KzMtgyhko7MH",
+      "insider": false
+     },
+     {
+      "address": "2Tg7Ww79Too9CPj4HtshhDpnwNfW4TJcBycK9KMdBkKv",
+      "amount": 582260163638,
+      "decimals": 6,
+      "pct": 0.05822672279250338,
+      "uiAmount": 582260.163638,
+      "uiAmountString": "582260.163638",
+      "owner": "BqiaNpNaT8UVYVzHAqi3NtZuMHDW6SyQK2eFZYh8eJBD",
+      "insider": false
+     },
+     {
+      "address": "J2LeGaCbuJDL4LbC2GEE2fRun9zt8RiWkjnLqgxUwQ39",
+      "amount": 582260054586,
+      "decimals": 6,
+      "pct": 0.058226711887171066,
+      "uiAmount": 582260.054586,
+      "uiAmountString": "582260.054586",
+      "owner": "3E6hvcb8MA1fyiApAAiHVbPCY3ybKV879dfnVSGwvScW",
+      "insider": false
+     },
+     {
+      "address": "3cDCTN45hRLrkWZscmHqLvj5MmSaSQjecWLRG2ihYGtT",
+      "amount": 582260019471,
+      "decimals": 6,
+      "pct": 0.05822670837562846,
+      "uiAmount": 582260.019471,
+      "uiAmountString": "582260.019471",
+      "owner": "7qjsovh3RmVWdWAQEUGrQ9D1geazDpjAVXpw2vdVPEKS",
+      "insider": false
+     },
+     {
+      "address": "5n8j9GKYnVdfoGcmYgpGYUT2VHiCewZiziQe486EkU88",
+      "amount": 582260007965,
+      "decimals": 6,
+      "pct": 0.0582267072250145,
+      "uiAmount": 582260.007965,
+      "uiAmountString": "582260.007965",
+      "owner": "CT4CKboHUinVSejMmCXiK5GoJM8SK8A33yFGfxLG3w6x",
+      "insider": false
+     },
+     {
+      "address": "HJQuUWUMXuSqrAwwUGE27Cdu58Pp8oMFEihzTeVphbTv",
+      "amount": 582259978122,
+      "decimals": 6,
+      "pct": 0.0582267042406783,
+      "uiAmount": 582259.978122,
+      "uiAmountString": "582259.978122",
+      "owner": "BcUGB7uhNhHuY89bESBVarBmhqVE9KhhARStoceZpA85",
+      "insider": false
+     },
+     {
+      "address": "5L38rKnKdbKi3EhvhmwJWNyy8iuWhKXFrNmWGAMWURMR",
+      "amount": 582259976543,
+      "decimals": 6,
+      "pct": 0.05822670408277638,
+      "uiAmount": 582259.976543,
+      "uiAmountString": "582259.976543",
+      "owner": "e1HfEeoEoWx9jQxsQJf6UKHoMhaB89tsKKsbFN9oqRW",
+      "insider": false
+     },
+     {
+      "address": "6jBYf1fNewiQrv8raPG3Wb8WGDE6BVd8PFmhXwrWwEJn",
+      "amount": 582259971461,
+      "decimals": 6,
+      "pct": 0.05822670357457021,
+      "uiAmount": 582259.971461,
+      "uiAmountString": "582259.971461",
+      "owner": "DYFcU565Hi7wYB74BPVgvBCpXwBtcMx2pixpFVqsAiEC",
+      "insider": false
+     },
+     {
+      "address": "9LvzJW1CPmsc6puwgXS8EjWz1UWpL1jEvqk3uHCHAcbj",
+      "amount": 582259910074,
+      "decimals": 6,
+      "pct": 0.05822669743579574,
+      "uiAmount": 582259.910074,
+      "uiAmountString": "582259.910074",
+      "owner": "8bNEzKL8rXmXh65m1cdHzusYPJgPaz6Yro6JiM28v7gd",
+      "insider": false
+     },
+     {
+      "address": "F1Wb5EtMp9MnedGDqe5qyFbJMY3HC1KwAB1HfF7KyUMm",
+      "amount": 582259840870,
+      "decimals": 6,
+      "pct": 0.05822669051531177,
+      "uiAmount": 582259.84087,
+      "uiAmountString": "582259.84087",
+      "owner": "8fcmPMFSfxXc1sWTmQib6QoJ6SpdVRb8soYcnESozSZ3",
+      "insider": false
+     }
+    ],
+    "freezeAuthority": null,
+    "mintAuthority": null,
+    "risks": [
+     {
+      "name": "High holder correlation",
+      "value": "(17)",
+      "description": "The top users hold similar supply amounts",
+      "score": 2700,
+      "level": "warn"
+     }
+    ],
+    "score": 2701,
+    "score_normalised": 32,
+    "fileMeta": {
+     "description": "",
+     "name": "AODF",
+     "symbol": "AODF",
+     "image": ""
+    },
+    "lockerOwners": {},
+    "lockers": {},
+    "lockerScanStatus": "none",
+    "markets": [
+     {
+      "pubkey": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+      "marketType": "pump_fun_amm",
+      "mintA": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+      "mintB": "So11111111111111111111111111111111111111112",
+      "mintLP": "BepZU1Kvb8PUub4LsBjuG7cvCVUCuyfmNpBBh45Fmzmg",
+      "liquidityA": "6s47gP1C7L33QP7S6QTTe9N599MmEGpe3HuGVhE1cTSR",
+      "liquidityB": "F5vkU6LE3MD65t7mVXAWS6UiMGaz3NyK5VQ6XYACjFkV",
+      "mintAAccount": {
+       "mintAuthority": null,
+       "supply": 999987867620407,
+       "decimals": 6,
+       "isInitialized": true,
+       "freezeAuthority": null
+      },
+      "mintBAccount": {
+       "mintAuthority": null,
+       "supply": 0,
+       "decimals": 9,
+       "isInitialized": true,
+       "freezeAuthority": null
+      },
+      "mintLPAccount": {
+       "mintAuthority": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+       "supply": 0,
+       "decimals": 9,
+       "isInitialized": true,
+       "freezeAuthority": null
+      },
+      "liquidityAAccount": {
+       "mint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+       "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+       "amount": 11848548118115,
+       "delegate": null,
+       "state": 1,
+       "delegatedAmount": 0,
+       "closeAuthority": null
+      },
+      "liquidityBAccount": {
+       "mint": "So11111111111111111111111111111111111111112",
+       "owner": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+       "amount": 1481326608148,
+       "delegate": null,
+       "state": 1,
+       "delegatedAmount": 0,
+       "closeAuthority": null
+      },
+      "lp": {
+       "baseMint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+       "quoteMint": "So11111111111111111111111111111111111111112",
+       "lpMint": "BepZU1Kvb8PUub4LsBjuG7cvCVUCuyfmNpBBh45Fmzmg",
+       "quotePrice": 94.535858586154,
+       "basePrice": 0.011985421330014403,
+       "base": 11848548.118115,
+       "quote": 1481.326608148,
+       "reserveSupply": 4193388282605,
+       "currentSupply": 0,
+       "quoteUSD": 140038.4827477865,
+       "baseUSD": 142009.84134455753,
+       "pctReserve": 0,
+       "pctSupply": 0,
+       "holders": null,
+       "totalTokensUnlocked": 0,
+       "tokenSupply": 0,
+       "lpLocked": 4193388282605,
+       "lpUnlocked": 0,
+       "lpLockedPct": 100,
+       "lpLockedUSD": 282048.32409234403,
+       "lpMaxSupply": 0,
+       "lpCurrentSupply": 0,
+       "lpTotalSupply": 4193388282605
+      }
+     }
+    ],
+    "totalMarketLiquidity": 282048.32409234403,
+    "totalStableLiquidity": 140038.4827477865,
+    "totalLPProviders": 0,
+    "totalHolders": 3059,
+    "price": 0.011925620132934543,
+    "rugged": false,
+    "tokenType": "",
+    "transferFee": {
+     "pct": 0,
+     "maxAmount": 0,
+     "authority": "11111111111111111111111111111111"
+    },
+    "knownAccounts": {
+     "5txKJbePcD73RaSLhQijmqqvwaJBdHEw7P9bngjjWPzE": {
+      "name": "Pump Fun",
+      "type": "AMM"
+     },
+     "AjeL8cez6PWxqTAfD6ixqfxArzSx7Ywor2gH6R5aKi6e": {
+      "name": "Creator",
+      "type": "CREATOR"
+     },
+     "BGgYB6UJ9iYgYgTsWPKNr27dtT2NXsLBvMyhrNHLYHfM": {
+      "name": "Printr Stake Pool",
+      "type": "LOCKER"
+     },
+     "F5vkU6LE3MD65t7mVXAWS6UiMGaz3NyK5VQ6XYACjFkV": {
+      "name": "Pump Fun AMM",
+      "type": "AMM"
+     },
+     "G4RZafMvhaB8HLPM3pD6bZXuthFFV5yQRmS1JUGn9Fim": {
+      "name": "Pump Fun AMM",
+      "type": "AMM"
+     },
+     "HHth7tu2JgMijg5zaRw1Yr58BZFfaseiuNXdCRTadrJ9": {
+      "name": "Pump Fun",
+      "type": "AMM"
+     },
+     "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4": {
+      "name": "Pump Fun AMM",
+      "type": "AMM"
+     }
+    },
+    "events": [],
+    "verification": null,
+    "validation": {
+     "validated": false
+    },
+    "graphInsidersDetected": 0,
+    "insiderNetworks": null,
+    "detectedAt": "2026-10-31T23:49:37.027238836Z",
+    "creatorTokens": null,
+    "launchpad": {
+     "name": "Pump.Fun",
+     "logo": "https://api.rugcheck.xyz/public/logos/pump_fun.png",
+     "url": "https://x.com/pumpfun",
+     "platform": "pump_fun"
+    },
+    "deployPlatform": "unknown"
+   },
+   "https://lite-api.jup.ag/tokens/v2/search?query=AODF": [
+    {
+     "id": "9XDuPo32gHEPNyRnuM8sdUeFh7p9VoreihoCME7Bpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HWCt0SMbQAA-btF?format=png&name=small",
+     "decimals": 6,
+     "dev": "8kyvQ7dzp5kJCUf38ZzpXPg4xTuiWYAEoLQmbS4oqo25",
+     "circSupply": 999997072.531786,
+     "totalSupply": 999997072.531786,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "3dCL5paRBuoxqFeWPqupFr1nnQUrC3bxYkkFFXJTixv9",
+     "graduatedAt": "2026-11-01T13:22:14Z",
+     "holderCount": 4591,
+     "fdv": 1132814385.1140387,
+     "mcap": 1132814385.1140387,
+     "usdPrice": 1.132817701401852,
+     "priceBlockId": 464182708,
+     "liquidity": 1371323.932144782,
+     "stats5m": {
+      "priceChange": -0.06043034779630051,
+      "holderChange": 0.021786492374727667,
+      "liquidityChange": -0.09725786608608193,
+      "volumeChange": 31.943854133208593,
+      "buyVolume": 1181.9713398971974,
+      "sellVolume": 1063.5688737750272,
+      "numBuys": 339,
+      "numSells": 6,
+      "numTraders": 53,
+      "numNetBuyers": 47
+     },
+     "stats1h": {
+      "priceChange": 0.8267512068084364,
+      "holderChange": 0.2839667977282656,
+      "liquidityChange": 0.3043895437375961,
+      "volumeChange": -94.00084089433219,
+      "buyVolume": 13544.994437296666,
+      "sellVolume": 8634.943841343014,
+      "numBuys": 3921,
+      "numSells": 73,
+      "numTraders": 55,
+      "numNetBuyers": 37
+     },
+     "stats6h": {
+      "priceChange": 98.74551735586284,
+      "holderChange": 11097.560975609755,
+      "liquidityChange": 40.752769025310734,
+      "buyVolume": 1418065.5921612887,
+      "sellVolume": 44849.24433077062,
+      "numBuys": 14769,
+      "numSells": 411,
+      "numTraders": 179,
+      "numNetBuyers": 165
+     },
+     "stats24h": {
+      "priceChange": 98.74551735586284,
+      "holderChange": 11097.560975609755,
+      "liquidityChange": 40.752769025310734,
+      "buyVolume": 1418065.5921612887,
+      "sellVolume": 44849.24433077062,
+      "numBuys": 14769,
+      "numSells": 411,
+      "numTraders": 179,
+      "numNetBuyers": 165
+     },
+     "firstPool": {
+      "id": "9XDuPo32gHEPNyRnuM8sdUeFh7p9VoreihoCME7Bpump",
+      "createdAt": "2026-11-01T13:22:14Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.22698677566007075,
+      "devMigrations": 4,
+      "devMints": 7
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-11-01T13:22:14Z",
+     "updatedAt": "2026-11-01T17:52:03.621030838Z"
+    },
+    {
+     "id": "GePXefzRNUT92fcn5u8VfXpPPc9BhCmyPefKW2MRpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://images.pump.fun/coin-image/B74VmWbE9xaKKVbM59dcBDhgmAVkACtJa4jPvf3pump?variant=600x600&src=https%3A%2F%2Fpbs.twimg.com%2Fmedia%2FHVCj0zEaAAAAZOT%3Fformat%3Dpng%26name%3D360x360",
+     "decimals": 6,
+     "dev": "HsYuwMbniiTTkVjwoz8fPNx75rjgAiAcYqn8gDzt452T",
+     "circSupply": 999987834.186113,
+     "totalSupply": 999987834.186113,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "CBYXncob6CkHNBKv6uM7DnEwomB4JmqB5Httuvs5U5Eu",
+     "graduatedAt": "2026-10-31T16:52:23Z",
+     "holderCount": 2122,
+     "fdv": 201686661.77046078,
+     "mcap": 201686661.77046078,
+     "usdPrice": 0.20168911548270277,
+     "priceBlockId": 464182701,
+     "liquidity": 577823.8390835994,
+     "stats5m": {
+      "priceChange": 0.024066218908791365,
+      "liquidityChange": -0.08161399785943742,
+      "volumeChange": -14.503041192077776,
+      "buyVolume": 462.2465214420794,
+      "sellVolume": 185.59148775140807,
+      "numBuys": 50,
+      "numSells": 4,
+      "numTraders": 39,
+      "numNetBuyers": 35
+     },
+     "stats1h": {
+      "priceChange": 0.4310246390534618,
+      "holderChange": 0.04714757190004715,
+      "liquidityChange": 0.10423730000495637,
+      "volumeChange": -86.34515315747738,
+      "buyVolume": 4280.878484235432,
+      "sellVolume": 2975.0058722496383,
+      "numBuys": 562,
+      "numSells": 77,
+      "numTraders": 95,
+      "numNetBuyers": 64
+     },
+     "stats6h": {
+      "priceChange": 21.819797250660383,
+      "holderChange": -0.047103155911446065,
+      "liquidityChange": 10.029717449418776,
+      "volumeChange": 234.16191781025165,
+      "buyVolume": 113307.06187112274,
+      "sellVolume": 57190.853088448726,
+      "numBuys": 3147,
+      "numSells": 500,
+      "numTraders": 111,
+      "numNetBuyers": 71
+     },
+     "stats24h": {
+      "priceChange": 42.5059565991357,
+      "holderChange": -0.09416195856873823,
+      "liquidityChange": 18.55824808283082,
+      "volumeChange": -27.10588961895254,
+      "buyVolume": 228723.99615314085,
+      "sellVolume": 130430.39538189971,
+      "numBuys": 14175,
+      "numSells": 3389,
+      "numTraders": 133,
+      "numNetBuyers": 104
+     },
+     "firstPool": {
+      "id": "GePXefzRNUT92fcn5u8VfXpPPc9BhCmyPefKW2MRpump",
+      "createdAt": "2026-10-31T16:52:23Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 14.405150124755634,
+      "devBalancePercentage": 6.643080818484874e-10,
+      "devMigrations": 2,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-31T16:52:23Z",
+     "updatedAt": "2026-11-01T17:52:02.794237545Z"
+    },
+    {
+     "id": "pvRLSbbBJ93DQW4i2eNwQN3NXPvQafdv5HAA6vBpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVzYglhbMAA9Lu4?format=png&name=small",
+     "decimals": 6,
+     "dev": "7bgoWJ7pTHbXVAEfKSA8N1D7hhXYrE5ErTXD3y3CFy3G",
+     "circSupply": 999591915.258723,
+     "totalSupply": 999591915.258723,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "CR6FX4RbyCDXvPvzRst8zJNDr2UdTpfY9cYoSCsSugu1",
+     "graduatedAt": "2026-10-29T13:56:05Z",
+     "holderCount": 2068,
+     "fdv": 8889612.151610706,
+     "mcap": 8889612.151610706,
+     "usdPrice": 0.008893241347705198,
+     "priceBlockId": 464182691,
+     "liquidity": 120500.07896560828,
+     "stats5m": {
+      "priceChange": -0.08574422754097913,
+      "liquidityChange": -0.12201969563843518,
+      "volumeChange": 16.675310639202937,
+      "buyVolume": 283.01784368896017,
+      "sellVolume": 289.9166190169024,
+      "numBuys": 13,
+      "numSells": 9,
+      "numTraders": 10,
+      "numNetBuyers": 6
+     },
+     "stats1h": {
+      "priceChange": 0.4696643597570868,
+      "holderChange": -0.04833252779120348,
+      "liquidityChange": 0.15411679646264692,
+      "volumeChange": 6.849844004008906,
+      "buyVolume": 3523.3654411675084,
+      "sellVolume": 3161.0192980806355,
+      "numBuys": 161,
+      "numSells": 110,
+      "numTraders": 12,
+      "numNetBuyers": 7
+     },
+     "stats6h": {
+      "priceChange": 2.938572800252714,
+      "holderChange": 0.0968054211035818,
+      "liquidityChange": 1.1803292309335844,
+      "volumeChange": -2.862482526459132,
+      "buyVolume": 20363.335096163362,
+      "sellVolume": 18635.442647662032,
+      "numBuys": 958,
+      "numSells": 645,
+      "numTraders": 19,
+      "numNetBuyers": 13
+     },
+     "stats24h": {
+      "priceChange": 15.444261103851364,
+      "holderChange": 0.878048780487805,
+      "liquidityChange": 6.86397587387132,
+      "volumeChange": -0.10184186611229673,
+      "buyVolume": 84063.60788924218,
+      "sellVolume": 75839.32643960745,
+      "buyOrganicVolume": 2.0184750856419464,
+      "sellOrganicVolume": 2.0453067607123083,
+      "numBuys": 3898,
+      "numSells": 2608,
+      "numTraders": 24,
+      "numNetBuyers": 14
+     },
+     "firstPool": {
+      "id": "pvRLSbbBJ93DQW4i2eNwQN3NXPvQafdv5HAA6vBpump",
+      "createdAt": "2026-10-29T13:56:05Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.5534580188743399,
+      "devBalancePercentage": 1.3483085241352333,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "token-2022",
+      "unknown"
+     ],
+     "createdAt": "2026-10-29T13:56:05Z",
+     "updatedAt": "2026-11-01T17:52:00.933270827Z"
+    },
+    {
+     "id": "BBdkjpzgzVV8nc18dF4GRdbGX46Ckfx3Nvij422Tpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://images.pump.fun/coin-image/B74VmWbE9xaKKVbM59dcBDhgmAVkACtJa4jPvf3pump?variant=600x600&src=https%3A%2F%2Fpbs.twimg.com%2Fmedia%2FHVCj0zEaAAAAZOT%3Fformat%3Dpng%26name%3D360x360",
+     "decimals": 6,
+     "dev": "HrQjGB9LNgubT8P8VRtamgqaFEKBPmMAUz9cuo9PZjz2",
+     "circSupply": 999987832.237764,
+     "totalSupply": 999987832.237764,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "CvMbPrmhfcgdfgKqUrUtCdRzFATXmrTVCB4rZkunDaSR",
+     "graduatedAt": "2026-10-29T10:59:17Z",
+     "holderCount": 2230,
+     "fdv": 6704230.272922273,
+     "mcap": 6704230.272922273,
+     "usdPrice": 0.006704311849394812,
+     "priceBlockId": 464182703,
+     "liquidity": 104491.57231816603,
+     "stats5m": {
+      "priceChange": 0.16670454484169922,
+      "liquidityChange": 0.02768665919625022,
+      "volumeChange": 28.0385297907647,
+      "buyVolume": 224.97424310763273,
+      "sellVolume": 87.88291018530141,
+      "numBuys": 11,
+      "numSells": 3,
+      "numTraders": 11,
+      "numNetBuyers": 8
+     },
+     "stats1h": {
+      "priceChange": 1.146020030187498,
+      "liquidityChange": 0.1894158726262091,
+      "volumeChange": -2.9524137129726467,
+      "buyVolume": 1599.12251314334,
+      "sellVolume": 1273.6964937064192,
+      "numBuys": 92,
+      "numSells": 61,
+      "numTraders": 73,
+      "numNetBuyers": 41
+     },
+     "stats6h": {
+      "priceChange": 4.670825240513387,
+      "holderChange": 0.08976660682226212,
+      "liquidityChange": 2.0161059351095267,
+      "volumeChange": -26.6966064173508,
+      "buyVolume": 10260.32544815899,
+      "sellVolume": 7508.347415794364,
+      "numBuys": 534,
+      "numSells": 385,
+      "numTraders": 103,
+      "numNetBuyers": 61
+     },
+     "stats24h": {
+      "priceChange": 42.88764536752731,
+      "holderChange": 0.3148897885739991,
+      "liquidityChange": 19.190640257686738,
+      "volumeChange": -88.70046533839815,
+      "buyVolume": 57646.626464628906,
+      "sellVolume": 39867.05987874109,
+      "buyOrganicVolume": 7.662626154552979,
+      "sellOrganicVolume": 8.973047043065145,
+      "numBuys": 2285,
+      "numSells": 1425,
+      "numTraders": 112,
+      "numNetBuyers": 83
+     },
+     "firstPool": {
+      "id": "BBdkjpzgzVV8nc18dF4GRdbGX46Ckfx3Nvij422Tpump",
+      "createdAt": "2026-10-29T10:59:17Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 14.072748125079796,
+      "devBalancePercentage": 0.003335410356780181,
+      "devMigrations": 5,
+      "devMints": 10
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-29T10:59:17Z",
+     "updatedAt": "2026-11-01T17:52:03.335273456Z"
+    },
+    {
+     "id": "JAKVR89eBd9XYc2y5Qadw7jB4F37KtX2c8Auy7CmPPZJ",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://gateway.pinata.cloud/ipfs/bafkreif6nw3ru7sw26eucwzqva4tzvjrqtq34o2ra6w6r4fxnosggoisxq",
+     "decimals": 6,
+     "dev": "3d6inHPqN7KjKgoKt6N5zUd5MfZmPUa7bk1RVfL8qtq3",
+     "circSupply": 1000000000,
+     "totalSupply": 1000000000,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "met-dbc",
+     "metaLaunchpad": "met-dbc",
+     "partnerConfig": "FJE8vvKcLJN3F65zjwwug4PMcmspkMLxDqzcgfQQxQGt",
+     "graduatedPool": "CEW2SmwLkbHU8aKoPUn5d24L7cqamU2ueMMjcZEp6qUM",
+     "graduatedAt": "2026-10-17T19:03:00Z",
+     "holderCount": 1461,
+     "fdv": 2400454.7465379587,
+     "mcap": 2400454.7465379587,
+     "usdPrice": 0.002400454746537959,
+     "priceBlockId": 464182246,
+     "liquidity": 32537.912846531595,
+     "stats5m": {
+      "priceChange": 0.33482867839241387,
+      "holderChange": 0.1370801919122687,
+      "liquidityChange": 0.22520836596495236,
+      "volumeChange": 4363.071061571312,
+      "buyVolume": 675.3993980120774,
+      "sellVolume": 604.0391749271996,
+      "numBuys": 5,
+      "numSells": 4,
+      "numTraders": 4,
+      "numNetBuyers": 3
+     },
+     "stats1h": {
+      "priceChange": 3.4398540463683673,
+      "holderChange": 1.5994436717663423,
+      "liquidityChange": 3.131079582357865,
+      "volumeChange": 157.42326635232513,
+      "buyVolume": 4094.530011826283,
+      "sellVolume": 3108.395892070239,
+      "numBuys": 40,
+      "numSells": 42,
+      "numTraders": 29,
+      "numNetBuyers": 22
+     },
+     "stats6h": {
+      "priceChange": 3.9829061634175855,
+      "holderChange": 6.876371616678859,
+      "liquidityChange": 3.097354065486988,
+      "volumeChange": 129.31928401812434,
+      "buyVolume": 12833.279549901063,
+      "sellVolume": 11913.395362031057,
+      "numBuys": 139,
+      "numSells": 151,
+      "numTraders": 70,
+      "numNetBuyers": 56
+     },
+     "stats24h": {
+      "priceChange": 5.210484138531321,
+      "holderChange": 17.44372990353698,
+      "liquidityChange": 7.162534059584202,
+      "volumeChange": 70.98244834674688,
+      "buyVolume": 29630.70958047182,
+      "sellVolume": 28857.07121539955,
+      "buyOrganicVolume": 323.8830592401275,
+      "sellOrganicVolume": 11.519887315713797,
+      "numBuys": 350,
+      "numSells": 363,
+      "numTraders": 174,
+      "numNetBuyers": 128
+     },
+     "firstPool": {
+      "id": "JAKVR89eBd9XYc2y5Qadw7jB4F37KtX2c8Auy7CmPPZJ",
+      "createdAt": "2026-10-17T18:54:10Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 12.433334471895401,
+      "devMigrations": 1,
+      "devMints": 1
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-17T18:54:10Z",
+     "updatedAt": "2026-11-01T17:50:34.417486233Z"
+    },
+    {
+     "id": "JyBc4R4WSDxM3Y6vpqmB1nKQV5YqmyxUNvVhebfpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HV-A5ZwbYAAoDLv?format=png&name=small",
+     "decimals": 6,
+     "dev": "4xUsNGdTpwXbtUmi35kg2vaSGSfU9Sxgs8gd9SFzekJc",
+     "circSupply": 999997079.76791,
+     "totalSupply": 999997079.76791,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "CSfqENpjeBh1oJKSWryc8nLFxYXLxYrgaPTf8GKXdR5s",
+     "graduatedAt": "2026-11-01T14:22:33Z",
+     "holderCount": 2926,
+     "fdv": 902806745.1695067,
+     "mcap": 902806745.1695067,
+     "usdPrice": 0.902809381582434,
+     "priceBlockId": 464182696,
+     "liquidity": 1223818.2134800632,
+     "stats5m": {
+      "priceChange": 0.011850129580825498,
+      "holderChange": -0.0341646737273659,
+      "liquidityChange": -0.07493912429018589,
+      "volumeChange": 44.12179357001907,
+      "buyVolume": 805.3776901520758,
+      "sellVolume": 92.45002253095532,
+      "numBuys": 263,
+      "numSells": 6,
+      "numTraders": 254,
+      "numNetBuyers": 250
+     },
+     "stats1h": {
+      "priceChange": 1.1666971335193719,
+      "holderChange": 0.30853616729516625,
+      "liquidityChange": 0.47439379564584133,
+      "volumeChange": -96.14222921944025,
+      "buyVolume": 7415.733446022324,
+      "sellVolume": 1076.1745126452527,
+      "numBuys": 3181,
+      "numSells": 60,
+      "numTraders": 2352,
+      "numNetBuyers": 2352
+     },
+     "stats6h": {
+      "priceChange": 57.86107282679516,
+      "holderChange": 26500,
+      "liquidityChange": 25.337775288949487,
+      "buyVolume": 1236848.3541983396,
+      "sellVolume": 9497.269964734687,
+      "numBuys": 11625,
+      "numSells": 277,
+      "numTraders": 2938,
+      "numNetBuyers": 2917
+     },
+     "stats24h": {
+      "priceChange": 57.86107282679516,
+      "holderChange": 26500,
+      "liquidityChange": 25.337775288949487,
+      "buyVolume": 1236848.3541983396,
+      "sellVolume": 9497.269964734687,
+      "numBuys": 11625,
+      "numSells": 277,
+      "numTraders": 2938,
+      "numNetBuyers": 2917
+     },
+     "firstPool": {
+      "id": "JyBc4R4WSDxM3Y6vpqmB1nKQV5YqmyxUNvVhebfpump",
+      "createdAt": "2026-11-01T14:22:33Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.6648112446217302,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-11-01T14:22:33Z",
+     "updatedAt": "2026-11-01T17:52:03.891694767Z"
+    },
+    {
+     "id": "4AWLQqBBZxDYNJ872F9CP4t6kWF8RZ5nNuGknV6Zpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HWAD7gBawAAnkC5?format=jpg&name=large",
+     "decimals": 6,
+     "website": "https://aodf.info/",
+     "dev": "5921LKsZpKTSY9TVVJiYsckr5idqppsRsPpWTRPsWQVX",
+     "circSupply": 999991498.344625,
+     "totalSupply": 999991498.344625,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "DLMqEHLDG2WTUJsiPnrhm9rVmkmTfmqckwKGZA53ds6V",
+     "graduatedAt": "2026-11-01T00:59:15Z",
+     "holderCount": 4213,
+     "fdv": 11995925.391743122,
+     "mcap": 11995925.391743122,
+     "usdPrice": 0.011996027377833757,
+     "priceBlockId": 464182692,
+     "liquidity": 140187.71876667504,
+     "stats5m": {
+      "priceChange": -0.12096431419252446,
+      "liquidityChange": -0.09090279394274475,
+      "volumeChange": 24.823466518383878,
+      "buyVolume": 183.46313395589883,
+      "sellVolume": 135.91261720362124,
+      "buyOrganicVolume": 4.996820949914505,
+      "numBuys": 222,
+      "numSells": 58,
+      "numTraders": 254,
+      "numNetBuyers": 204
+     },
+     "stats1h": {
+      "priceChange": 7.207766914889932,
+      "holderChange": 0.16642891107941038,
+      "liquidityChange": 3.5211985083211426,
+      "volumeChange": -99.44573018122446,
+      "buyVolume": 5480.987661725361,
+      "sellVolume": 1355.584251767137,
+      "buyOrganicVolume": 64.90323938916859,
+      "numBuys": 2671,
+      "numSells": 698,
+      "numTraders": 2021,
+      "numNetBuyers": 1669
+     },
+     "stats6h": {
+      "priceChange": -96.60471417227636,
+      "holderChange": 2.8815628815628815,
+      "liquidityChange": -81.79350867298768,
+      "volumeChange": 957.7398768369168,
+      "buyVolume": 869782.9255349969,
+      "sellVolume": 1513002.8188678978,
+      "buyOrganicVolume": 3147.44020031045,
+      "sellOrganicVolume": 283.6708963828518,
+      "numBuys": 21224,
+      "numSells": 8864,
+      "numTraders": 2090,
+      "numNetBuyers": 1838
+     },
+     "stats24h": {
+      "priceChange": -93.93090582983795,
+      "holderChange": 38200,
+      "liquidityChange": -75.85831715222122,
+      "buyVolume": 1717947.8597249484,
+      "sellVolume": 1597245.0967343205,
+      "buyOrganicVolume": 3588.300425760028,
+      "sellOrganicVolume": 283.6708963828518,
+      "numBuys": 53257,
+      "numSells": 18429,
+      "numTraders": 2122,
+      "numNetBuyers": 2056
+     },
+     "firstPool": {
+      "id": "4AWLQqBBZxDYNJ872F9CP4t6kWF8RZ5nNuGknV6Zpump",
+      "createdAt": "2026-11-01T00:59:15Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.49854247310529615,
+      "devBalancePercentage": 0.3172426970880809,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-11-01T00:59:15Z",
+     "updatedAt": "2026-11-01T17:52:03.891520095Z"
+    },
+    {
+     "id": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HV-A5ZwbYAAoDLv?format=png&name=small",
+     "decimals": 6,
+     "dev": "AjeL8cez6PWxqTAfD6ixqfxArzSx7Ywor2gH6R5aKi6e",
+     "circSupply": 999987867.620407,
+     "totalSupply": 999987867.620407,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+     "graduatedAt": "2026-10-31T23:49:36Z",
+     "holderCount": 3003,
+     "fdv": 11928205.578006124,
+     "mcap": 11928205.578006124,
+     "usdPrice": 0.011928350297279849,
+     "priceBlockId": 464182590,
+     "liquidity": 140064.73839506716,
+     "stats5m": {
+      "priceChange": -0.39732310380051794,
+      "liquidityChange": -0.040037423082461505,
+      "volumeChange": 5.448092802756953,
+      "buyVolume": 288.043830294747,
+      "sellVolume": 180.57450861358046,
+      "buyOrganicVolume": 4.997010925349918,
+      "numBuys": 14,
+      "numSells": 5,
+      "numTraders": 3,
+      "numNetBuyers": 3
+     },
+     "stats1h": {
+      "priceChange": -98.85135269464527,
+      "holderChange": -0.628722700198544,
+      "liquidityChange": -89.35726963540468,
+      "volumeChange": 756.3540767412362,
+      "buyVolume": 6486.893111267029,
+      "sellVolume": 1180589.3386542597,
+      "buyOrganicVolume": 44.00112605341984,
+      "numBuys": 285,
+      "numSells": 80,
+      "numTraders": 164,
+      "numNetBuyers": 141
+     },
+     "stats6h": {
+      "priceChange": -96.59650675701626,
+      "holderChange": 1.486988847583643,
+      "liquidityChange": -81.69628248584893,
+      "volumeChange": 639.7342768935547,
+      "buyVolume": 676788.882341819,
+      "sellVolume": 1307856.0244954433,
+      "buyOrganicVolume": 771.5002558062288,
+      "numBuys": 15989,
+      "numSells": 1225,
+      "numTraders": 2928,
+      "numNetBuyers": 2890
+     },
+     "stats24h": {
+      "priceChange": -91.2767300073001,
+      "holderChange": 29930,
+      "liquidityChange": -70.71562114943842,
+      "buyVolume": 1506507.2958085726,
+      "sellVolume": 1375725.0063990697,
+      "buyOrganicVolume": 2476.652800409166,
+      "numBuys": 43850,
+      "numSells": 1923,
+      "numTraders": 2954,
+      "numNetBuyers": 2899
+     },
+     "firstPool": {
+      "id": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+      "createdAt": "2026-10-31T23:49:36Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.7157335580498138,
+      "devBalancePercentage": 0.713798660076297,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-31T23:49:36Z",
+     "updatedAt": "2026-11-01T17:51:58.121250625Z"
+    },
+    {
+     "id": "9JbNp7HXbMMc6YcT78PdqRoAix4sEkK9dDHCjZE9pump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://images.pump.fun/coin-image/B74VmWbE9xaKKVbM59dcBDhgmAVkACtJa4jPvf3pump?variant=600x600&src=https%3A%2F%2Fpbs.twimg.com%2Fmedia%2FHVCj0zEaAAAAZOT%3Fformat%3Dpng%26name%3D360x360",
+     "decimals": 6,
+     "dev": "6aroysqkYsykfhLAJ9erQyKb4gQ2odoLJcsHkNL8e6ky",
+     "circSupply": 999987829.086252,
+     "totalSupply": 999987829.086252,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "4cLn4fjhSUh3Wn85xJb5AN9QTDGb4Kyxd58pRXq4GGf9",
+     "graduatedAt": "2026-10-28T05:55:47Z",
+     "holderCount": 2244,
+     "fdv": 115144.57317436601,
+     "mcap": 115144.57317436601,
+     "usdPrice": 0.00011514597460609138,
+     "priceBlockId": 464162922,
+     "liquidity": 12321.507816986272,
+     "stats1h": {
+      "liquidityChange": -0.00264105826567101,
+      "volumeChange": -100
+     },
+     "stats6h": {
+      "priceChange": -17.659738831760933,
+      "holderChange": 0.13386880856760375,
+      "liquidityChange": -10.812279594739048,
+      "buyVolume": 659.534242879057,
+      "sellVolume": 2067.3689745482234,
+      "numBuys": 1412,
+      "numSells": 373,
+      "numTraders": 100,
+      "numNetBuyers": 92
+     },
+     "stats24h": {
+      "priceChange": -43.05943577668184,
+      "holderChange": 0.13386880856760375,
+      "liquidityChange": -27.090052783077372,
+      "volumeChange": -94.37895046031566,
+      "buyVolume": 873.2404732876164,
+      "sellVolume": 5445.7516056552695,
+      "numBuys": 1415,
+      "numSells": 379,
+      "numTraders": 103,
+      "numNetBuyers": 89
+     },
+     "firstPool": {
+      "id": "9JbNp7HXbMMc6YcT78PdqRoAix4sEkK9dDHCjZE9pump",
+      "createdAt": "2026-10-28T05:55:47Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 14.231949836480526,
+      "devBalancePercentage": 0.027380312355120066,
+      "devMigrations": 1,
+      "devMints": 1
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-28T05:55:47Z",
+     "updatedAt": "2026-11-01T17:42:29.742487929Z"
+    },
+    {
+     "id": "49JAYiuNwvMtyZbfDXWwWcCUTgZSBksYG4jX7bFzpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HV-PG98bEAALI4P?format=png&name=small",
+     "decimals": 6,
+     "dev": "5XiAe6o56CmqhwHZbofcrXwS5xhBAMwbQGvJexuPX8u1",
+     "circSupply": 999967133.136426,
+     "totalSupply": 999967133.136426,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "4UYUTTKmdkudxixgGGUsWXzHqdbbKJjxPSMWEtEoUQUU",
+     "graduatedAt": "2026-10-31T16:27:41Z",
+     "holderCount": 9,
+     "fdv": 1875.6120168041216,
+     "mcap": 1875.6120168041216,
+     "usdPrice": 0.000001875673664314556,
+     "priceBlockId": 464146282,
+     "liquidity": 91.82002557883716,
+     "stats6h": {
+      "priceChange": -0.13459510770214303,
+      "holderChange": 28.57142857142857,
+      "liquidityChange": 20.759028124775035,
+      "buyVolume": 79.77244709948062,
+      "sellVolume": 59.980567760858136,
+      "numBuys": 2,
+      "numSells": 1,
+      "numTraders": 3,
+      "numNetBuyers": 2
+     },
+     "stats24h": {
+      "priceChange": -99.99651190302909,
+      "holderChange": -99.65609476499809,
+      "liquidityChange": -99.96935571423573,
+      "volumeChange": -3.7542180905974964,
+      "buyVolume": 2858.9708454870542,
+      "sellVolume": 301554.27277699154,
+      "numBuys": 1112,
+      "numSells": 2070,
+      "numTraders": 2028,
+      "numNetBuyers": 3
+     },
+     "firstPool": {
+      "id": "49JAYiuNwvMtyZbfDXWwWcCUTgZSBksYG4jX7bFzpump",
+      "createdAt": "2026-10-31T16:27:41Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 7.458168007126402,
+      "devBalancePercentage": 0.0017680581105247095,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-31T16:27:41Z",
+     "updatedAt": "2026-11-01T17:41:58.226489335Z"
+    },
+    {
+     "id": "STwnT3yLAihYxhJnSbidrHKYGGkcYJZ6amLpEhgpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HUGHHEIawAAIQED?format=png&name=small",
+     "decimals": 6,
+     "dev": "mYAwUeLBbHxNqHPnVgWFPdoPXq5815UgL1MPJmx48an",
+     "circSupply": 999961779.39032,
+     "totalSupply": 999961779.39032,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "FeMVhFqnZg9dGD5wSRrZEtWMxEfsU28H1QLAbp63kksQ",
+     "graduatedAt": "2026-10-09T23:44:27Z",
+     "holderCount": 119,
+     "fdv": 32805.2396642272,
+     "mcap": 32805.2396642272,
+     "usdPrice": 0.000032806493548412084,
+     "priceBlockId": 464116566,
+     "liquidity": 5802.840527875059,
+     "stats1h": {
+      "holderChange": 1.7094017094017095
+     },
+     "stats6h": {
+      "priceChange": 9.512509278799312,
+      "holderChange": 3.4782608695652173,
+      "liquidityChange": 6.015704106307475,
+      "volumeChange": -89.79088304795066,
+      "buyVolume": 87.78440640255482,
+      "numBuys": 11,
+      "numTraders": 2,
+      "numNetBuyers": 2
+     },
+     "stats24h": {
+      "priceChange": -13.996530311038502,
+      "holderChange": 9.174311926605505,
+      "liquidityChange": -7.646455685524511,
+      "volumeChange": 51.33899604323957,
+      "buyVolume": 306.0701708709637,
+      "sellVolume": 1286.3794666966494,
+      "numBuys": 16,
+      "numSells": 2,
+      "numTraders": 6,
+      "numNetBuyers": 4
+     },
+     "firstPool": {
+      "id": "STwnT3yLAihYxhJnSbidrHKYGGkcYJZ6amLpEhgpump",
+      "createdAt": "2026-10-09T23:44:27Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 37.7311998257401,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-09T23:44:27Z",
+     "updatedAt": "2026-11-01T17:36:11.523973484Z"
+    },
+    {
+     "id": "9qd1HBWx2ybca1RUnbGZFuBkjFkMUGYdr4XZToyepump",
+     "name": "AODF🔥",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVisD6LacAAroee?format=png&name=small",
+     "decimals": 6,
+     "dev": "D4H6ZrjKTAQHQqn4cLw4GMZFgYivQBE3VS66pT2qpLdZ",
+     "circSupply": 1000000000,
+     "totalSupply": 1000000000,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "holderCount": 1,
+     "fdv": 2829.764518206411,
+     "mcap": 2829.764518206411,
+     "usdPrice": 0.000002829764518206411,
+     "priceBlockId": 461599409,
+     "liquidity": 3034.245662380301,
+     "stats6h": {
+      "volumeChange": -100
+     },
+     "stats24h": {
+      "priceChange": -2.976705416964101,
+      "holderChange": -75,
+      "liquidityChange": 0.17525300045876102,
+      "buyVolume": 122.60842766819376,
+      "sellVolume": 858.1229105114668,
+      "numBuys": 6,
+      "numSells": 8,
+      "numTraders": 8
+     },
+     "firstPool": {
+      "id": "9qd1HBWx2ybca1RUnbGZFuBkjFkMUGYdr4XZToyepump",
+      "createdAt": "2026-10-26T08:37:13Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.0035279881704999997,
+      "devMints": 1
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-26T08:37:13Z",
+     "updatedAt": "2026-10-26T15:11:35Z"
+    },
+    {
+     "id": "AHk8S2k8VDVqA3Y4MV7ow79ssECXzrphK4vDhL4kpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://ipfs.io/ipfs/bafkreih2njtzkz4cwugzyy5rm22tdawirdc2o4nu7crdcr6b5f3w73kvrm",
+     "decimals": 6,
+     "dev": "6g2aH3Yjqf6MrTAEfT39tb8Vny9Vu8dxR3tUmYPDexE3",
+     "circSupply": 1000000000,
+     "totalSupply": 1000000000,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "holderCount": 2,
+     "fdv": 3749.302850545677,
+     "mcap": 3749.302850545677,
+     "usdPrice": 0.000003749302850545677,
+     "priceBlockId": 461447390,
+     "liquidity": 3048.450304990702,
+     "stats1h": {
+      "priceChange": -24.72715428639139,
+      "holderChange": -33.33333333333333,
+      "liquidityChange": -25.666057563804014,
+      "sellVolume": 961.3029486195301,
+      "numSells": 1
+     },
+     "stats6h": {
+      "priceChange": -24.72715428639139,
+      "holderChange": -33.33333333333333,
+      "liquidityChange": -25.666057563804014,
+      "sellVolume": 961.3029486195301,
+      "numSells": 1
+     },
+     "stats24h": {
+      "priceChange": -24.72715428639139,
+      "holderChange": -33.33333333333333,
+      "liquidityChange": -25.666057563804014,
+      "sellVolume": 961.3029486195301,
+      "numSells": 1
+     },
+     "firstPool": {
+      "id": "AHk8S2k8VDVqA3Y4MV7ow79ssECXzrphK4vDhL4kpump",
+      "createdAt": "2026-10-20T01:26:41Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 25.9928763473958,
+      "devBalancePercentage": 25.639511848972703,
+      "devMigrations": 2,
+      "devMints": 167
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-20T01:26:41Z",
+     "updatedAt": "2026-10-25T23:41:14Z"
+    },
+    {
+     "id": "AYomAkwDBghf7UZz3TvKCVVQ5KqSHZr92ivoMyAgpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HWAD7gBawAAnkC5?format=jpg&name=large",
+     "decimals": 6,
+     "website": "https://aodf.info/",
+     "dev": "B4wYkgkonirCZKBTy13wHoDcS15ttExh8h69LJ3T1MKk",
+     "circSupply": 1000000000,
+     "totalSupply": 1000000000,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "holderCount": 2,
+     "fdv": 2676.191174991131,
+     "mcap": 2676.191174991131,
+     "usdPrice": 0.000002676191174991131,
+     "priceBlockId": 464043130,
+     "liquidity": 2860.074101929534,
+     "stats6h": {
+      "volumeChange": -100
+     },
+     "stats24h": {
+      "priceChange": -20.157548877579877,
+      "holderChange": -71.42857142857143,
+      "liquidityChange": -16.620700717336128,
+      "buyVolume": 43.76904538570574,
+      "sellVolume": 965.0976540717722,
+      "numBuys": 8,
+      "numSells": 306,
+      "numTraders": 308,
+      "numNetBuyers": 2
+     },
+     "firstPool": {
+      "id": "AYomAkwDBghf7UZz3TvKCVVQ5KqSHZr92ivoMyAgpump",
+      "createdAt": "2026-11-01T09:15:32Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.4289321752416,
+      "devMints": 1
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-11-01T09:15:32Z",
+     "updatedAt": "2026-11-01T16:13:55.774011774Z"
+    },
+    {
+     "id": "yiTWtj5rXwQQqgZdJNdmnptomaqFFqrNudcKiKHpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVrfvU1bUAA4KBs?format=png&name=small",
+     "decimals": 6,
+     "dev": "5J4vQ4zHCyBiSDM2xwYUQ5K6cHiKFJkrVyRAvtTC5a7Q",
+     "circSupply": 999998716.778325,
+     "totalSupply": 999998716.778325,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "3nkrAXJzyxb3gTpYK9uWZMq4DQ9nmWobrvwyLFC1rkvm",
+     "graduatedAt": "2026-10-30T14:42:31Z",
+     "holderCount": 337,
+     "fdv": 4816.042386611555,
+     "mcap": 4816.042386611555,
+     "usdPrice": 0.000004816048566669464,
+     "priceBlockId": 464181057,
+     "liquidity": 1196.9075960055202,
+     "stats1h": {
+      "priceChange": 5.077299075564223,
+      "holderChange": -0.2958579881656805,
+      "liquidityChange": 6.2741939362083565,
+      "volumeChange": -45.81463465259799,
+      "buyVolume": 127.41173899558791,
+      "sellVolume": 55.377558887806934,
+      "numBuys": 2,
+      "numSells": 2,
+      "numTraders": 2,
+      "numNetBuyers": 1
+     },
+     "stats6h": {
+      "priceChange": -99.99976354057519,
+      "holderChange": -89.48189762796504,
+      "liquidityChange": -99.93514634766444,
+      "volumeChange": 3213.747545986128,
+      "buyVolume": 18213.493359774202,
+      "sellVolume": 1858345.8087154222,
+      "buyOrganicVolume": 425.6276068795695,
+      "numBuys": 4452,
+      "numSells": 378,
+      "numTraders": 2720,
+      "numNetBuyers": 2565
+     },
+     "stats24h": {
+      "priceChange": -99.99972311134529,
+      "holderChange": -88.78535773710483,
+      "liquidityChange": -99.9300749423478,
+      "volumeChange": 893.2880631623925,
+      "buyVolume": 164740.08019228288,
+      "sellVolume": 1878652.4658476377,
+      "buyOrganicVolume": 1086.7737890227263,
+      "numBuys": 59366,
+      "numSells": 1408,
+      "numTraders": 2964,
+      "numNetBuyers": 2736
+     },
+     "firstPool": {
+      "id": "yiTWtj5rXwQQqgZdJNdmnptomaqFFqrNudcKiKHpump",
+      "createdAt": "2026-10-30T14:42:31Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 31.887597367254905,
+      "devBalancePercentage": 1.0000012832233216e-10,
+      "devMigrations": 3,
+      "devMints": 6
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-30T14:42:31Z",
+     "updatedAt": "2026-11-01T17:46:21.130852004Z"
+    },
+    {
+     "id": "DkEFkRqUsK5vCsbw7jSQ6dPk8Vp4o9xnKLPxPVkFpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVrfvU1bUAA4KBs?format=png&name=small",
+     "decimals": 6,
+     "dev": "EgyAkzT2PRS5uCuVh8Y8XGnmJD1e2b6zyAdnrwMzyyK",
+     "circSupply": 999987842.914563,
+     "totalSupply": 999987842.914563,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "5UVXmjzjhnxfuXdn3E3ExpB8gTnnm49NADykxrcVyV1R",
+     "graduatedAt": "2026-10-31T22:31:18Z",
+     "holderCount": 91,
+     "fdv": 3138.7297061579075,
+     "mcap": 3138.7297061579075,
+     "usdPrice": 0.0000031387678644270022,
+     "priceBlockId": 464155174,
+     "liquidity": 650.823233721949,
+     "stats1h": {
+      "volumeChange": -100
+     },
+     "stats6h": {
+      "priceChange": -99.99902479794277,
+      "holderChange": -96.72072072072072,
+      "liquidityChange": -99.91124579245178,
+      "volumeChange": 397.0511663204768,
+      "buyVolume": 160385.98713210825,
+      "sellVolume": 888571.7688952929,
+      "buyOrganicVolume": 25.308075557494178,
+      "numBuys": 11162,
+      "numSells": 5320,
+      "numTraders": 2043,
+      "numNetBuyers": 13
+     },
+     "stats24h": {
+      "priceChange": -99.99773217906396,
+      "holderChange": 405.55555555555554,
+      "liquidityChange": -99.86480693034491,
+      "buyVolume": 958282.0764902724,
+      "sellVolume": 954826.2648316307,
+      "buyOrganicVolume": 25.308075557494178,
+      "numBuys": 38100,
+      "numSells": 6195,
+      "numTraders": 2749,
+      "numNetBuyers": 717
+     },
+     "firstPool": {
+      "id": "DkEFkRqUsK5vCsbw7jSQ6dPk8Vp4o9xnKLPxPVkFpump",
+      "createdAt": "2026-10-31T22:31:18Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 27.105107914954303,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-31T22:31:18Z",
+     "updatedAt": "2026-11-01T17:45:14.015271531Z"
+    },
+    {
+     "id": "x2mJfozVWZxdRnVJVYXjE8uUDUWB3irDcWBGXMopump",
+     "name": "American Oil Dividend Fund🔥",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVCZRTgbEAAosfa?format=png&name=small",
+     "decimals": 6,
+     "dev": "FQD7QYfiAXdXHE2PEeTPLdN4T7V7kAGmv4Pni9zbeJZ9",
+     "circSupply": 999461893.64746,
+     "totalSupply": 999461893.64746,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "MXjaxx3mhvasPYukG7e8Hg5Hqx54jpUK82uD2cxeAaQ",
+     "graduatedAt": "2026-10-20T12:37:37Z",
+     "holderCount": 36,
+     "fdv": 11664.280377590247,
+     "mcap": 11664.280377590247,
+     "usdPrice": 0.00001167056038026857,
+     "priceBlockId": 464097627,
+     "liquidity": 2936.3841489963697,
+     "stats6h": {
+      "priceChange": -1.670937481878896,
+      "liquidityChange": 11.40461256348766,
+      "sellVolume": 91.4868211542992,
+      "numSells": 2,
+      "numTraders": 2
+     },
+     "stats24h": {
+      "priceChange": 6.870892530230894,
+      "holderChange": 16.129032258064516,
+      "liquidityChange": 4.529513070594922,
+      "volumeChange": 10.280026950699824,
+      "sellVolume": 419.49015383973955,
+      "numSells": 3,
+      "numTraders": 3
+     },
+     "firstPool": {
+      "id": "x2mJfozVWZxdRnVJVYXjE8uUDUWB3irDcWBGXMopump",
+      "createdAt": "2026-10-20T12:37:37Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 41.65154356325809,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-10-20T12:37:37Z",
+     "updatedAt": "2026-11-01T16:13:05.579834032Z"
+    },
+    {
+     "id": "7CZH2D9xsgNuhmPgNQtSx8FWoiv9giYdfEP88oiMpump",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HWDboOca0AAlITp?format=png&name=360x360",
+     "decimals": 6,
+     "website": "https://aodf.info/",
+     "dev": "95QaMcCU5JcoQFamrsk72QrjknFTXEJ29ApBfhm3DkTX",
+     "circSupply": 999998608.428759,
+     "totalSupply": 999998608.428759,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "GtpBFFRKHCN8Zo3JJTBAXDtzvuLNLLzDQ5AduYFpciCQ",
+     "graduatedAt": "2026-11-01T16:40:55Z",
+     "holderCount": 12,
+     "fdv": 2238.8274324055283,
+     "mcap": 2238.8274324055283,
+     "usdPrice": 0.000002238830547897732,
+     "priceBlockId": 464167601,
+     "liquidity": 271.5555240541394,
+     "stats1h": {
+      "priceChange": -99.99981383092978,
+      "holderChange": -14.285714285714285,
+      "liquidityChange": -99.98096330987859,
+      "volumeChange": 6.58384911736308,
+      "buyVolume": 50504.751831234316,
+      "sellVolume": 1461989.913987475,
+      "buyOrganicVolume": 29.819950469412802,
+      "sellOrganicVolume": 24.76876429050469,
+      "numBuys": 560,
+      "numSells": 2117,
+      "numTraders": 2294,
+      "numNetBuyers": 271
+     },
+     "stats6h": {
+      "priceChange": -99.99981368380662,
+      "holderChange": 9.090909090909092,
+      "liquidityChange": -99.98094942974535,
+      "buyVolume": 1469555.6351646166,
+      "sellVolume": 1462004.5629499408,
+      "buyOrganicVolume": 29.819950469412802,
+      "sellOrganicVolume": 24.76876429050469,
+      "numBuys": 572,
+      "numSells": 2119,
+      "numTraders": 2300,
+      "numNetBuyers": 276
+     },
+     "stats24h": {
+      "priceChange": -99.99981368380662,
+      "holderChange": 9.090909090909092,
+      "liquidityChange": -99.98094942974535,
+      "buyVolume": 1469555.6351646166,
+      "sellVolume": 1462004.5629499408,
+      "buyOrganicVolume": 29.819950469412802,
+      "sellOrganicVolume": 24.76876429050469,
+      "numBuys": 572,
+      "numSells": 2119,
+      "numTraders": 2300,
+      "numNetBuyers": 276
+     },
+     "firstPool": {
+      "id": "7CZH2D9xsgNuhmPgNQtSx8FWoiv9giYdfEP88oiMpump",
+      "createdAt": "2026-11-01T16:40:55Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 12.848036951058123,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown",
+      "token-2022"
+     ],
+     "createdAt": "2026-11-01T16:40:55Z",
+     "updatedAt": "2026-11-01T17:41:59.617989669Z"
+    },
+    {
+     "id": "4EPRzD4QphJ6HTkvPgcfA7ztLvtQkYgorv9HzrUcpump",
+     "name": "AODF",
+     "symbol": "AODF",
+     "icon": "https://pbs.twimg.com/media/HVPXUhebIAA7Qb0?format=png&name=small",
+     "decimals": 6,
+     "dev": "63bg2zynMYuEcdKtCcf4RmeacF4yisoxJqS2W1GLkjG7",
+     "circSupply": 999987816.145268,
+     "totalSupply": 999987816.145268,
+     "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "launchpad": "pump.fun",
+     "graduatedPool": "ErE8WNoe3WPgCmKDmPXJG3RpsMJUzoqu62GamyiKLPwe",
+     "graduatedAt": "2026-10-25T17:20:09Z",
+     "holderCount": 59,
+     "fdv": 4192.669164662745,
+     "mcap": 4192.669164662745,
+     "usdPrice": 0.000004192720248157181,
+     "priceBlockId": 464076063,
+     "liquidity": 1005.9508829148033,
+     "stats6h": {
+      "priceChange": 2.151354636240784,
+      "holderChange": 1.7241379310344827,
+      "liquidityChange": 6.636239994394337,
+      "volumeChange": 0.11362022288665552,
+      "buyVolume": 56.47909632202172,
+      "numBuys": 2,
+      "numTraders": 1,
+      "numNetBuyers": 1
+     },
+     "stats24h": {
+      "priceChange": 18.26397377275345,
+      "holderChange": 3.508771929824561,
+      "liquidityChange": 30.349834892480004,
+      "volumeChange": -55.14547362543792,
+      "buyVolume": 276.82715590104397,
+      "sellVolume": 202.04018204236823,
+      "numBuys": 8,
+      "numSells": 4,
+      "numTraders": 5,
+      "numNetBuyers": 5
+     },
+     "firstPool": {
+      "id": "4EPRzD4QphJ6HTkvPgcfA7ztLvtQkYgorv9HzrUcpump",
+      "createdAt": "2026-10-25T17:20:09Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 35.10828035771727,
+      "devMigrations": 1,
+      "devMints": 2
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "token-2022",
+      "unknown"
+     ],
+     "createdAt": "2026-10-25T17:20:09Z",
+     "updatedAt": "2026-11-01T17:14:27.266222985Z"
+    },
+    {
+     "id": "G46vAZfgL5214SEAP9oHeipDKp1PoK5TnxqGQjVpZWVM",
+     "name": "American Oil Dividend Fund",
+     "symbol": "AODF",
+     "icon": "https://gateway.pinata.cloud/ipfs/bafkreif6nw3ru7sw26eucwzqva4tzvjrqtq34o2ra6w6r4fxnosggoisxq",
+     "decimals": 6,
+     "dev": "t4H1L88Jq6tG37mFCNRxKH25MkFxyNUYMJe96osL5Tk",
+     "circSupply": 1000000000,
+     "totalSupply": 1000000000,
+     "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "holderCount": 142,
+     "fdv": 11481.372303393435,
+     "mcap": 11481.372303393435,
+     "usdPrice": 0.000011481372303393436,
+     "priceBlockId": 464103311,
+     "liquidity": 1402.4413858125388,
+     "stats6h": {
+      "priceChange": -2.2444392249749567,
+      "holderChange": -0.6993006993006993,
+      "liquidityChange": -3.8585842682703313,
+      "volumeChange": -35.34476565079696,
+      "buyVolume": 18.18107313145046,
+      "sellVolume": 18.181869231598753,
+      "numBuys": 1,
+      "numSells": 1,
+      "numTraders": 1
+     },
+     "stats24h": {
+      "priceChange": 29.72520168398521,
+      "holderChange": 1.4285714285714286,
+      "liquidityChange": 15.934559143333566,
+      "volumeChange": -69.02726028452852,
+      "buyVolume": 267.1493083456311,
+      "sellVolume": 74.42316621097848,
+      "numBuys": 7,
+      "numSells": 2,
+      "numTraders": 6,
+      "numNetBuyers": 4
+     },
+     "firstPool": {
+      "id": "Bd2SKNdkdU6AoGC6KJU91BXUhfh22CbXdtLj24aqUeCc",
+      "createdAt": "2026-10-08T18:29:34Z"
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 56.752335972355205,
+      "devMints": 1
+     },
+     "organicScore": 0,
+     "organicScoreLabel": "low",
+     "tags": [
+      "unknown"
+     ],
+     "createdAt": "2026-10-08T18:29:33Z",
+     "updatedAt": "2026-11-01T17:41:58.869091511Z"
+    }
+   ],
+   "https://lite-api.jup.ag/swap/v1/quote?inputMint=pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump&outputMint=So11111111111111111111111111111111111111112&amount=1676677788&slippageBps=2000&restrictIntermediateTokens=true": {
+    "inputMint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+    "inAmount": "1676677788",
+    "outputMint": "So11111111111111111111111111111111111111112",
+    "outAmount": "211443014",
+    "otherAmountThreshold": "169154412",
+    "swapMode": "ExactIn",
+    "slippageBps": 2000,
+    "platformFee": null,
+    "priceImpactPct": "0.0005972294682463601959844123",
+    "routePlan": [
+     {
+      "swapInfo": {
+       "ammKey": "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4",
+       "label": "Pump.fun Amm",
+       "inputMint": "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump",
+       "outputMint": "So11111111111111111111111111111111111111112",
+       "inAmount": "1676677788",
+       "outAmount": "211443014",
+       "updateContextSlot": "464182589"
+      },
+      "percent": 100,
+      "bps": null
+     }
+    ],
+    "contextSlot": 464182713,
+    "timeTaken": 0.000064925,
+    "swapUsdValue": "19.9880554015728095959714",
+    "mostReliableAmmsQuoteReport": {
+     "info": {
+      "Hue5haoFpCQKzV6BWRebDLEVYV4r4Kf2GhCQAKLZAKy4": "211443014",
+      "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE": "Not used RG: FullLiquidIntermediate, contains ALT: true"
+     }
+    },
+    "longtailMarketQuoteReport": null,
+    "useIncurredSlippageForQuoting": null,
+    "useRewards": null,
+    "otherRoutePlans": null,
+    "loadedLongtailToken": false,
+    "instructionVersion": null,
+    "transactionVersion": 0
+   }
+  },
+  "post": {
+   "https://lite-api.jup.ag/swap/v1/swap c55ba85bc1a5640d": {
+    "swapTransaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAGCiCX4jZfstd8HnN4YmmgE+RHpG2IgtdASuV+UTJsw5ufNWf9LqfVNd207lDnVu2BdUi7WLaxkjQCenULDGZCPfqD9t70BZHEDdT4gT4S6Oq29NtZeGQTobv535qgxsqY9d9kwDKPcU7mj2OneHmGFk/GcEP6Y5mTh0lUH38kzO0BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAR51VvyMcBu7nTFbs5oFQf9sbLeo/SOUQKxzaJWvBOPBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKmMlyWPTiSJ8bs9ECkUjg2DC1oTmdr/EIQEjnvY2+n4WbQ/+if11/ZKdMCbHylYed5LCas238ndUUsyGqezjOXodqLkjrVVhzCByyDNWKQS8OkkUxnHDubxE5VpgIHp25AFBQAFAjp8AQAFAAkDzgcAAAAAAAAIBgABAA4EBwEBBh0HAAIBBg4GCQYQDQATEQ4CAQoLDwcEAxIMFBAABiTlF8uXeuOtKgEAAADCAGQAAZwS8GMAAAAARl2aDAAAAADQBwAHAwEAAAEJAUtF1oCsT+S4txa6QYRf6JnzJr/76kuj0jey/ot98PwqBH98dXsHBQYRcxIKEw==",
+    "lastValidBlockHeight": 442204297,
+    "prioritizationFeeLamports": 194,
+    "computeUnitLimit": 97338,
+    "loadedAccountsDataSize": 14990367,
+    "loadedAccountsDataSizeLimit": null,
+    "transactionVersion": 0,
+    "prioritizationType": {
+     "computeBudget": {
+      "microLamports": 1998,
+      "estimatedMicroLamports": 1998
+     }
+    },
+    "simulationSlot": 464182714,
+    "dynamicSlippageReport": null,
+    "simulationError": null,
+    "addressesByLookupTableAddress": null,
+    "timeTaken": 0.019408854,
+    "createAtaTimeTaken": 0.009247781
+   }
+  }
+ }
+}

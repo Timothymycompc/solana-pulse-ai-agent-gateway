@@ -2,6 +2,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
 import { assertAddress, BONK_MINT, formatUnits, jupLookup, KNOWN_STABLECOINS, NETWORK_DOC, rugReport, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, type JupToken, type RugReport } from "./lib";
+import { creatorSends, creatorSplitCheck } from "./creator-split";
 import { jupiterSaysNotTradable, sellCheck } from "./sellcheck";
 import { ToolError, type ToolDef } from "./types";
 
@@ -144,7 +145,7 @@ export function liquidityPullCheck(r: RugReport, verified: boolean): Omit<Check,
 // many holders, then selling them all at once. The top-10 check misses this when no single wallet is large.
 export const MAX_INSIDER_NETWORK = 500;
 export const ESTABLISHED_DAYS = 90;
-export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name" | "source"> | null {
+export function insiderCheck(r: RugReport, rawSupply: bigint, established = false): Omit<Check, "name" | "source"> | null {
   const networks = r.insiderNetworks ?? [];
   const wallets = networks.reduce((a, n) => a + (n.size ?? 0), 0);
   if (!wallets || rawSupply <= 0n) return { result: "pass", detail: "No networks of linked insider wallets detected." };
@@ -156,9 +157,14 @@ export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name
   // RugCheck links wallets that share a funder, so a network of thousands is usually an exchange or an airdrop paying
   // many people, not one person splitting a supply (TRUMP 1,566, RAY 2,560, PYTH 8,466 wallets in the Oct 2026 audit,
   // all failing on it). The insider trick spreads a supply over tens to a few hundred wallets, so only those count.
-  const counted = networks.filter((n) => (n.size ?? 0) <= MAX_INSIDER_NETWORK);
+  // That exemption is only for established tokens. A new token's creator can split the supply over more than 500 wallets
+  // too: AODF (4AWL…pump, Nov 1 2026) sent tokens to hundreds of wallets 3 minutes after launch; RugCheck saw one
+  // 1,526-wallet network holding 58.8%, Pulse left it out, and 11 of those wallets sold together 15 hours later (-99%).
+  // No new token in Pulse's young-token samples (927 tokens, Oct 2026) had a network that big, so counting it for new
+  // tokens doesn't hit ordinary launches; every big network seen so far was on an established token (TRUMP, RAY, PYTH, WIF).
+  const counted = networks.filter((n) => !established || (n.size ?? 0) <= MAX_INSIDER_NETWORK);
   const left = networks.length - counted.length;
-  const leftNote = left ? ` ${left} network${left === 1 ? "" : "s"} of over ${MAX_INSIDER_NETWORK} linked wallets ${left === 1 ? "was" : "were"} not counted: groups that big are usually an exchange or an airdrop, not one person.` : "";
+  const leftNote = left ? ` ${left} network${left === 1 ? "" : "s"} of over ${MAX_INSIDER_NETWORK} linked wallets ${left === 1 ? "was" : "were"} not counted: on an established token, groups that big are usually an exchange or an airdrop, not one person.` : "";
   const countedWallets = counted.reduce((a, n) => a + (n.size ?? 0), 0);
   if (!countedWallets) return { result: "pass", detail: `No networks of linked insider wallets detected.${leftNote}` };
   const countedPct = (counted.reduce((a, n) => a + (Number(n.currentHolding) || 0), 0) / Number(rawSupply)) * 100;
@@ -167,6 +173,59 @@ export function insiderCheck(r: RugReport, rawSupply: bigint): Omit<Check, "name
   if (countedPct > 10) return { result: "warn", detail: `${countedWallets} linked insider wallets hold ${shown}% of the supply between them.${leftNote}` };
   return { result: "pass", detail: `${countedWallets} linked wallets found, holding ${shown}% of the supply: too little to crash the price.${leftNote}` };
 }
+
+// The token's total value (price x supply) against the cash in its pools. On a new token the whole supply is out and
+// there's no exchange listing, so a high ratio means a holder with a big bag can empty the pools in one sale; locked
+// liquidity doesn't help, because nobody needs to pull it. Both AODF tokens that dumped 99% on Nov 1 2026 were about
+// 230x when a trader bought and about 700x at the peak; all 77 young pump.fun tokens Pulse followed in Oct 2026 were
+// under 16x. Established tokens run high for other reasons (part of the supply locked or on exchanges: JUP 353x,
+// PENGU 236x, BONK 43x, Nov 2026), so for them it's only a fact. Measured on few cases so far: one more token over 100x
+// (XTO, 488x) had not crashed when this was written. A warning, not a fail.
+export const THIN_POOL_RATIO = 100;
+const usd = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toLocaleString("en-US", { maximumFractionDigits: 1 })}M` : `$${Math.round(v).toLocaleString("en-US")}`);
+export function valueVsLiquidityCheck(price: number | undefined, supply: number, liquidity: number | undefined, established: boolean) {
+  if (typeof price !== "number" || !(price > 0) || typeof liquidity !== "number" || !(liquidity > 0) || !(supply > 0)) return null;
+  const value = price * supply, ratio = value / liquidity;
+  const shown = ratio < 10 ? ratio.toFixed(1) : Math.round(ratio).toLocaleString("en-US");
+  const fact = `The token's total value (${usd(value)}) is ${shown}x its DEX liquidity (${usd(liquidity)}).`;
+  if (established) return { result: "info" as const, detail: `${fact} Common for an established token, where part of the supply is locked or trades on exchanges.`, value, ratio };
+  if (ratio > THIN_POOL_RATIO) return { result: "warn" as const, detail: `${fact} The pools hold little next to what holders own: one big holder selling can empty them in seconds, even with the liquidity locked.`, value, ratio };
+  return { result: "pass" as const, detail: fact, value, ratio };
+}
+
+// Top 10 holders owning under 1% of a new token. On a real launch the biggest early buyers hold a few percent each; a
+// top 10 this small usually means the supply was split across hundreds of wallets so nobody looks big. On Nov 1 2026:
+// AODF (0.5%, 0.6%) and XTO (0.6%), all three dumped 99% the same day. In Pulse's young-token watch (103 tokens with a
+// top-10 reading, Oct-Nov 2026) the only ones under 1% were the two AODFs. Measured on few cases; a warning.
+export const SPREAD_TOP10_PCT = 1;
+export function holderSpreadCheck(top: number | undefined, established: boolean, stable: boolean) {
+  if (typeof top !== "number" || established || stable || top >= SPREAD_TOP10_PCT) return null;
+  return { result: "warn" as const, detail: `The 10 biggest holders own only ${top.toFixed(1)}% between them. On a new token that usually means the supply was split across many wallets to hide who holds it; tokens that looked like this were dumped 99% (AODF, XTO, Nov 2026).` };
+}
+
+// Other tokens using the same ticker. Copycats of a hot name launch together: on Nov 1 2026 two different "AODF" tokens
+// (different creators, launched an hour apart) both dumped 99% within 25 minutes of each other. A note, not a verdict:
+// a popular ticker attracts copycats whether or not this one is the real one.
+export function sameTickerCheck(mint: string, symbol: string | undefined, found: JupToken[], now = Date.now()) {
+  if (!symbol) return null;
+  const others = found.filter((t) => t.id !== mint && sameTicker(t.symbol ?? "", symbol));
+  if (!others.length) return null;
+  const recent = others.filter((t) => t.firstPool?.createdAt && now - Date.parse(t.firstPool.createdAt) < 2 * 864e5).length;
+  const verified = others.filter((t) => t.isVerified).length;
+  return {
+    result: "info" as const,
+    detail: `${others.length} other token${others.length === 1 ? " uses" : "s use"} the ticker ${symbol}${recent ? ` (${recent} first traded in the last 2 days)` : ""}${verified ? `; ${verified} of them ${verified === 1 ? "is" : "are"} verified by Jupiter` : ""}. Copycats of a hot name often launch together and dump together; check you have the right address (find_token).`,
+  };
+}
+
+// The checks that match how holders actually got robbed by a token's own people: liquidity the creator can pull, a
+// creator who has rugged before, a linked insider network holding a big share (AODF, Nov 1 2026: 58.8%, dumped -99%),
+// a token whose pools are tiny next to its value (both AODFs). Any one of them gives rug_chance "high" with its reason,
+// so a reader or agent sees why at a glance, apart from other reasons to avoid (a mint authority, low liquidity).
+// Also: a creator splitting the supply into equal parts right after launch, and holders so spread out on a new token
+// that the split is the likely reason (both: AODF x2 and XTO, Nov 1 2026; see creator-split.ts and holderSpreadCheck).
+export const RUG_SIGNALS: Record<string, Check["result"][]> = { liquidity_pull: ["fail"], creator_history: ["fail"], insiders: ["fail"], value_vs_liquidity: ["warn"], creator_split: ["fail"], holder_spread: ["warn"] };
+export const rugChanceReasons = (checks: Check[]) => checks.filter((c) => RUG_SIGNALS[c.name]?.includes(c.result)).map((c) => c.detail);
 
 // The creator's track record: a wallet that has rugged before, or one that launches tokens by the hundred and
 // abandons them, is the strongest warning sign there is for a new token.
@@ -198,8 +257,8 @@ export const tokenVerdict: ToolDef = {
   oldInputs: { mint: "token" },
   title: "Is this token safe?",
   category: "tokens",
-  benefit: { kind: "money", text: "Flags tokens you can't sell, liquidity the creator can pull, creators who have rugged before, hidden insider wallets and issuers who can freeze or take your tokens, before you buy. Regulated stablecoins' powers count as expected." },
-  useWhen: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with exact reasons from chain and market data.",
+  benefit: { kind: "money", text: "Flags tokens you can't sell, liquidity the creator can pull, creators who have rugged before, hidden insider wallets, new tokens worth far more than their pools hold, and issuers who can freeze or take your tokens, before you buy. A separate rug_chance says when the signs of a rug by the token's own people are there, and why. Regulated stablecoins' powers count as expected." },
+  useWhen: "Run before buying, accepting or recommending a token. Answers SAFE, CAUTION or AVOID with exact reasons from chain and market data, plus rug_chance (high, with reasons, or null).",
   usage: '{"token": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"} checks BONK',
   description: "Simulates a real holder selling, then checks if liquidity can be pulled, the creator's record, insider wallet networks, issuer powers (mint, freeze, Token-2022 traps), verification, liquidity, holders and age, for one verdict.",
   inputs: { token: z.string(), network: NETWORK },
@@ -210,6 +269,7 @@ export const tokenVerdict: ToolDef = {
   outputs: [
     { field: "verdict", type: '"SAFE" | "CAUTION" | "AVOID"', is: "The answer. AVOID: at least one check failed. CAUTION: at least one warning. SAFE: no warnings.", howWorkedOut: "The worst check wins: any fail is AVOID, any warn is CAUTION, otherwise SAFE." },
     { field: "summary", type: "string", is: "One sentence explaining the verdict.", howWorkedOut: "Built from the failed and warning checks." },
+    { field: "rug_chance", type: '{ level: "high", reasons: string[] } | null', is: "Whether the token shows the signs of a rug by its own people, and why. null means none of those signs were found, not that it can\'t happen.", howWorkedOut: "high when any of these came out: liquidity the creator can pull (liquidity_pull fail), a creator who rugged before (creator_history fail), linked insider wallets holding over 30% (insiders fail), a new token worth over 100x its DEX liquidity (value_vs_liquidity warn), a creator who sent the exact same amount to 10+ wallets within a minute in the first 30 minutes after launch (creator_split fail), or a new token whose top 10 holders own under 1% (holder_spread warn). reasons are those checks\' details." },
     { field: "about.symbol / name", type: "string | null", is: "Ticker and name.", howWorkedOut: "Jupiter token data." },
     { field: "about.decimals", type: "number", is: "Decimal places.", howWorkedOut: "The on-chain token account." },
     { field: "about.supply", type: "string", is: "Total supply in whole tokens.", howWorkedOut: "On-chain supply / 10^decimals, exact." },
@@ -219,11 +279,12 @@ export const tokenVerdict: ToolDef = {
     { field: "about.extensions", type: "string[]", is: "Token-2022 extensions turned on.", howWorkedOut: "Read from the token's account." },
     { field: "about.usd_price / liquidity_usd / holders / top10_share_pct / first_traded", type: "number | string | null", is: "Market facts the checks use.", howWorkedOut: "Jupiter token data. top10_share_pct is the share the 10 biggest holders own. first_traded is when its first pool was made." },
     { field: "about.creator / creator_tokens_launched", type: "string | number | null", is: "The wallet that created the token, and how many tokens it has launched.", howWorkedOut: "Jupiter token data." },
+    { field: "about.total_value_usd / value_to_liquidity", type: "number | null", is: "The token's total value (price x whole supply) and how many times its DEX liquidity that is. A high ratio on a new token means one big holder selling can empty the pools.", howWorkedOut: "Jupiter price and liquidity, on-chain supply. null when Jupiter has no price or liquidity." },
     { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "RugCheck's report of the token's metadata." },
-    { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, holder_concentration, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
-    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers, info for established tokens (Jupiter-verified and trading 90+ days). Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%, counting only networks of up to 500 wallets; unknown (info) when RugCheck's numbers add up to more than the whole supply. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (established tokens: info up to 80%, warn over; info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin or an established token (Jupiter-verified and trading 90+ days), where they are info and name who holds them." },
+    { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, value_vs_liquidity, same_ticker, holder_concentration, holder_spread, creator_split, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
+    { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers, info for established tokens (Jupiter-verified and trading 90+ days). Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%; for established tokens only networks of up to 500 wallets count (bigger ones are usually exchanges or airdrops), for new tokens every network counts; unknown (info) when RugCheck's numbers add up to more than the whole supply. Value vs liquidity: warn when a token that isn't established is worth over 100x its DEX liquidity; info for established tokens. Creator split (new tokens only, read from the creator's token account): fail when 10+ wallets got the exact same amount from the creator within 60 seconds in the first 30 minutes after launch, warn when 10+ wallets got different amounts in that window, info (unknown) when the history can't be read back to launch. Holder spread: warn when a token that isn't established has its top 10 holders owning under 1% (supply likely split to hide who holds it). Same ticker (info, unverified tokens only): how many other tokens use the same ticker and how many first traded in the last 2 days. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (established tokens: info up to 80%, warn over; info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin or an established token (Jupiter-verified and trading 90+ days), where they are info and name who holds them." },
     { field: "checks[].detail", type: "string", is: "The fact behind the result, in plain words.", howWorkedOut: "Built from the data." },
-    { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data, jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
+    { field: "checks[].source", type: '"on-chain" | "jupiter" | "rugcheck" | "simulation"', is: "Where the fact came from.", howWorkedOut: "on-chain for token data and the creator's first sends (creator_split), jupiter for market and creator data, rugcheck for liquidity locks, insiders and creator history, simulation for the sell test." },
     { field: "history", type: "object | null", is: "What changed since Pulse first checked this token, when Pulse has been watching it. null when it hasn't.", howWorkedOut: "Pulse watches young tokens (under 3 days old) for 7 days after it first checks them, whether it found them on Jupiter's activity lists or someone ran token_safety on them, and re-reads them every 2 hours. Checking a young token starts the watch, so a later check shows what changed." },
     { field: "history.watched_since / watching_until / verdict_then / found_in", type: "string", is: "When the watch started and ends, the verdict Pulse gave then, and how the token was found.", howWorkedOut: "Stored when the watch started." },
     { field: "history.then / latest", type: "object", is: "The first and the newest reading: listed, liquidity_usd, usd_price, holders, top10_share_pct, who_can_mint, who_can_freeze (latest also has at).", howWorkedOut: "then is what this tool reported when the watch started. latest comes from Jupiter (market numbers) and the chain (authorities). A value no source answered is null." },
@@ -294,9 +355,17 @@ export const tokenVerdict: ToolDef = {
       else if (established && top > 50) add("holder_concentration", top > 80 ? "warn" : "info", `Top 10 holders own ${top.toFixed(1)}% of supply.${top > 80 ? " A few wallets selling could crash the price." : " Usually treasuries, vesting, exchanges and pools for an established token (Jupiter-verified, trading 90+ days)."}`, "jupiter");
       else add("holder_concentration", top > 80 ? "fail" : top > 50 ? "warn" : "pass", `Top 10 holders own ${top.toFixed(1)}% of supply.${top > 50 ? " A few wallets selling could crash the price." : ""}`, "jupiter");
     }
+    const spread = holderSpreadCheck(top, established, !!stable);
+    if (spread) add("holder_spread", spread.result, spread.detail, "jupiter");
     if (firstPoolAt) {
       const ageHours = (Date.now() - Date.parse(firstPoolAt)) / 3.6e6;
       add("age", ageHours < 24 ? "warn" : "pass", ageHours < 24 ? `First traded ${Math.max(Math.round(ageHours), 0)} hour(s) ago. Most rug pulls happen in the first day.` : `Trading since ${firstPoolAt.slice(0, 10)}.`, "jupiter");
+    }
+    const thin = stable ? null : valueVsLiquidityCheck(j?.usdPrice, Number(info.supply) / 10 ** Number(info.decimals), j?.liquidity, established);
+    if (thin) add("value_vs_liquidity", thin.result, thin.detail, "jupiter");
+    if (!stable && !verified && j?.symbol) {
+      const clones = sameTickerCheck(mintAddress, j.symbol, (await jupLookup(ctx, j.symbol)).tokens);
+      if (clones) add("same_ticker", clones.result, clones.detail, "jupiter");
     }
 
     // The deeper checks: who can pull the liquidity, the creator's record, insider networks, the name and logo, and a
@@ -307,7 +376,7 @@ export const tokenVerdict: ToolDef = {
     if (rug.report && !stable) {
       const pull = liquidityPullCheck(rug.report, verified);
       if (pull) add("liquidity_pull", established && pull.result === "warn" ? "info" : pull.result, `${pull.detail}${established && pull.result === "warn" ? expected : ""}`, "rugcheck");
-      const insiders = insiderCheck(rug.report, BigInt(info.supply));
+      const insiders = insiderCheck(rug.report, BigInt(info.supply), established);
       if (insiders) add("insiders", insiders.result, insiders.detail, "rugcheck");
     }
     if (!stable) {
@@ -322,13 +391,22 @@ export const tokenVerdict: ToolDef = {
       const sell = await sellCheck(ctx, conn, mintAddress, Number(info.decimals), typeof j?.usdPrice === "number" ? j.usdPrice : null);
       add("sell_test", sell.result, sell.detail, "simulation");
     }
+    // Last, after the sell test: the creator's first transactions after launch (creator-split.ts). New tokens only.
+    const creatorAddr = j?.dev ?? rug.report?.creator ?? null;
+    if (!stable && !established && network === "mainnet-beta" && creatorAddr) {
+      const read = await creatorSends(conn, mintAddress, creatorAddr, account.value!.owner, firstPoolAt ? Math.floor(Date.parse(firstPoolAt) / 1000) : null);
+      const split = creatorSplitCheck(read, Number(info.decimals));
+      add("creator_split", split.result, split.detail, "on-chain");
+    }
 
     const fails = checks.filter((c) => c.result === "fail");
     const warns = checks.filter((c) => c.result === "warn");
     const verdict = fails.length ? "AVOID" : warns.length ? "CAUTION" : "SAFE";
     const summary = fails.length ? `AVOID: ${fails.map((c) => c.detail).join(" ")}` : warns.length ? `CAUTION: ${warns.map((c) => c.detail).join(" ")}` : safeSummary(checks);
+    const rugReasons = rugChanceReasons(checks);
     return {
       token: mintAddress, network, verdict, summary,
+      rug_chance: rugReasons.length ? { level: "high", reasons: rugReasons } : null,
       about: {
         symbol: j?.symbol ?? null, name: j?.name ?? null, decimals: Number(info.decimals), supply: formatUnits(info.supply, info.decimals),
         token_program: owner === TOKEN_PROGRAM ? "spl-token" : "token-2022", who_can_mint: info.mintAuthority ?? null, who_can_freeze: info.freezeAuthority ?? null,
@@ -336,6 +414,7 @@ export const tokenVerdict: ToolDef = {
         holders: j?.holderCount ?? null, top10_share_pct: typeof top === "number" ? Math.round(top * 10) / 10 : null, first_traded: firstPoolAt,
         creator: j?.dev ?? rug.report?.creator ?? null, creator_tokens_launched: typeof j?.audit?.devMints === "number" ? j.audit.devMints : null,
         metadata_can_change: typeof rug.report?.tokenMeta?.mutable === "boolean" ? rug.report.tokenMeta.mutable : null,
+        total_value_usd: thin ? Math.round(thin.value) : null, value_to_liquidity: thin ? Math.round(thin.ratio * 10) / 10 : null,
       },
       checks,
     };

@@ -112,6 +112,11 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "token-verdict-xstock", tool: tokenVerdict, args: async () => ({ token: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB" }) },
   // A 2023 memecoin with no market left: Jupiter has no liquidity for it and its router answers TOKEN_NOT_TRADABLE.
   { name: "token-verdict-dead", tool: tokenVerdict, args: async () => ({ token: "EfJ2sLufzUZS7jA82N4VGF1syeFncjP7VpRtzaGyZrk2" }) },
+  // AODF (4AWL…pump), recorded the afternoon of 2026-11-01, after its creator-linked wallets dumped it 99%: RugCheck
+  // still shows one 1,526-wallet network holding 58.8% of the supply, which Pulse used to leave out.
+  { name: "token-verdict-aodf-insiders", tool: tokenVerdict, args: async () => ({ token: "4AWLQqBBZxDYNJ872F9CP4t6kWF8RZ5nNuGknV6Zpump" }) },
+  // The other AODF (pfQB…pump), a different token with the same ticker that dumped 99% 25 minutes later.
+  { name: "token-verdict-aodf-clone", tool: tokenVerdict, args: async () => ({ token: "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump" }) },
   // build_tx (2026-10-29): what it builds must pass check_tx and tx_matches; a swap into a rug token must be refused.
   { name: "build-sol-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" }) },
   { name: "build-usdt-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", amount: "1" }) },

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import { checkTransactionIntent, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
-import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, sameTicker, tokenVerdict } from "../server/tools/tokens";
+import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, rugChanceReasons, sameTicker, tokenVerdict, valueVsLiquidityCheck, holderSpreadCheck } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
 import { jupiterSaysNotTradable } from "../server/tools/sellcheck";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
@@ -240,16 +240,73 @@ test("find_token doesn't offer unverified copies as choices when no verified tok
 });
 
 // Decided 2026-10-16 from the same audit.
-test("insiders: networks of over 500 wallets are left out, small ones still count", () => {
+// Narrowed 2026-11-01 after AODF: the exemption is for established tokens only.
+test("insiders: an established token's networks of over 500 wallets are left out, small ones still count", () => {
   const supply = 1_000_000n;
   // TRUMP's shape: one 1,566-wallet network holding 38.9%.
-  const big = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }] }, supply);
+  const big = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }] }, supply, true);
   assert.equal(big?.result, "pass");
-  assert.match(big!.detail, /not counted/);
-  const mixed = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }, { size: 40, currentHolding: 350_000 }] }, supply);
+  assert.match(big!.detail, /not counted: on an established token/);
+  const mixed = insiderCheck({ insiderNetworks: [{ size: 1566, currentHolding: 389_000 }, { size: 40, currentHolding: 350_000 }] }, supply, true);
   assert.equal(mixed?.result, "fail", "a small network holding 35% still fails next to a big one");
   assert.match(mixed!.detail, /^40 linked insider wallets hold 35\.0%/);
-  assert.equal(insiderCheck({ insiderNetworks: [{ size: 500, currentHolding: 400_000 }] }, supply)?.result, "fail", "500 wallets still counts");
+  assert.equal(insiderCheck({ insiderNetworks: [{ size: 500, currentHolding: 400_000 }] }, supply, true)?.result, "fail", "500 wallets still counts");
+  // A new token: the same big network counts. AODF's shape: 1,526 wallets holding 58.8%.
+  const fresh = insiderCheck({ insiderNetworks: [{ size: 1526, currentHolding: 588_000 }] }, supply);
+  assert.equal(fresh?.result, "fail");
+  assert.match(fresh!.detail, /^1526 linked insider wallets hold 58\.8%/);
+});
+
+// AODF (4AWL…pump), Nov 1 2026: the creator split the supply over hundreds of wallets 3 minutes after launch, and 11 of
+// them sold together 15 hours later (-99%). Recorded after the dump; RugCheck's network still holds 58.8%.
+test("AODF: a new token's 1,526-wallet insider network now counts, so the verdict is AVOID", async () => {
+  clearJupCache();
+  const f = loadFixture("token-verdict-aodf-insiders");
+  const r: any = await tokenVerdict.run(z.object(tokenVerdict.inputs).parse(f.args), replayContext(f));
+  const insiders = r.checks.find((c: any) => c.name === "insiders");
+  assert.equal(insiders.result, "fail");
+  assert.match(insiders.detail, /^1526 linked insider wallets hold 58\.8% of the supply/);
+  assert.equal(r.verdict, "AVOID");
+  assert.equal(r.rug_chance.level, "high", "and the reason it's a likely rug is named on its own");
+  const spread = r.checks.find((c: any) => c.name === "holder_spread");
+  assert.equal(spread.result, "warn", "top 10 holders 0.5%: the supply was split");
+  assert.deepEqual(r.rug_chance.reasons, [spread.detail, insiders.detail]);
+  assert.equal(typeof r.about.value_to_liquidity, "number");
+});
+
+test("rug_chance: only the rug signs count, each with its reason; none found is null, not a guess", () => {
+  const c = (name: string, result: any, detail = name) => ({ name, result, detail, source: "rugcheck" as const });
+  assert.deepEqual(rugChanceReasons([c("insiders", "fail"), c("value_vs_liquidity", "warn"), c("liquidity_pull", "fail"), c("creator_history", "fail")]), ["insiders", "value_vs_liquidity", "liquidity_pull", "creator_history"]);
+  assert.deepEqual(rugChanceReasons([c("mint_authority", "warn"), c("liquidity", "fail"), c("insiders", "warn"), c("value_vs_liquidity", "info")]), [], "other reasons to avoid aren't rug signs");
+});
+
+test("AODF clone: other tokens with the same ticker are noted, without changing the verdict", async () => {
+  clearJupCache();
+  const f = loadFixture("token-verdict-aodf-clone");
+  const r: any = await tokenVerdict.run(z.object(tokenVerdict.inputs).parse(f.args), replayContext(f));
+  const clones = r.checks.find((c: any) => c.name === "same_ticker");
+  assert.equal(clones.result, "info");
+  assert.match(clones.detail, /^19 other tokens use the ticker AODF/);
+  assert.equal(r.verdict, "CAUTION", "the same warnings as before: unverified and under a day old");
+  // Recorded after the dump at 85x (under the 100x line) and RugCheck shows no insider network, but the top 10 still
+  // own only 0.7%: the split supply is still visible after the dump.
+  assert.equal(r.rug_chance.level, "high");
+  assert.match(r.rug_chance.reasons.join(" "), /The 10 biggest holders own only 0\.7%/);
+});
+
+// Real readings: Pulse's own watch of both AODF tokens (Nov 1 2026, 14:06 and 16:10 UTC, before they dumped), the
+// desk's entry into SIS (a normal young pump.fun token), and JUP's market data the same day.
+test("value vs liquidity: warns for a new token worth over 100x its pools, a fact for established tokens", () => {
+  const aodfBeforeDump = valueVsLiquidityCheck(0.7818771115884836, 999991498.348454, 1141533, false);
+  assert.equal(aodfBeforeDump?.result, "warn");
+  assert.equal(Math.round(aodfBeforeDump!.ratio), 685);
+  assert.match(aodfBeforeDump!.detail, /^The token's total value \(\$781\.9M\) is 685x its DEX liquidity \(\$1\.1M\)\. The pools hold little/);
+  assert.equal(valueVsLiquidityCheck(0.7576040651761662, 999987867.620407, 1126662, false)?.result, "warn", "the other AODF, 672x");
+  const sis = valueVsLiquidityCheck(0.000421, 1e9, 57903, false);
+  assert.equal(sis?.result, "pass");
+  assert.match(sis!.detail, /is 7\.3x its DEX liquidity/);
+  assert.equal(valueVsLiquidityCheck(1775e6 / 6.99e9, 6.99e9, 5.03e6, true)?.result, "info", "JUP, 353x, is established");
+  assert.equal(valueVsLiquidityCheck(undefined, 1e9, 57903, false), null, "no price: no check, not a guess");
 });
 
 test("a known issuer's permanent delegate warns and names the issuer; anyone else's fails", () => {
@@ -281,4 +338,35 @@ test("the established-token rule needs 90 days of trading: the same token traded
   const r: any = await tokenVerdict.run(z.object(tokenVerdict.inputs).parse(f.args), replayContext({ ...f, recording: { ...f.recording, http: rec } }));
   assert.equal(r.checks.find((c: any) => c.name === "mint_authority").result, "warn");
   assert.equal(r.verdict, "CAUTION");
+});
+
+// Real sends read from each creator's token account (benchmark/creator-split/probe.ts, read Nov 1 2026): the three
+// tokens a trader bought that were dumped 99% that day, and the five it bought that weren't.
+test("creator_split: the 3 dumped tokens split supply into equal parts right after launch; the 5 others didn't", async () => {
+  const { creatorSplitCheck } = await import("../server/tools/creator-split");
+  const fs = await import("node:fs");
+  const read = (mint: string) => { const d = JSON.parse(fs.readFileSync(`benchmark/creator-split/out/${mint}.json`, "utf8")); return { sends: d.sends, readToLaunch: true, capped: true }; };
+  for (const mint of ["4AWLQqBBZxDYNJ872F9CP4t6kWF8RZ5nNuGknV6Zpump", "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump", "VWmjd6CyU6wL2UiGUEQeA4upVcanrApLae4qMe8pump"]) {
+    const r = creatorSplitCheck(read(mint), 6);
+    assert.equal(r.result, "fail", mint);
+    assert.match(r.detail, /sent exactly 396,550 tokens each to at least \d{3} wallets within \d+ seconds?, \d+ minutes? after launch/);
+  }
+  const normal = fs.readdirSync("benchmark/creator-split/out").filter((f) => !/^(4AWL|pfQB|VWmj)/.test(f));
+  assert.equal(normal.length, 5);
+  for (const f of normal) assert.equal(creatorSplitCheck(read(f.replace(".json", "")), 6).result, "pass", f);
+  // A creator who varies the amounts: XTO's real sends, each amount changed. Still caught, one level down.
+  const xto = read("VWmjd6CyU6wL2UiGUEQeA4upVcanrApLae4qMe8pump");
+  const varied = { ...xto, sends: xto.sends.map((s: any, i: number) => ({ ...s, amount: String(BigInt(s.amount) + BigInt(i) * 1_000_000n)})) };
+  assert.equal(creatorSplitCheck(varied, 6).result, "warn");
+  assert.equal(creatorSplitCheck(null, 6).result, "info", "unreadable history is unknown, not a pass");
+  assert.equal(creatorSplitCheck({ sends: [], readToLaunch: false }, 6).result, "info");
+});
+
+test("holder_spread: top 10 under 1% on a new token warns and counts as a rug sign; established tokens and stablecoins don't", () => {
+  assert.equal(holderSpreadCheck(0.6, false, false)?.result, "warn");
+  assert.equal(holderSpreadCheck(1.0, false, false), null, "PAWCAT (1.0%) wasn't dumped");
+  assert.equal(holderSpreadCheck(0.6, true, false), null);
+  assert.equal(holderSpreadCheck(0.6, false, true), null);
+  assert.equal(holderSpreadCheck(undefined, false, false), null);
+  assert.deepEqual(rugChanceReasons([{ name: "holder_spread", result: "warn", detail: "a", source: "jupiter" }, { name: "creator_split", result: "fail", detail: "b", source: "on-chain" }, { name: "creator_split", result: "warn", detail: "c", source: "on-chain" }] as any), ["a", "b"]);
 });

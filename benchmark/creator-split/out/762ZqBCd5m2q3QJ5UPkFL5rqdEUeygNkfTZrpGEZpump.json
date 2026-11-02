@@ -1,0 +1,35 @@
+{
+ "mint": "762ZqBCd5m2q3QJ5UPkFL5rqdEUeygNkfTZrpGEZpump",
+ "creator": "4Xrf3iwjjC5AWSeREwMgSLMWxgTa2Zfxu2BQWCHZedL8",
+ "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+ "creator_token_account": "7hXvkcDr2Gq1n9oJwJdkMu7NTUkX4mrdQveGXLXKVtDU",
+ "txs_on_account": 5,
+ "launch_unix": 1793476461,
+ "read": 5,
+ "sends": [
+  {
+   "t": 2934,
+   "to": "eEJ4ZYpgiNTCwRq4cVBdUbqq7s45KrM7XaEFcu3uuGb",
+   "amount": "361094318928",
+   "sig": "3WkB1qCo2YNiuuPqb5yd4CeGvuaMjQgVaigShc4Tn8W8en3CqdAx8pus1ThhmrHdBAz9MNivEatNHsndFsaXZeHt"
+  },
+  {
+   "t": 6244,
+   "to": "eEJ4ZYpgiNTCwRq4cVBdUbqq7s45KrM7XaEFcu3uuGb",
+   "amount": "577992864319",
+   "sig": "66hNU7Dg1MbA3E6xparAh7BJHuoHgiQBhXTBkrcTapcrHaK7mUWqDfa9w7BEU53LiS7bpqR6WCHwJ6sCkwJL9MrG"
+  },
+  {
+   "t": 30312,
+   "to": "eEJ4ZYpgiNTCwRq4cVBdUbqq7s45KrM7XaEFcu3uuGb",
+   "amount": "303834279170",
+   "sig": "2sgUZTn6Wmf2yVUkXNJidywcQ32cWDXNeys1Y1fWjXFeaikmSGxsASasvc8GaFF8wF4fCvszwWCK8x56tXdX7dCj"
+  },
+  {
+   "t": 30330,
+   "to": "eEJ4ZYpgiNTCwRq4cVBdUbqq7s45KrM7XaEFcu3uuGb",
+   "amount": "520431006336",
+   "sig": "2jRgwBsCFkh1YDDFfntW3Xg9tH7wk9W66sRVA84px1mXDS2gZzJ3okswoAR77j6dFB2u2VPT25d2VaXQMsxVJfdy"
+  }
+ ]
+}

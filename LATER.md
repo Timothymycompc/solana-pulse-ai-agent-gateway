@@ -147,3 +147,8 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - Fixed: 5 exchange deposit addresses swept into the collection wallet B48k…KAAn were "high, seed leaked"; now medium with swept_to_collection_wallet (benchmark/trace-cashout.ts, results file). Both real drains (Kunal, Adilak) still high.
 - Rejected on data: "don't escalate when the fee payer pays for many wallets". Both real drains had busy fee payers (FkaL…3MZp 1,000 tx in 12 min, 9WL2…YHx6 1,000 in 7.2 h).
 - Still open: 2 trading-bot wallets (FrJW…Eyc, Hvyu…59ix) stay "high". Their sweeps go to quiet wallets or pools, and their "other fee payers" (Fnca, HBQ2) are a bot service's relayers paid by the wallet. Needs more bot-wallet examples before a rule (one bot per pattern would be guessing).
+
+## From the Trade Desk rugs, 2026-11-01 (AODF x2, XTO)
+- Creator equal-split burst: AODF's creator sent ~667 transfers in 3 seconds, 3 minutes after launch, to hide who holds the supply. A check could flag a creator that splits supply into many equal parts right after launch. Measure on the desk's coin watch (trade-desk desk_watch) first.
+- Very spread-out holders on a very valuable new coin (AODF top 10 = 0.5%, XTO 0.6%, both worth hundreds of millions to billions): measure before it becomes a rule.
+- Measure value_vs_liquidity's 100x line on every coin the desk sees (desk lessons), not just the 3 rugs it came from.
