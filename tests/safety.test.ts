@@ -362,6 +362,30 @@ test("creator_split: the 3 dumped tokens split supply into equal parts right aft
   assert.equal(creatorSplitCheck({ sends: [], readToLaunch: false }, 6).result, "info");
 });
 
+// Live XTO came back "unknown" on Nov 2 2026: the batched read throws for the whole batch when one entry fails. Each
+// transaction is now read on its own, so one bad read costs only that transaction.
+test("creator_split: one unreadable transaction doesn't hide the others; none readable is unknown", async () => {
+  const { creatorSends, creatorSplitCheck } = await import("../server/tools/creator-split");
+  const { PublicKey } = await import("@solana/web3.js");
+  const mint = "VWmjd6CyU6wL2UiGUEQeA4upVcanrApLae4qMe8pump", creator = "9An6tLMr3JS349Zq13XYrvN7F1295sjztdPzesxH4rqy";
+  const program = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"), launch = 1_793_456_671;
+  const bal = (owner: string, amount: bigint) => ({ mint, owner, uiTokenAmount: { amount: amount.toString() } });
+  // 6 transactions, 3 wallets each, all the same amount, 2 seconds apart; transaction 2 can't be read.
+  const sigs = Array.from({ length: 6 }, (_, i) => ({ signature: `sig${i}`, blockTime: launch + 360 + i * 2, err: null }));
+  const tx = (i: number) => {
+    const to = [0, 1, 2].map((k) => new PublicKey(Uint8Array.from({ length: 32 }, (_, b) => (b === 0 ? i * 3 + k + 1 : 7))).toBase58());
+    return { blockTime: launch + 360 + i * 2, meta: { preTokenBalances: [bal(creator, 10_000_000_000_000n)], postTokenBalances: [bal(creator, 10_000_000_000_000n - 3n * 396_550_000_000n), ...to.map((o) => bal(o, 396_550_000_000n))] } };
+  };
+  const conn = (broken: (i: number) => boolean) => ({
+    getSignaturesForAddress: async () => [...sigs].reverse(),
+    getParsedTransaction: async (sig: string) => { const i = Number(sig.slice(3)); if (broken(i)) throw new Error("failed to get transaction"); return tx(i); },
+  }) as any;
+  const read = await creatorSends(conn((i) => i === 2), mint, creator, program, launch);
+  assert.equal(read?.sends.length, 15, "5 readable transactions x 3 wallets");
+  assert.equal(creatorSplitCheck(read, 6).result, "fail");
+  assert.equal(await creatorSends(conn(() => true), mint, creator, program, launch), null, "nothing readable is unknown, not 'no sends'");
+});
+
 test("holder_spread: top 10 under 1% on a new token warns and counts as a rug sign; established tokens and stablecoins don't", () => {
   assert.equal(holderSpreadCheck(0.6, false, false)?.result, "warn");
   assert.equal(holderSpreadCheck(1.0, false, false), null, "PAWCAT (1.0%) wasn't dumped");

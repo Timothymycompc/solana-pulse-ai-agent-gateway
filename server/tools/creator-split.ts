@@ -11,9 +11,10 @@
 //   warn: SPLIT_WALLETS or more wallets got tokens from the creator within that window, in different amounts.
 // Limits: it reads the creator's own token account; a scammer who buys and splits from another wallet isn't caught here
 // (RugCheck's insider networks may still see it). Set from 8 tokens, so it is measured on every token the Trade Desk sees.
-import { PublicKey, type Connection } from "@solana/web3.js";
+import { PublicKey, type Connection, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { formatUnits } from "./lib";
+import { parsedTransaction } from "./transactions";
 
 export const SPLIT_WALLETS = 10;
 export const SPLIT_WINDOW_S = 60;
@@ -43,7 +44,14 @@ export async function creatorSends(conn: Connection, mint: string, creator: stri
     const launch = launchUnix ?? sigs[0].blockTime!;
     const early = sigs.filter((s) => s.blockTime! - launch <= SPLIT_AFTER_LAUNCH_S).slice(0, READ_TXS);
     if (!early.length) return { sends: [], readToLaunch };
-    const txs = await conn.getParsedTransactions(early.map((s) => s.signature), { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
+    // One read per transaction, 10 at a time, each allowed to fail on its own. A batched getParsedTransactions throws
+    // for the whole batch when one entry fails (a version 1 transaction, or an RPC plan without batch requests), which
+    // left live XTO "unknown" on Nov 2 2026 while the per-transaction probe read all 445 sends.
+    const txs: (ParsedTransactionWithMeta | null)[] = [];
+    for (let i = 0; i < early.length; i += 10) {
+      txs.push(...(await Promise.all(early.slice(i, i + 10).map((s) => parsedTransaction(conn, s.signature).catch(() => null)))));
+    }
+    if (!txs.some(Boolean)) return null; // none could be read: unknown, not "no sends"
     const sends: Send[] = [];
     for (const tx of txs) {
       if (!tx?.meta) continue;
