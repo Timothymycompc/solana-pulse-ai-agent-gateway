@@ -4,6 +4,7 @@
 //   npm run x-post -- "text" pic1.jpg pic2.png     with up to 4 pictures (jpg, png, webp)
 //   npm run x-post -- "text" clip.mp4              or one video (mp4, mov) or one GIF
 //   npm run x-post -- - pic.jpg                    type the text instead, for line breaks (finish with a line holding just .)
+//   add --yes to post without the y/N question (for Claude, after Tim has seen the preview text)
 // Files are copied to the private bucket's uploads/ folder; the live server reads them there and posts.
 // Needs the current code deployed (npm run deploy).
 import { execFileSync } from "node:child_process";
@@ -39,7 +40,8 @@ async function call(path: string, ownerKey: string, body?: unknown): Promise<any
   return res.json().catch(() => ({ error: `HTTP ${res.status}` }));
 }
 
-const args = process.argv.slice(2);
+const yes = process.argv.includes("--yes");
+const args = process.argv.slice(2).filter((a) => a !== "--yes");
 const next = args[0] === "--next";
 let text = "";
 let files: string[] = [];
@@ -79,7 +81,7 @@ if (next) {
 }
 show(r);
 if (!r.dryRun) stop(r.reason ?? r.error ?? "Nothing to post.");
-if (!(await ask("Post this to @" + ACCOUNT + " now? (y/N) "))) stop("Not posted.");
+if (!yes && !(await ask("Post this to @" + ACCOUNT + " now? (y/N) "))) stop("Not posted.");
 console.log(r.media?.length ? "Posting (X can take a minute or two to process a video)..." : "Posting...");
 const done = next ? await call("/api/owner/x/run", ownerKey) : await call("/api/owner/x/post", ownerKey, { text, media: r.upload });
 if (!done.posted) stop(`NOT POSTED: ${done.reason ?? done.error ?? JSON.stringify(done).slice(0, 300)}`);

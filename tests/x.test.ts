@@ -4,7 +4,7 @@ import { test, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { pool, ensureSchema } from "../server/db";
-import { isoWeek, MAX_POST_CHARS, mediaProblem, oauthHeader, runXPost, statsText, uploadMedia, type XDeps } from "../server/x";
+import { isoWeek, MAX_POST_CHARS, toolMilestoneText, mediaProblem, oauthHeader, runXPost, statsText, uploadMedia, type XDeps } from "../server/x";
 import { postManual } from "../server/x-manual";
 import { saveQueueEdit, upcomingQueue } from "../server/x-edits";
 import { QUEUE } from "../server/x-queue";
@@ -206,4 +206,11 @@ test("an edit to an upcoming queue post is saved, used when it goes out, and can
   await saveQueueEdit(second.key, "temp");
   await saveQueueEdit(second.key, "");
   assert.equal((await upcomingQueue())[0].text, second.original);
+});
+
+test("tool milestone posts never end in doubled punctuation like \"this?.\"", () => {
+  assert.equal(toolMilestoneText({ name: "tx_version", title: "Which transaction version is this?" }),
+    "New in Solana Pulse: tx_version. Which transaction version is this?");
+  assert.equal(toolMilestoneText({ name: "fee", title: "Network fee" }), "New in Solana Pulse: fee. Network fee.");
+  for (const t of TOOLS) assert.doesNotMatch(toolMilestoneText(t), /[.?!]\.$/, t.name);
 });

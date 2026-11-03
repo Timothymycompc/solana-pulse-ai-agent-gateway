@@ -171,10 +171,16 @@ export type XDeps = {
 };
 const defaultDeps: XDeps = { overview: () => ownerOverview({ days: 7 }), prMerged, post: postToX, now: () => new Date() };
 
+// A title that already ends in ? or ! keeps it; only plain titles get a full stop (no "this?.").
+export function toolMilestoneText(t: { name: string; title: string }): string {
+  const title = t.title.trim();
+  return `New in Solana Pulse: ${t.name}. ${/[.?!]$/.test(title) ? title : `${title}.`}`;
+}
+
 async function nextPost(done: Set<string>, d: XDeps, edits: Map<string, string>): Promise<XPost | null> {
   for (const t of TOOLS) {
     if (!done.has(`tool:${t.name}`)) {
-      return { key: `tool:${t.name}`, kind: "milestone", text: `New in Solana Pulse: ${t.name}. ${t.title}.` };
+      return { key: `tool:${t.name}`, kind: "milestone", text: toolMilestoneText(t) };
     }
   }
   for (const pr of LIST_PRS) {
