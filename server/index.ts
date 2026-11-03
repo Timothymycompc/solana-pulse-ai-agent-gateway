@@ -34,6 +34,7 @@ import { openApiDocument } from "./openapi";
 import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
 import { researchTick } from "./research";
 import { trackRecord } from "./track-record";
+import { INDEXNOW_KEY } from "./indexnow-key";
 import { startWatch, tokenHistory, watchTick, worthWatching } from "./watch";
 import { mountTelegram } from "./telegram";
 import { encodeTrail, TRAIL_HEADER, withTrail } from "./trail";
@@ -590,6 +591,10 @@ async function startServer() {
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 
+  // IndexNow (Bing, Yandex, Naver, Seznam; Bing also feeds ChatGPT and Copilot search): the key file proves the site
+  // owns the key, so scripts/indexnow.ts can ask them to re-read new or changed pages. The key is public by design.
+  app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => res.type("text/plain").send(INDEXNOW_KEY));
+
   app.get("/robots.txt", noCache, (_req, res) => {
     res.type("text/plain").send(`User-agent: *\nAllow: /\n\nSitemap: ${PUBLIC_URL}/sitemap.xml`);
   });
@@ -619,7 +624,10 @@ ${section("transactions", "Transactions")}
 ${section("tokens", "Tokens")}
 ${section("wallets", "Wallets")}
 ${section("network", "Network")}
-${section("reference", "Reference")}`);
+${section("reference", "Reference")}
+
+## Guides
+- RPC error -32015 "Transaction version (1) is not supported by the requesting client": the fix for each library, which versions can read version 1 (tested on mainnet) and a live checker: ${PUBLIC_URL}/fix/transaction-version-not-supported`);
   });
 
   app.get("/api/debug/build", noCache, (_req, res) => res.json({ build: "v2-intelligence-layer", status: "alive", tools: TOOLS.length }));
