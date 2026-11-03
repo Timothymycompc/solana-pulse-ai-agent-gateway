@@ -15,6 +15,21 @@
 
 Automated accounts fail on Solana far more often than people expect: a study of over 1.5 billion failed transactions found bots failing 58% of the time ([Why Does My Transaction Fail?](https://arxiv.org/abs/2504.18055), ISSTA 2025). For AI agents the usual causes are mistakes a model makes confidently: wrong decimals, copycat tickers, invented addresses or signatures, expired blockhashes, priority fees in the wrong unit, and signing transactions whose effects nobody checked. Each tool here removes one of those mistakes and returns a verdict, the reasons and a fix.
 
+## Bugs we found, fixed by their maintainers
+
+Since 2026-09-15 Solana has version 1 transactions (41.9% of non-vote transactions in sampled mainnet blocks, Oct 16-30). Code that asks the RPC for version 0 at most gets error -32015 on them and silently misses payments, deposits and history. We report each case with the code line, a real mainnet transaction and the one-line fix. Fixed so far:
+
+| Project | What broke | Fix |
+|---|---|---|
+| [Agent402](https://github.com/MikeyPetrillo/Agent402/issues/1775) | Solana payments sent as version 1 reported as not found | Fixed by the maintainer |
+| [elizaOS](https://github.com/elizaOS/eliza/issues/38012) | Cloud wallet deposits sent as version 1 couldn't be verified | [PR #38116](https://github.com/elizaOS/eliza/pull/38116) |
+| [UltiMafia](https://github.com/UltiMafia/Ultimafia/issues/3123) | Invoices paid with version 1 never matched | [PR #3128](https://github.com/UltiMafia/Ultimafia/pull/3128) |
+| [rotki](https://github.com/rotki/rotki/issues/13508) | Version 1 transactions silently skipped in users' history | [PR #13511](https://github.com/rotki/rotki/pull/13511) |
+| [taurvia](https://github.com/antonpiat/taurvia/issues/86) | Version 1 activity shown as a blank "Transaction" | [PR #93](https://github.com/antonpiat/taurvia/pull/93) |
+| [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs/issues/4) | `parseTransactionFromRpc` failed on version 1 | [PR #5](https://github.com/0xfnzero/sol-parser-sdk-nodejs/pull/5) |
+
+Hitting the error yourself? The [fix page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/fix/transaction-version-not-supported) has the fix for each library, which versions can read version 1 (tested on mainnet), and a live checker.
+
 ## Tools
 
 | Tool | Prevents | Price |
