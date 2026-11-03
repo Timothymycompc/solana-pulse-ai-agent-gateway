@@ -128,6 +128,14 @@ test("the track record counts a token only once it was watched for the whole per
   r = await watchRecord();
   assert.deepEqual(r.byVerdict.AVOID.withinADay, { tokens: 1, liquidityPulled: 1 });
   assert.deepEqual(r.byVerdict.CAUTION.withinADay, { tokens: 1, liquidityPulled: 0 });
+  assert.deepEqual(r.scoreboard.byVerdict, { AVOID: { tokens: 1, liquidityPulled: 1 }, CAUTION: { tokens: 1, liquidityPulled: 0 }, SAFE: { tokens: 0, liquidityPulled: 0 } }, "the scoreboard: same rate, last 30 days");
+  await pool.query(`UPDATE token_watch SET added_at = added_at - INTERVAL '40 days'`);
+  await pool.query(`UPDATE token_watch_readings SET at = at - INTERVAL '40 days'`);
+  r = await watchRecord();
+  assert.deepEqual(r.scoreboard.byVerdict.AVOID, { tokens: 0, liquidityPulled: 0 }, "checks older than 30 days leave the scoreboard");
+  assert.deepEqual(r.byVerdict.AVOID.withinADay, { tokens: 1, liquidityPulled: 1 }, "but stay in the 90-day table");
+  await pool.query(`UPDATE token_watch SET added_at = added_at + INTERVAL '40 days'`);
+  await pool.query(`UPDATE token_watch_readings SET at = at + INTERVAL '40 days'`);
 
   const t = await trackRecord();
   assert.equal(t.watch.watchingNow, 2);

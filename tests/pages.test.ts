@@ -74,4 +74,16 @@ test("the track record page explains each measurement in the HTML; the numbers l
   assert.match(html, /<title>Track record · Solana Pulse<\/title>/);
   for (const heading of ["New tokens, a week later", "Well-known tokens (false alarms)", "Token watch"]) assert.ok(words.includes(heading), heading);
   assert.match(words, /Pulse never gives buy signals/);
+  assert.ok(words.includes("Scoreboard: the last 30 days"));
+});
+
+test("the -32015 fix page carries the exact error, the fix for each library and the tested versions in the HTML", async () => {
+  const { status, html } = await get("/fix/transaction-version-not-supported");
+  assert.equal(status, 200);
+  const words = text(html);
+  assert.match(html, /<title>Fix &quot;Transaction version \(1\) is not supported by the requesting client&quot; \(-32015\) · Solana Pulse<\/title>/);
+  assert.match(html, /<meta name="description" content="Solana RPC error -32015 means/);
+  assert.match(words, /Transaction version \(1\) is not supported by the requesting client/);
+  for (const s of ["maxSupportedTransactionVersion", "max_supported_transaction_version=1", "Some(1)", "1.99.0", "7.1.0", "41.9%"]) assert.ok(words.includes(s), s);
+  assert.match(words, /Check version/);
 });

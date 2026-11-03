@@ -20,7 +20,7 @@ type Record_ = {
   batches?: { name: string; checked: number; followedUp: number; outcomeKnown: number; lostMostByVerdict: Record<string, string>;
     laterChecks: Record<string, { readAgain: number; lostMost: string }> }[];
   research?: null | Research;
-  watch: { about: string; watchingNow: number; watched90d: number; readings90d: number;
+  watch: { about: string; scoreboard?: { days: number; byVerdict: Record<string, Rate> }; watchingNow: number; watched90d: number; readings90d: number;
     byVerdict: Record<string, { watched: number; withinADay: Rate; withinAWeek: Rate }>;
     recent: { mint: string; symbol: string | null; verdictThen: string; at: string; what: string; result: string; detail: string; hoursAfterFirstCheck: number }[] };
 };
@@ -72,6 +72,18 @@ export const TrackRecordPage: React.FC = () => {
     <article className="max-w-4xl">
       <PageHeader title="Track record" lead="What token_safety said, against what really happened. Every number here is measured from real follow-ups on real tokens; nothing is assumed, and tokens with no answer are left out." />
       {failed && <p role="status" className="mb-8 rounded-lg border border-line px-4 py-3 text-[14px] text-ink-400">The numbers can't be loaded right now. Refresh to try again.</p>}
+
+      <H2 id="scoreboard">Scoreboard: the last {w?.scoreboard?.days ?? 30} days</H2>
+      <P>Young tokens Pulse checked in the last {w?.scoreboard?.days ?? 30} days (sampled from Jupiter's lists, or checked by callers), read again every few hours. This counts the ones whose liquidity was pulled within a day of the check: it fell 90% or more, or Jupiter stopped listing the token. Only tokens followed for a full day count. It updates by itself.</P>
+      <Box>
+        <dl className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
+          {VERDICTS.map((v) => {
+            const s = w?.scoreboard?.byVerdict[v];
+            return <Stat key={v} label={s ? `Pulse said ${v}: liquidity pulled within a day (${s.liquidityPulled} of ${s.tokens} tokens)` : `Pulse said ${v}`}
+              value={s ? (s.tokens ? `${Math.round((s.liquidityPulled / s.tokens) * 100)}%` : 'no data yet') : dash} />;
+          })}
+        </dl>
+      </Box>
 
       <H2>New tokens, a week later</H2>
       <P>{y?.about ?? 'Young tokens people are buying right now are checked once, then looked at again a week later to see whether buyers lost most of their money.'}</P>

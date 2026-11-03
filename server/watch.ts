@@ -17,8 +17,11 @@ import type { ToolContext } from "./tools/types";
 export const WATCH_DAYS = 7;
 export const SNAP_EVERY_HOURS = 2;
 export const NEW_PER_DAY = 10; // Tim asked for "around 10 new coins"
-export const CALLER_PER_DAY = 50;
-const PER_TICK = { sample: 2, snap: 100 };
+// 150 since 2026-11-03: the trade desk alone checks ~300 young coins a day, and the scoreboard on /track-record needs
+// them followed. Readings stay inside capacity: ~1,100 watched x one reading per 2 h = ~550 an hour, PER_TICK.snap
+// allows 1,200.
+export const CALLER_PER_DAY = 150;
+const PER_TICK = { sample: 2, snap: 200 };
 const DAY = 864e5;
 
 // One reading of a token. null means no source answered; listed false means Jupiter answered and no longer lists it.
@@ -128,6 +131,8 @@ export async function readMany(ctx: ToolContext, mints: string[]): Promise<Map<s
   return out;
 }
 
+export const SCOREBOARD_DAYS = 30;
+
 const PARTIAL = ["market_data", "rugcheck_data"];
 
 export async function watchTick(ctx: ToolContext, verdict: Verdict) {
@@ -211,7 +216,15 @@ export async function watchRecord() {
     mint: x.w.mint, symbol: x.w.symbol, verdictThen: x.w.verdict_then, foundIn: x.w.found_in,
     hoursAfterFirstCheck: Math.round((Date.parse(c.at) - new Date(x.w.added_at).getTime()) / 3.6e6), ...c,
   }))).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 12);
+  // The scoreboard: the same within-a-day rate, only for tokens first checked in the last SCOREBOARD_DAYS days, so it
+  // follows the current rules instead of being diluted by months-old checks.
+  const recentItems = items.filter((x) => now - new Date(x.w.added_at).getTime() <= SCOREBOARD_DAYS * DAY);
+  const scoreboard = {
+    days: SCOREBOARD_DAYS,
+    byVerdict: Object.fromEntries(["AVOID", "CAUTION", "SAFE"].map((v) => [v, rate(recentItems.filter((x) => x.w.verdict_then === v), 1)])),
+  };
   return {
+    scoreboard,
     watchingNow: rows.filter((r) => new Date(r.watch_until).getTime() > now).length,
     watched90d: rows.length,
     readings90d: all.length,

@@ -19,6 +19,7 @@ const GUIDE_PAGES: NavItem[] = [
   ...(ON_SITE.reports ? [{ title: 'Reports', path: '/reports', keywords: 'findings bugs projects audit version 1 v1 transactions wallets search casino scam earn app game withdrawal how we check method' }] : []),
   { title: 'Track record', path: '/track-record', keywords: 'accuracy results measured rug pull watch history new tokens false alarms proof' },
   { title: 'How every tool answers', path: '/docs/flows', keywords: 'flow table inputs outputs lookups rpc what goes out came in response' },
+  { title: 'Fix error -32015 (version 1)', path: '/fix/transaction-version-not-supported', keywords: 'transaction version 1 not supported requesting client maxSupportedTransactionVersion 32015 v1 web3.js kit getTransaction getBlock error fix' },
 ];
 const PAYMENT_PAGES: NavItem[] = [
   { title: 'Pricing & x402', path: '/docs/pricing', keywords: 'price usdc pay payment free calls x402' },
