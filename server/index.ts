@@ -471,13 +471,15 @@ async function startServer() {
     res.status(r.saved ? 200 : 400).json(r);
   });
 
-  // A post the owner writes by hand (scripts/x-post.ts): { text, media: bucket file names }. ?dry=1 only checks it.
+  // A post the owner writes by hand (scripts/x-post.ts): { text, media: bucket file names, replyTo?: post id for a
+  // thread }. ?dry=1 only checks it.
   app.post("/api/owner/x/post", noCache, async (req, res) => {
     if (!isOwnerKey(keyFromReq(req))) return res.status(401).json({ error: "Owner key required.", fix: "Send your OWNER_API_KEY in the x-api-key header." });
     const media = Array.isArray(req.body?.media) ? req.body.media.map(String) : [];
     if (media.some((m: string) => !m.startsWith("uploads/") || m.includes(".."))) return res.status(400).json({ posted: false, reason: "Files must be in uploads/." });
     try {
-      res.json(await postManual({ text: String(req.body?.text ?? ""), media, dryRun: req.query.dry === "1" }));
+      const replyTo = req.body?.replyTo ? String(req.body.replyTo) : undefined;
+      res.json(await postManual({ text: String(req.body?.text ?? ""), media, replyTo, dryRun: req.query.dry === "1" }));
     } catch (error: any) {
       console.error("X manual post failed:", error);
       res.status(502).json({ posted: false, error: String(error?.message ?? error).slice(0, 400) });

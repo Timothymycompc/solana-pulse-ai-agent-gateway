@@ -185,6 +185,17 @@ test("a manual post is checked, previewed without posting, then posted with its 
   assert.deepEqual(row, { kind: "manual", text: "hello", post_id: "777" });
 });
 
+test("a manual post can answer an earlier post (a thread); a bad post id is refused before anything is sent", async () => {
+  for (const k of ["X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"]) process.env[k] = "test";
+  const sent: (string | undefined)[] = [];
+  const post = async (_t: string, _k: unknown, _m?: string[], replyTo?: string) => { sent.push(replyTo); return "888"; };
+  assert.match((await postManual({ text: "two", replyTo: "x.com/abc", post })).reason!, /replyTo/);
+  assert.equal(sent.length, 0);
+  const r = await postManual({ text: "two", replyTo: "1985000000000000000", post, now: () => new Date("2026-11-03T11:00:00Z") });
+  assert.equal(r.posted, true);
+  assert.deepEqual(sent, ["1985000000000000000"]);
+});
+
 test("an edit to an upcoming queue post is saved, used when it goes out, and can be reset", async () => {
   await db.query(`DELETE FROM x_posts WHERE key LIKE 'queue:%'`);
   const first = (await upcomingQueue())[0];

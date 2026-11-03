@@ -117,11 +117,14 @@ async function readMedia(name: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-export async function postToX(text: string, keys: XKeys, files: string[] = []): Promise<string> {
+// replyTo: the id of a post to answer, which is how a thread is made (each post replies to the one before).
+export async function postToX(text: string, keys: XKeys, files: string[] = [], replyTo?: string): Promise<string> {
   const ids: string[] = [];
   for (const name of files) ids.push(await uploadMedia(await readMedia(name), mediaInfo(name)?.type ?? "video/mp4", keys));
-  const media = ids.length ? { media_ids: ids } : undefined;
-  const body = await xCall(fetch, keys, "POST", POST_URL, { json: media ? { text, media } : { text } });
+  const json: Record<string, unknown> = { text };
+  if (ids.length) json.media = { media_ids: ids };
+  if (replyTo) json.reply = { in_reply_to_tweet_id: replyTo };
+  const body = await xCall(fetch, keys, "POST", POST_URL, { json });
   return String(body?.data?.id ?? "");
 }
 

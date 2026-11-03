@@ -4,6 +4,7 @@
 //   npm run x-post -- "text" pic1.jpg pic2.png     with up to 4 pictures (jpg, png, webp)
 //   npm run x-post -- "text" clip.mp4              or one video (mp4, mov) or one GIF
 //   npm run x-post -- - pic.jpg                    type the text instead, for line breaks (finish with a line holding just .)
+//   npm run x-post -- --reply-to 123456 "text"     answer post 123456 (the number at the end of its link): a thread
 //   add --yes to post without the y/N question (for Claude, after Tim has seen the preview text)
 // Files are copied to the private bucket's uploads/ folder; the live server reads them there and posts.
 // Needs the current code deployed (npm run deploy).
@@ -41,7 +42,10 @@ async function call(path: string, ownerKey: string, body?: unknown): Promise<any
 }
 
 const yes = process.argv.includes("--yes");
-const args = process.argv.slice(2).filter((a) => a !== "--yes");
+let args = process.argv.slice(2).filter((a) => a !== "--yes");
+const replyAt = args.indexOf("--reply-to");
+const replyTo = replyAt >= 0 ? args[replyAt + 1] : undefined;
+if (replyAt >= 0) args = args.filter((_, i) => i !== replyAt && i !== replyAt + 1);
 const next = args[0] === "--next";
 let text = "";
 let files: string[] = [];
@@ -69,7 +73,7 @@ if (next) {
 } else {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
   const media = files.map((f) => `uploads/${stamp}-${basename(f).replace(/[^A-Za-z0-9._-]/g, "_")}`);
-  r = await call("/api/owner/x/post?dry=1", ownerKey, { text, media }); // checks the post before uploading anything
+  r = await call("/api/owner/x/post?dry=1", ownerKey, { text, media, replyTo }); // checks the post before uploading anything
   if (r.dryRun) {
     for (const [i, f] of files.entries()) {
       console.log(`Uploading ${f}...`);
@@ -83,7 +87,7 @@ show(r);
 if (!r.dryRun) stop(r.reason ?? r.error ?? "Nothing to post.");
 if (!yes && !(await ask("Post this to @" + ACCOUNT + " now? (y/N) "))) stop("Not posted.");
 console.log(r.media?.length ? "Posting (X can take a minute or two to process a video)..." : "Posting...");
-const done = next ? await call("/api/owner/x/run", ownerKey) : await call("/api/owner/x/post", ownerKey, { text, media: r.upload });
+const done = next ? await call("/api/owner/x/run", ownerKey) : await call("/api/owner/x/post", ownerKey, { text, media: r.upload, replyTo });
 if (!done.posted) stop(`NOT POSTED: ${done.reason ?? done.error ?? JSON.stringify(done).slice(0, 300)}`);
 if (next && done.key !== r.key) console.log(`Note: the bot posted ${done.key} instead of the preview (something new came up).`);
 console.log(`POSTED: https://x.com/${ACCOUNT}/status/${done.postId}`);
