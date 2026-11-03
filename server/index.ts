@@ -35,6 +35,7 @@ import { accuracyReport, accuracyTick, addToQueue } from "./accuracy";
 import { researchTick } from "./research";
 import { trackRecord } from "./track-record";
 import { INDEXNOW_KEY } from "./indexnow-key";
+import { GOOGLE_VERIFICATION_BODY, GOOGLE_VERIFICATION_FILE } from "./site-verification";
 import { startWatch, tokenHistory, watchTick, worthWatching } from "./watch";
 import { mountTelegram } from "./telegram";
 import { encodeTrail, TRAIL_HEADER, withTrail } from "./trail";
@@ -594,6 +595,7 @@ async function startServer() {
   // IndexNow (Bing, Yandex, Naver, Seznam; Bing also feeds ChatGPT and Copilot search): the key file proves the site
   // owns the key, so scripts/indexnow.ts can ask them to re-read new or changed pages. The key is public by design.
   app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => res.type("text/plain").send(INDEXNOW_KEY));
+  app.get(`/${GOOGLE_VERIFICATION_FILE}`, (_req, res) => res.type("text/html").send(GOOGLE_VERIFICATION_BODY));
 
   app.get("/robots.txt", noCache, (_req, res) => {
     res.type("text/plain").send(`User-agent: *\nAllow: /\n\nSitemap: ${PUBLIC_URL}/sitemap.xml`);
