@@ -54,9 +54,10 @@ const Field: React.FC<FieldProps> = ({ path, schema, doc, required, value, onCha
   return <div className="space-y-1.5">{label}{control}{help}</div>;
 };
 
-export function ToolForm({ tool, values, onChange, compact }: { tool: ToolDoc; values: Values; onChange: (values: Values) => void; compact?: boolean }) {
-  const props = tool.inputSchema.properties ?? {};
+// only: show just the required inputs or just the optional ones (the simple toolbox folds the optional ones away).
+export function ToolForm({ tool, values, onChange, compact, only }: { tool: ToolDoc; values: Values; onChange: (values: Values) => void; compact?: boolean; only?: 'required' | 'optional' }) {
   const required = new Set(tool.inputSchema.required ?? []);
+  const props = Object.fromEntries(Object.entries(tool.inputSchema.properties ?? {}).filter(([key]) => !only || (only === 'required') === required.has(key)));
   const docFor = (path: string) => tool.inputs.find((d) => d.name === path);
   const set = (key: string, v: unknown) => onChange({ ...values, [key]: v });
 
@@ -78,7 +79,7 @@ export function ToolForm({ tool, values, onChange, compact }: { tool: ToolDoc; v
         }
         return <Field key={key} path={key} schema={schema} doc={docFor(key)} required={required.has(key) && schema.default === undefined} value={values[key]} onChange={(v) => set(key, v)} compact={compact} />;
       })}
-      {Object.keys(props).length === 0 && <p className="text-xs text-ink-400">This tool needs no inputs.</p>}
+      {Object.keys(props).length === 0 && only !== 'optional' && <p className="text-xs text-ink-400">{only === 'required' ? 'Nothing is required: every input below is optional.' : 'This tool needs no inputs.'}</p>}
     </div>
   );
 }
@@ -95,3 +96,9 @@ export function toArguments(tool: ToolDoc, values: Values): Values {
   }
   return out;
 }
+
+// How many optional inputs a tool has (for the "Optional inputs (n)" fold).
+export const optionalCount = (tool: ToolDoc) => {
+  const required = new Set(tool.inputSchema.required ?? []);
+  return Object.keys(tool.inputSchema.properties ?? {}).filter((k) => !required.has(k)).length;
+};

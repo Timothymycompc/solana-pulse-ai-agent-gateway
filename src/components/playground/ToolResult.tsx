@@ -29,7 +29,9 @@ function VerdictReport({ body }: { body: any }) {
 
 type CallInfo = { args: Record<string, unknown>; transport: 'http' | 'mcp' };
 
-export function ToolResult({ tool, result, running, call, showFieldGuide = true }: { tool: ToolDoc; result: RunResult | null; running: boolean; call?: CallInfo; showFieldGuide?: boolean }) {
+// simple: the answer first (money moved, the verdict and its reasons); how it was made, the raw response and the field
+// guide fold into "More details & code" (the simple toolbox, 2026-11-04).
+export function ToolResult({ tool, result, running, call, showFieldGuide = true, simple = false }: { tool: ToolDoc; result: RunResult | null; running: boolean; call?: CallInfo; showFieldGuide?: boolean; simple?: boolean }) {
   const [copied, setCopied] = useState(false);
   const latency = useCountUp(result?.latencyMs ?? 0, 500);
   const present = new Set(result && typeof result.body === 'object' && result.body ? Object.keys(result.body as object) : []);
@@ -95,7 +97,21 @@ export function ToolResult({ tool, result, running, call, showFieldGuide = true 
         </div>
       )}
 
-      {call && <CallFlow tool={tool.name} args={call.args} transport={call.transport} status={result.status} latencyMs={result.latencyMs} trail={result.trail} verdict={ok && typeof body?.verdict === 'string' ? body.verdict : null} />}
+      {simple ? (
+        <details className="group rounded-xl border border-line surface">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[13px] font-semibold text-ink-200 [&::-webkit-details-marker]:hidden">
+            <BookOpen className="h-4 w-4 text-accent-300" /> More details and code
+            <span className="ml-auto text-[12px] font-normal text-ink-400">how this answer was made, the raw response, every field</span>
+          </summary>
+          <div className="space-y-3 border-t border-line p-3">{details()}</div>
+        </details>
+      ) : details()}
+    </div>
+  );
+
+  function details() {
+    return (<>
+      {call && <CallFlow tool={tool.name} args={call.args} transport={call.transport} status={result!.status} latencyMs={result!.latencyMs} trail={result!.trail} verdict={ok && typeof body?.verdict === 'string' ? body.verdict : null} />}
 
       <JsonView value={body} className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line surface-inset p-3 font-mono text-[12px] leading-[1.6] text-ink-200" />
 
@@ -121,6 +137,6 @@ export function ToolResult({ tool, result, running, call, showFieldGuide = true 
           </div>
         </details>
       )}
-    </div>
-  );
+    </>);
+  }
 }
