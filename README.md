@@ -11,6 +11,13 @@
 - Open source (MIT) and free to use: every tool gives 25 free calls a day
 - Built on [our principles](PRINCIPLES.md): real data with its source, "unknown" instead of a guess, and no false data on the chain. A safety check doesn't make a token safe, and it can't. It looks for the known ways people get robbed with a token. "SAFE" really means "none of the traps we know about are present." Every rule exists because it matches a real scam.
 
+## Proof
+
+- **9 of 9 attacks caught, no false alarm:** 10 cases built from real mainnet accounts and simulated against live mainnet state (wrong recipient, wrong amount, wrong token, hidden transfer, balance drain, malicious program, replayed payment...). [Benchmark](benchmark/README.md); `benchmark/score.ts` scores any other checker on the same cases.
+- **No BLOCK on 200 ordinary mainnet transactions** that really worked: 80 of 80 transfers and 26 of 27 swaps MATCH. [How it was measured](#tests).
+- **6 bugs found in other Solana projects, all fixed by their maintainers** (elizaOS, rotki, Agent402, UltiMafia, taurvia, sol-parser-sdk-nodejs): [the list](#bugs-we-found-fixed-by-their-maintainers).
+- **Uptime, measured honestly:** two long outages in September and early October, explained [below](#uptime-honestly).
+
 ## Why
 
 Automated accounts fail on Solana far more often than people expect: a study of over 1.5 billion failed transactions found bots failing 58% of the time ([Why Does My Transaction Fail?](https://arxiv.org/abs/2504.18055), ISSTA 2025). For AI agents the usual causes are mistakes a model makes confidently: wrong decimals, copycat tickers, invented addresses or signatures, expired blockhashes, priority fees in the wrong unit, and signing transactions whose effects nobody checked. Each tool here removes one of those mistakes and returns a verdict, the reasons and a fix.
