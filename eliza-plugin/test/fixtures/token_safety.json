@@ -1,0 +1,110 @@
+{
+  "tool": "token_safety",
+  "recordedAt": "2026-11-07T21:47:39.935Z",
+  "status": 200,
+  "input": {
+    "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"
+  },
+  "body": {
+    "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "network": "mainnet-beta",
+    "verdict": "SAFE",
+    "summary": "No red flags found: the liquidity can't be pulled, the creator has no rug record, no insider network holds a large share, nobody can mint more, nobody can freeze holders, Jupiter verifies it, it has over $100,000 of liquidity, the top 10 holders own under half, it has traded for over a day. Not checked: Sell test skipped: the token's holders could not be read right now.",
+    "rug_chance": null,
+    "about": {
+      "symbol": "JUP",
+      "name": "Jupiter",
+      "decimals": 6,
+      "supply": "6861485698.574677",
+      "token_program": "spl-token",
+      "who_can_mint": null,
+      "who_can_freeze": null,
+      "extensions": [],
+      "usd_price": 0.23900103265479358,
+      "liquidity_usd": 4887845,
+      "holders": 837227,
+      "top10_share_pct": 15.2,
+      "first_traded": "2024-01-29T17:33:29Z",
+      "creator": "JUPhop9E8ZfdJ5FNHhxQt4uAih822Vs4QpqsWcewFbq",
+      "creator_tokens_launched": 1,
+      "metadata_can_change": true,
+      "total_value_usd": 1639902168,
+      "value_to_liquidity": 335.5
+    },
+    "checks": [
+      {
+        "name": "verified",
+        "result": "pass",
+        "detail": "Listed as verified by Jupiter.",
+        "source": "jupiter"
+      },
+      {
+        "name": "mint_authority",
+        "result": "pass",
+        "detail": "Mint authority revoked: supply is fixed.",
+        "source": "on-chain"
+      },
+      {
+        "name": "freeze_authority",
+        "result": "pass",
+        "detail": "Freeze authority revoked: nobody can freeze holders.",
+        "source": "on-chain"
+      },
+      {
+        "name": "liquidity",
+        "result": "pass",
+        "detail": "About $4,887,845 of DEX liquidity.",
+        "source": "jupiter"
+      },
+      {
+        "name": "holder_concentration",
+        "result": "pass",
+        "detail": "Top 10 holders own 15.2% of supply.",
+        "source": "jupiter"
+      },
+      {
+        "name": "age",
+        "result": "pass",
+        "detail": "Trading since 2024-01-29.",
+        "source": "jupiter"
+      },
+      {
+        "name": "value_vs_liquidity",
+        "result": "info",
+        "detail": "The token's total value ($1,639.9M) is 336x its DEX liquidity ($4.9M). Common for an established token, where part of the supply is locked or trades on exchanges.",
+        "source": "jupiter"
+      },
+      {
+        "name": "liquidity_pull",
+        "result": "pass",
+        "detail": "The liquidity comes from 170 different providers, so no single one can pull it.",
+        "source": "rugcheck"
+      },
+      {
+        "name": "insiders",
+        "result": "pass",
+        "detail": "No networks of linked insider wallets detected.",
+        "source": "rugcheck"
+      },
+      {
+        "name": "creator_history",
+        "result": "pass",
+        "detail": "No rugged tokens in the creator's history (1 token launched).",
+        "source": "rugcheck"
+      },
+      {
+        "name": "metadata",
+        "result": "info",
+        "detail": "The token's name and logo can still be changed by 61aq585V8cR2sZBeawJFt2NPqmN7zDi1sws4KLs5xHXV, which is common for established tokens.",
+        "source": "rugcheck"
+      },
+      {
+        "name": "sell_test",
+        "result": "info",
+        "detail": "Sell test skipped: the token's holders could not be read right now.",
+        "source": "simulation"
+      }
+    ],
+    "history": null
+  }
+}

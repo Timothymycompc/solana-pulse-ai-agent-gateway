@@ -1,0 +1,119 @@
+{
+  "tool": "check_tx",
+  "recordedAt": "2026-11-07T21:47:36.898Z",
+  "status": 200,
+  "input": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQADBUjAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTm3sTeRGTwuXxew5/kivghLMd/7RlS2oFJdI1UTmJL6wADBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpfowIh2C/3h3dzzLBfyCbgkLuUqrxMfrNiNDqLG0LBvKguR4xQK8SFTCuVD1ZTLtoowxCievYKdEiLYiVBK4jEwMCAAUCIE4AAAIACQMQJwAAAAAAAAMDAQQACQQAEKXU6AAAAAA="
+  },
+  "body": {
+    "network": "mainnet-beta",
+    "verdict": "BLOCK",
+    "summary": "BLOCK: Dry run failed: AccountFrozen: The token account is frozen by the token's freeze authority. (Assumes the failing program is SPL Token; pass programId to confirm.) Fix: Frozen tokens cannot move until the issuer thaws them. Treat tokens with an active freeze authority as risky (token_safety).",
+    "fee_payer": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+    "signers": [
+      "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+    ],
+    "checks": [
+      {
+        "name": "simulation",
+        "result": "fail",
+        "detail": "Dry run failed: AccountFrozen: The token account is frozen by the token's freeze authority. (Assumes the failing program is SPL Token; pass programId to confirm.) Fix: Frozen tokens cannot move until the issuer thaws them. Treat tokens with an active freeze authority as risky (token_safety)."
+      },
+      {
+        "name": "blockhash",
+        "result": "warn",
+        "detail": "The blockhash has expired, so the network would reject this. It was dry-run with a fresh one. Rebuild with blockhash before signing."
+      },
+      {
+        "name": "fee_payer_balance",
+        "result": "pass",
+        "detail": "Fee payer holds 65.632932404 SOL; fees are 0.0000052 SOL."
+      },
+      {
+        "name": "token_approval",
+        "result": "fail",
+        "detail": "Instruction 2 lets 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM move up to 1000000000000 base units from token account FzbcyEZ9m8xjtergWgWDq7mfPoHEbboBF791B6cTpzbq at any time. This is the most common wallet-drainer pattern."
+      }
+    ],
+    "balance_changes": [],
+    "steps": [
+      {
+        "index": 0,
+        "program_id": "ComputeBudget111111111111111111111111111111",
+        "program": "Compute Budget",
+        "accounts": [],
+        "type": "set_compute_unit_limit",
+        "info": {
+          "units": 20000
+        }
+      },
+      {
+        "index": 1,
+        "program_id": "ComputeBudget111111111111111111111111111111",
+        "program": "Compute Budget",
+        "accounts": [],
+        "type": "set_compute_unit_price",
+        "info": {
+          "micro_lamports_per_compute_unit": "10000"
+        }
+      },
+      {
+        "index": 2,
+        "program_id": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "program": "SPL Token",
+        "accounts": [
+          "FzbcyEZ9m8xjtergWgWDq7mfPoHEbboBF791B6cTpzbq",
+          "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+        ],
+        "type": "token_approve",
+        "info": {
+          "account": "FzbcyEZ9m8xjtergWgWDq7mfPoHEbboBF791B6cTpzbq",
+          "delegate": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "owner": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "amount_raw": "1000000000000",
+          "mint": null
+        }
+      }
+    ],
+    "fee": {
+      "base_lamports": "5000",
+      "priority_lamports": "200",
+      "total_lamports": "5200",
+      "total_sol": "0.0000052",
+      "compute_unit_limit": 20000,
+      "compute_unit_limit_from": "set in transaction",
+      "compute_unit_price": "10000"
+    },
+    "simulation": {
+      "worked": false,
+      "error": {
+        "InstructionError": [
+          2,
+          {
+            "Custom": 17
+          }
+        ]
+      },
+      "error_explained": {
+        "code": "0x11",
+        "name": "AccountFrozen",
+        "scope": "token_program",
+        "meaning": "The token account is frozen by the token's freeze authority. (Assumes the failing program is SPL Token; pass programId to confirm.)",
+        "likely_cause": "The token account is frozen by the token's freeze authority.",
+        "fix": "Frozen tokens cannot move until the issuer thaws them. Treat tokens with an active freeze authority as risky (token_safety)."
+      },
+      "compute_used": 534,
+      "logs": [
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+        "Program log: Error: Account is frozen",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 234 of 19700 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: custom program error: 0x11"
+      ]
+    }
+  }
+}

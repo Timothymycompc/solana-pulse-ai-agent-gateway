@@ -1,0 +1,24 @@
+{
+  "tool": "why_failed",
+  "recordedAt": "2026-11-07T21:47:40.816Z",
+  "status": 200,
+  "input": {
+    "error": "custom program error: 0x1771"
+  },
+  "body": {
+    "known": true,
+    "failed_step": null,
+    "program": null,
+    "explanations": [
+      {
+        "code": "0x1771",
+        "name": "Custom program error 6001",
+        "scope": "program_specific",
+        "meaning": "Program-defined error 6001 (0x1771). Codes 6000 and up are defined by each program, so the meaning depends on which program failed.",
+        "likely_cause": "A program-specific check failed.",
+        "fix": "Find the failing program (explain_tx shows it) and look up this code in that program's IDL or docs."
+      }
+    ],
+    "next_step": "Find the failing program (explain_tx shows it) and look up this code in that program's IDL or docs."
+  }
+}

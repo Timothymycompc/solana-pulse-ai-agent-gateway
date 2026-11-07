@@ -1,0 +1,80 @@
+{
+  "name": "elizaos-plugin-solana-pulse",
+  "version": "0.1.0",
+  "description": "elizaOS plugin for Solana Pulse: check a transaction before signing (OK, REVIEW or BLOCK), token safety, what an address is, why a transaction failed, and the real token behind a ticker, from live mainnet data with sources.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "elizaos",
+    "elizaos-plugin",
+    "eliza",
+    "solana",
+    "safety",
+    "transaction-simulation",
+    "pre-sign",
+    "token-safety",
+    "rug-check",
+    "x402"
+  ],
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "PULSE_API_KEY": {
+        "type": "string",
+        "description": "Optional. A Pulse key lifts the 25 free calls per tool per day.",
+        "required": false,
+        "sensitive": true
+      },
+      "PULSE_URL": {
+        "type": "string",
+        "description": "Optional. Another Pulse server. Default: the public one.",
+        "required": false,
+        "sensitive": false
+      }
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@elizaos/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway.git",
+    "directory": "eliza-plugin"
+  },
+  "homepage": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/main/eliza-plugin#readme",
+  "license": "MIT"
+}

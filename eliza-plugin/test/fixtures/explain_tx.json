@@ -1,0 +1,49 @@
+{
+  "tool": "explain_tx",
+  "recordedAt": "2026-11-07T21:47:40.393Z",
+  "status": 200,
+  "input": {
+    "tx_id": "4nh2hRWKbWLdzJijZWgZv3Fgmh1bMrBUho5fWJFGJYAZkv7d9x3Yz2qMhAG5o2i6Qfd9AeRakKC88aqwtvg5Mr8H"
+  },
+  "body": {
+    "tx_id": "4nh2hRWKbWLdzJijZWgZv3Fgmh1bMrBUho5fWJFGJYAZkv7d9x3Yz2qMhAG5o2i6Qfd9AeRakKC88aqwtvg5Mr8H",
+    "network": "mainnet-beta",
+    "result": "success",
+    "summary": "Succeeded (System Program). Fee payer AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy paid 0.000005 SOL in fees. Balance changes: AzrK…tTqy -0.000014945 SOL; DfXy…DXjh +0.000009945 SOL.",
+    "time": "2026-10-19T21:42:33.000Z",
+    "slot": 458986187,
+    "fee_payer": "AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy",
+    "signers": [
+      "AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy"
+    ],
+    "fee": {
+      "lamports": "5000",
+      "sol": "0.000005"
+    },
+    "programs": [
+      {
+        "address": "11111111111111111111111111111111",
+        "name": "System Program"
+      }
+    ],
+    "sol_changes": [
+      {
+        "account": "AzrKmMFgjcRRfG4G4Xta5Vyric6hDYUVfxqkrRPztTqy",
+        "before": "4.311624606",
+        "after": "4.311609661",
+        "change": "-0.000014945",
+        "raw_change": "-14945"
+      },
+      {
+        "account": "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+        "before": "0.000735794",
+        "after": "0.000745739",
+        "change": "0.000009945",
+        "raw_change": "9945"
+      }
+    ],
+    "token_changes": [],
+    "compute_used": 150,
+    "failure": null
+  }
+}

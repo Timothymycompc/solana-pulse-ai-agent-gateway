@@ -1,0 +1,159 @@
+{
+  "tool": "find_token",
+  "recordedAt": "2026-11-07T21:47:40.605Z",
+  "status": 200,
+  "input": {
+    "name": "BONK"
+  },
+  "body": {
+    "name": "BONK",
+    "best": {
+      "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+      "symbol": "Bonk",
+      "name": "Bonk",
+      "decimals": 5,
+      "verified": true,
+      "liquidity_usd": 5902453,
+      "holders": 1027266,
+      "real_trading_score": 77,
+      "token_program": "spl-token",
+      "can_mint_more": false,
+      "can_freeze": false
+    },
+    "confidence": "high",
+    "copycats": 2,
+    "candidates": [
+      {
+        "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+        "symbol": "Bonk",
+        "name": "Bonk",
+        "decimals": 5,
+        "verified": true,
+        "liquidity_usd": 5902453,
+        "holders": 1027266,
+        "real_trading_score": 77,
+        "token_program": "spl-token",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "BonK1YhkXEGLZzwtcvRTip3gAL9nCeQD7ppZBLXhtTs",
+        "symbol": "bonkSOL",
+        "name": "Bonk SOL",
+        "decimals": 9,
+        "verified": true,
+        "liquidity_usd": 6552681,
+        "holders": 6744,
+        "real_trading_score": 0,
+        "token_program": "spl-token",
+        "can_mint_more": null,
+        "can_freeze": false
+      },
+      {
+        "address": "5Htub56zFC6gyp4UKKjEb21JTSrWheHbNwbxmXedbonk",
+        "symbol": "SAVIOUR",
+        "name": "Bonk Level Saviour",
+        "decimals": 6,
+        "verified": false,
+        "liquidity_usd": 115882,
+        "holders": 667,
+        "real_trading_score": 0,
+        "token_program": "spl-token",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "HeQAveNBVvP3edofw1DSWmnwZE8wwJr4eZ4eMyykpump",
+        "symbol": "$BONKF",
+        "name": "Bonk Face",
+        "decimals": 6,
+        "verified": false,
+        "liquidity_usd": 15242,
+        "holders": 3,
+        "real_trading_score": 0,
+        "token_program": "token-2022",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "CDBdbNqmrLu1PcgjrFG52yxg71QnFhBZcUE6PSFdbonk",
+        "symbol": "LetsBONK",
+        "name": "Let's BONK",
+        "decimals": 6,
+        "verified": true,
+        "liquidity_usd": 63900,
+        "holders": 8507,
+        "real_trading_score": 0,
+        "token_program": "spl-token",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "Cae3oz1w4b8a3EM2Akab7mTTt6kR8Xdikgnxscubpump",
+        "symbol": "DBONK",
+        "name": "Diamond Bonk",
+        "decimals": 6,
+        "verified": false,
+        "liquidity_usd": 2687,
+        "holders": 5,
+        "real_trading_score": 0,
+        "token_program": "token-2022",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "7YoAymCyauHAXus3snMEKcLgRx546MrHuBW3EuUNKKQs",
+        "symbol": "BONGA",
+        "name": "Bonga - Bonk's Sister",
+        "decimals": 9,
+        "verified": false,
+        "liquidity_usd": 5922,
+        "holders": 2469,
+        "real_trading_score": 0,
+        "token_program": "spl-token",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "CbLD888QdM8kVptWV8d7uPVFug2dSvB7kesurXGSbonk",
+        "symbol": "BonkMoon",
+        "name": "BonkMoon",
+        "decimals": 6,
+        "verified": false,
+        "liquidity_usd": 1870,
+        "holders": 86,
+        "real_trading_score": 0,
+        "token_program": "spl-token",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "Dv1yfkSAujS81hpXXpFD6vD7WDKyZ145dmoXPXhVpump",
+        "symbol": "BONKE",
+        "name": "Bonke",
+        "decimals": 6,
+        "verified": false,
+        "liquidity_usd": 2699,
+        "holders": 1,
+        "real_trading_score": 0,
+        "token_program": "token-2022",
+        "can_mint_more": false,
+        "can_freeze": false
+      },
+      {
+        "address": "CKfatsPMUf8SkiURsDXs7eK6GWb4Jsd6UDbs7twMCWxo",
+        "symbol": "BERN",
+        "name": "BonkEarn",
+        "decimals": 5,
+        "verified": true,
+        "liquidity_usd": 191752,
+        "holders": 58402,
+        "real_trading_score": 0,
+        "token_program": "token-2022",
+        "can_mint_more": false,
+        "can_freeze": false
+      }
+    ],
+    "next_step": "Use token address DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263. Ignore the 2 unverified token(s) also called BONK."
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "tool": "whats_this",
+  "recordedAt": "2026-11-07T21:47:40.127Z",
+  "status": 200,
+  "input": {
+    "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+  },
+  "body": {
+    "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "network": "mainnet-beta",
+    "exists": true,
+    "kind": "mint",
+    "summary": "A token's own address (its mint). Never send money to it; it can't be recovered.",
+    "lamports": "558873655207",
+    "sol": "558.873655207",
+    "owner_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "owner_program_name": "SPL Token",
+    "is_program": false,
+    "can_sign": true,
+    "details": {
+      "decimals": 6,
+      "supply": "8788884187.849403",
+      "who_can_mint": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+      "who_can_freeze": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+      "extensions": []
+    }
+  }
+}
