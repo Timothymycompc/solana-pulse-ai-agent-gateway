@@ -31,6 +31,8 @@ export const TOOL_PRICES: Record<string, ToolPrice> = {
   trace: "$0.02",
   // $0.03: builds and runs check_tx + tx_matches (and token_safety for swaps), cheaper than calling them one by one.
   build_tx: "$0.03",
+  // $0.03: reads up to 1,000 transactions of a pool in one call.
+  token_traders: "$0.03",
 };
 
 // Every tool is served at /api/tools/<name> over HTTP and by name over MCP; both share pricing and free calls.

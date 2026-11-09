@@ -136,7 +136,7 @@ export async function jupLookup(ctx: ToolContext, query: string): Promise<{ toke
 
 // RugCheck's public token report: who provides the liquidity and whether it is locked, insider wallet networks, the
 // creator's history and whether the name and logo can still change. ok is false when RugCheck could not be reached.
-export type RugMarket = { marketType?: string; lp?: { lpLockedPct?: number; quoteUSD?: number; baseUSD?: number } };
+export type RugMarket = { pubkey?: string; marketType?: string; lp?: { lpLockedPct?: number; quoteUSD?: number; baseUSD?: number } };
 export type RugReport = {
   markets?: RugMarket[]; totalLPProviders?: number; risks?: { name: string; level: string; description?: string }[];
   insiderNetworks?: { size?: number; currentHolding?: number }[] | null; graphInsidersDetected?: number;
