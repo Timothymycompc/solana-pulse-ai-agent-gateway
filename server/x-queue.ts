@@ -122,6 +122,12 @@ Every flag shows its transactions.${tags("#Web3Security")}` },
 - dry run: check_tx must say OK
 - tx_matches must say MATCH
 Never signs. Ready only when all pass.${tags("#Web3Security")}` },
+  // Added 2026-11-09 with the tool; not approved until Tim approves the text and the video exists.
+  { key: "video:token_traders", approved: false, video: "token_traders.mp4", text: `token_traders: who traded this coin, and who made money?
+One call reads a pool from launch:
+- each wallet's SOL in and out, and profit
+- who bought in the launch block
+- who sold more than they bought${tags("#Web3Security")}` },
 ]);
 
 export const QUEUE: QueuePost[] = [

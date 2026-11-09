@@ -69,6 +69,14 @@ export const TOOLS = [
     schema: z.object({ token: z.string().describe("The token's address. From find_token (for a ticker) or tokens (for a wallet's tokens)."), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
   },
   {
+    name: "token_traders",
+    title: "Who traded this token, and who made money?",
+    description: "Run to see who bought a token early and who profited: launch-block snipers, the pool creator, wallets that sold more than they bought (got tokens some other way), and ordinary traders. Reads a token's pool from its first transaction for a set time and lists the wallets that traded it: buys, sells, SOL spent and received, profit, how soon after launch they bought, and launch-block and creator flags.",
+    price: "$0.03 USDC per call after 25 free calls a day",
+    example: {"token":"<mint address>","hours":6},
+    schema: z.object({ token: z.string().describe("The token whose traders you want. find_token, or the token's address from the user. Never make one up."), pool: z.string().describe("The pool to read. Default: the pool with the most liquidity in RugCheck's report. A DEX page or GeckoTerminal's pool address.").optional(), hours: z.number().min(0.1).max(24).describe("How long after the pool's first transaction to read (default 6). Short (1-2) to study the launch, longer to see who held.").default(6), max_trades: z.number().int().min(10).max(1000).describe("At most this many transactions are read, oldest first (default 400). Raise it for busy pools; the answer says when the window was cut short.").default(400), how_many: z.number().int().min(1).max(100).describe("How many wallets to list, most profit first (default 25). Default is fine.").default(25), network: z.enum(["mainnet-beta", "devnet"]).describe("Default \"mainnet-beta\" (real money). \"devnet\" only for test wallets.").default("mainnet-beta") }),
+  },
+  {
     name: "wallet",
     title: "What's in this wallet",
     description: "Run when asked what a wallet holds or is worth. One call instead of balance + tokens + history; spam is left out of the total. SOL balance, top tokens with USD values, estimated total, and recent activity in one answer.",

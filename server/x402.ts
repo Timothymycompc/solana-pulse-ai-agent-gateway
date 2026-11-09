@@ -53,6 +53,7 @@ export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   wallet: { wallet: EXAMPLE_WALLET },
   trace: { wallet: EXAMPLE_WALLET, how_many: 10 },
   build_tx: { action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" },
+  token_traders: { token: BONK_MINT, hours: 2 },
 };
 
 export function discoveryFor(name: string) {
