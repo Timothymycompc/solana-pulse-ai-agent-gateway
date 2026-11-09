@@ -18,6 +18,7 @@
     "node_modules",
     "dist",
     "agent-kit",
-    "templates"
+    "templates",
+    "eliza-plugin"
   ]
 }
