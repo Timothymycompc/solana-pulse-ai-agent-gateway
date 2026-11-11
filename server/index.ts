@@ -20,7 +20,7 @@ import { loadSecrets } from "./secrets";
 import { liveCount, reportFor } from "./reports";
 import { siteReports } from "./reports/list";
 import { reportRuns, syncReportRuns } from "./reports/runs";
-import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, paidRouteMiddleware, refundFreeCall } from "./meter";
+import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, keyLabelOf, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
 import { createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
@@ -102,6 +102,8 @@ async function startServer() {
   // otherwise only the host name of the web page that sent it (never the path or query, which can carry personal data).
   const SITE_HOST = new URL(PUBLIC_URL).host;
   const cameFromOf = (req: any): string | null => {
+    const keyLabel = keyLabelOf(req);
+    if (keyLabel) return keyLabel;
     if (req.headers["x-pulse-trail"] === "1") return "site";
     const page = String(req.headers.origin || req.headers.referer || "");
     try {

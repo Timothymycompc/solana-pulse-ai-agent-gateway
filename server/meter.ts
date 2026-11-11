@@ -84,6 +84,8 @@ export const TRIAL_KEYS: { name: string; keySha256: string; until: string; why: 
   { name: "tensorblock", keySha256: "7e8d1641743ac79e6407b3248a00434dacce83fff99046eb28f9edd4431769e9", until: "2027-01-13T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-21." },
   { name: "dexra-oleg", keySha256: "1c9f0d7d7e5ff58c140491af56eb934d4409b86cfca8152e0f30095d37803ada", until: "2026-12-03T23:59:59Z", why: "Free trial, 6 weeks, granted 2026-10-22." },
   { name: "friend-chatgpt-trader", keySha256: "0ba0d02395643574ac434b4d30b1b4a1f7f5ae557458082177b75c099c84f9f7", until: "2027-01-18T23:59:59Z", why: "Free trial, 12 weeks, granted 2026-10-26." },
+  { name: "site-rug-check", keySha256: "b6f425d5b9acb161b681c8b6035348717137d2efc0cf9f1122e220b2a43d8237", until: "2027-11-10T23:59:59Z", why: "Our own Rug Check site: its calls are real visitors' checks, counted apart from the owner key. 52 weeks, granted 2026-11-11." },
+  { name: "site-drain-check", keySha256: "e8bdfa7923910b6c6e46cfdb54916881d128f334eba099168743cee1ddb04032", until: "2027-11-10T23:59:59Z", why: "Our own Drain Check site: its calls are real visitors' checks, counted apart from the owner key. 52 weeks, granted 2026-11-11." },
   { name: "video-demo", keySha256: "16731387080eec5580cc0ac4edd9ea6398f92a23dbf1ceaa8bc0e0cb1fd2cc9c", until: "2026-11-10T23:59:59Z", why: "Shown on screen in the per-app setup videos (public on purpose), 2 weeks, granted 2026-10-27." },
   { name: "opayque-blessed", keySha256: "771de73f55947526f17187c56a60ee6123e2fd8a460ad03397f60c8ef44dddca", until: "2100-01-01T00:00:00Z", why: "First outside user offer (unlimited calls for life, from the P.S. on the v1 bug report), granted 2026-11-01 to the opayque maintainer, who asked to test tx_version on EmperorBloyan/opayque#1." },
   { name: "gemini", keySha256: "00b1f36da5be2d01f46e576c3e293888d925c693730905b4222525b32e79a6a6", until: "2027-11-05T23:59:59Z", why: "Tim's own Gemini, granted 2026-10-29, extended 2026-11-05 for a year so his Gemini calls (sent as /mcp?key=..., its connector has no header field) show as free_pass, not as an outside caller's free_call." },
@@ -99,6 +101,13 @@ export const trialKeyFor = (apiKey: string | undefined, now = Date.now(), keys =
 // connector screen has no header field (the ChatGPT app and desktop offer only OAuth or no authentication). Only a
 // live trial key counts from the address, never the owner key: addresses land in Cloud Run's request logs. The usage
 // log already drops everything after "?".
+// Which trial key (by its name, never the key) admitted a call, so the usage log can tell a trial builder's or one of
+// our own sites' calls apart from everyone else's. Logged as came_from "key:<name>".
+export const keyLabelOf = (req: { headers: Record<string, any>; query?: Record<string, any> }, now = Date.now(), keys = TRIAL_KEYS): string | null => {
+  const trial = trialKeyFor(apiKeyOf(req, now, keys), now, keys);
+  return trial ? `key:${trial.name}` : null;
+};
+
 export function apiKeyOf(req: { headers: Record<string, any>; query?: Record<string, any> }, now = Date.now(), keys = TRIAL_KEYS): string | undefined {
   const header = keyFromReq(req);
   if (header) return header;

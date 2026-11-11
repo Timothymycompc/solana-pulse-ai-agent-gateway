@@ -170,3 +170,14 @@ test("an empty body is a payment probe only for tools that need inputs; fee and 
     server.close();
   }
 });
+
+test("a trial key's calls are labelled with its name, never the key", async () => {
+  const { keyLabelOf } = await import("../server/meter");
+  const { createHash } = await import("crypto");
+  const keys = [{ name: "site-example", keySha256: createHash("sha256").update("pulse_trial_site").digest("hex"), until: "2026-12-01T00:00:00Z", why: "test" }];
+  const now = Date.parse("2026-11-11");
+  assert.equal(keyLabelOf({ headers: { "x-api-key": "pulse_trial_site" } }, now, keys), "key:site-example");
+  assert.equal(keyLabelOf({ headers: { "x-api-key": "pulse_trial_other" } }, now, keys), null, "unknown keys get no label");
+  assert.equal(keyLabelOf({ headers: {} }, now, keys), null);
+});
+
