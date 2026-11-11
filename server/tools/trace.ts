@@ -5,7 +5,7 @@
 // lists the transactions it rests on; nothing here says who someone is.
 import { PublicKey, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { z } from "zod";
-import { assertAddress, EXAMPLE_WALLET, formatUnits, isoTime, labelFor, lamportsToSol, NETWORK_DOC, SYSTEM_PROGRAM } from "./lib";
+import { assertAddress, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, labelFor, lamportsToSol, NETWORK_DOC, SYSTEM_PROGRAM } from "./lib";
 import { parsedTransaction, symbolsFor } from "./transactions";
 import { ToolError, type ToolDef } from "./types";
 
@@ -32,7 +32,7 @@ export const BUSY_HOURS = 24;
 type TokenMove = { token: string; symbol: string | null; change: string; raw_change: string; decimals: number };
 export type Flow = {
   tx_id: string; time: string | null; result: "success" | "failed"; direction: "in" | "out" | "both" | "none";
-  sol_change: string; raw_sol_change: string; token_changes: TokenMove[]; counterparty: string | null;
+  sol_change: string; raw_sol_change: string; sol_before: string; raw_sol_before: string; token_changes: TokenMove[]; counterparty: string | null;
   fee_payer: string; wallet_signed: boolean; programs: string[]; memo: string | null;
 };
 type Flag = { name: string; level: "warn" | "info"; detail: string; tx_ids: string[] };
@@ -49,6 +49,7 @@ export function flowOf(wallet: string, tx: ParsedTransactionWithMeta, memo: stri
   const signers = tx.transaction.message.accountKeys.filter((k) => k.signer).map((k) => k.pubkey.toBase58());
   const i = keys.indexOf(wallet);
   const solDelta = i >= 0 ? BigInt(meta.postBalances[i]) - BigInt(meta.preBalances[i]) : 0n;
+  const solBefore = i >= 0 ? BigInt(meta.preBalances[i]) : 0n;
   const byOwner = new Map<string, { owner: string; mint: string; decimals: number; delta: bigint }>();
   const add = (b: any, sign: 1n | -1n) => {
     const owner = b.owner ?? keys[b.accountIndex];
@@ -85,7 +86,8 @@ export function flowOf(wallet: string, tx: ParsedTransactionWithMeta, memo: stri
   return {
     tx_id: tx.transaction.signatures[0], time: isoTime(tx.blockTime), result: meta.err ? "failed" : "success",
     direction: ins && outs ? "both" : ins ? "in" : outs ? "out" : "none",
-    sol_change: lamportsToSol(solDelta), raw_sol_change: solDelta.toString(), token_changes: tokenChanges, counterparty,
+    sol_change: lamportsToSol(solDelta), raw_sol_change: solDelta.toString(), sol_before: lamportsToSol(solBefore), raw_sol_before: solBefore.toString(),
+    token_changes: tokenChanges, counterparty,
     fee_payer: keys[0], wallet_signed: signers.includes(wallet), programs, memo,
   };
 }
@@ -178,7 +180,39 @@ export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | nul
   return flags;
 }
 
-type Destination = { address: string; transactions: number; sol_out: string; tokens_out: { token: string; symbol: string | null; amount: string }[]; kind: string };
+type Destination = { address: string; transactions: number; sol_out: string; tokens_out: { token: string; symbol: string | null; amount: string }[]; kind: string; value_usd: number | null };
+
+// The single send that moved the most (by USD value from Jupiter prices; by SOL when prices are unavailable), and how
+// much of the wallet's SOL it took. Found 2026-11-11: a wallet that sent 83.9 SOL (99.98% of it) in one transfer, own
+// signature and fee, showed only "address poisoning" as its headline, and "where the money went" led with a spam token.
+// A send that big is the first thing a person asking "was I drained?" needs to see, whoever signed it.
+export type BiggestMove = { tx_id: string; time: string | null; to: string | null; sol: string; tokens: string[]; value_usd: number | null;
+  share_of_sol_pct: number | null; wallet_signed: boolean; fee_payer: string };
+export const BIG_SHARE_PCT = 50;
+export const SOL_MINT = "So11111111111111111111111111111111111111112";
+
+export function biggestMove(flows: Flow[], prices: Map<string, number> | null): BiggestMove | null {
+  const solUsd = prices?.get(SOL_MINT);
+  const valueOf = (f: Flow) => {
+    const sol = Math.max(0, -Number(f.raw_sol_change)) / 1e9;
+    if (solUsd === undefined) return { usd: null, rank: sol };
+    const tokens = f.token_changes.filter((t) => BigInt(t.raw_change) < 0n).reduce((s, t) => s + -Number(t.change) * (prices!.get(t.token) ?? 0), 0);
+    const usd = sol * solUsd + tokens;
+    return { usd, rank: usd };
+  };
+  const outs = flows.filter((f) => f.result === "success" && (f.direction === "out" || f.direction === "both")).map((f) => ({ f, v: valueOf(f) }))
+    .filter((x) => x.v.rank > 0).sort((a, b) => b.v.rank - a.v.rank);
+  const top = outs[0];
+  if (!top) return null;
+  const out = -BigInt(top.f.raw_sol_change), before = BigInt(top.f.raw_sol_before);
+  return {
+    tx_id: top.f.tx_id, time: top.f.time, to: top.f.counterparty, sol: out > 0n ? lamportsToSol(out) : "0",
+    tokens: top.f.token_changes.filter((t) => BigInt(t.raw_change) < 0n).map((t) => `${t.change.replace(/^-/, "")} ${t.symbol ?? short(t.token)}`),
+    value_usd: top.v.usd === null ? null : Math.round(top.v.usd * 100) / 100,
+    share_of_sol_pct: out > 0n && before > 0n ? Math.round(Number((out * 10000n) / before)) / 100 : null,
+    wallet_signed: top.f.wallet_signed, fee_payer: top.f.fee_payer,
+  };
+}
 
 export const solscan = (kind: "tx" | "account", id: string, network = "mainnet-beta") =>
   `https://solscan.io/${kind}/${id}${network === "devnet" ? "?cluster=devnet" : ""}`;
@@ -190,17 +224,22 @@ const localTime = (iso: string, timeZone: string) => new Intl.DateTimeFormat("en
 
 // The five-part report a person can act on, built only from the flows, destinations and flags above. Fixed rules:
 // confidence is high only for the full drain pattern, medium for single signs, low when nothing matched.
-export function reportFor(o: { wallet: string; network: string; flows: Flow[]; destinations: Destination[]; flags: Flag[]; unread: number; timeZone?: string }) {
+export function reportFor(o: { wallet: string; network: string; flows: Flow[]; destinations: Destination[]; flags: Flag[]; unread: number; timeZone?: string; biggest?: BiggestMove | null }) {
   const has = (name: string) => o.flags.some((f) => f.name === name);
   const collected = has("swept_to_collection_wallet");
   const drain = drainPattern(o.flags) && !collected;
   const top = o.destinations[0];
   const received = (d: Destination) => [...(d.sol_out !== "0" ? [`${d.sol_out} SOL`] : []), ...d.tokens_out.map((t) => `${t.amount} ${t.symbol ?? short(t.token)}`)].join(", ");
-  const problem = drain ? `Money was swept out of this wallet${top ? `, mostly to ${short(top.address)} (${top.kind}: ${received(top)})` : ""}, and it was left empty.`
+  const big = o.biggest && o.biggest.share_of_sol_pct !== null && o.biggest.share_of_sol_pct >= BIG_SHARE_PCT ? o.biggest : null;
+  const bigWhat = big ? `${[...(big.sol !== "0" ? [`${big.sol} SOL`] : []), ...big.tokens].join(", ")}${big.value_usd !== null ? ` (about $${big.value_usd.toLocaleString("en-US")})` : ""}` : "";
+  const bigLine = big ? `The biggest move: ${bigWhat}, ${big.share_of_sol_pct}% of the wallet's SOL, left in one transaction${big.to ? ` to ${short(big.to)}` : ""}${big.time ? ` at ${o.timeZone ? localTime(big.time, o.timeZone) : big.time}` : ""}, ${big.wallet_signed && big.fee_payer === o.wallet ? "signed by this wallet and paid with its own fee" : big.wallet_signed ? `signed by this wallet while ${short(big.fee_payer)} paid the fee` : "not signed by this wallet"}.` : "";
+  const pattern = drain ? `Money was swept out of this wallet${top ? `, mostly to ${short(top.address)} (${top.kind}: ${received(top)})` : ""}, and it was left empty.`
     : collected ? `Money was swept out of this wallet into a busy collection wallet${top ? ` (${short(top.address)})` : ""}, which is what exchange deposit addresses and bot wallets do. If this is your own personal wallet and you didn't move it, treat it as a drain.`
     : has("lookalike_dust") ? "Someone is trying address poisoning on this wallet: lookalike addresses sent it dust."
     : has("fee_paid_by_other_wallet") || has("passed_straight_through") ? "Money left this wallet in a way a sweep can look, but the full drain pattern (swept and emptied) wasn't found."
     : o.flows.length ? "None of the drain patterns Pulse checks for were found in these transactions." : "No transactions found for this wallet.";
+  // The drain line already says the money was swept out; otherwise a big send leads, then what the patterns say.
+  const problem = big && !drain ? `${bigLine} ${pattern}` : pattern;
 
   const moved = o.flows.filter((f) => f.result === "success" && f.direction !== "none");
   const evidence = moved.map((f) => ({
@@ -227,6 +266,9 @@ export function reportFor(o: { wallet: string; network: string; flows: Flow[]; d
   if (collected) pointsTo.push("The money went to a collection wallet, which exchanges and bot services use: if an exchange gave you this address to deposit to, this is normal.");
   if (has("lookalike_dust")) pointsTo.push("Address poisoning: dust from lookalike addresses, so the owner copies the wrong one from history.");
   if (has("dust_received")) pointsTo.push("Dust from unknown addresses, often the first step of address poisoning.");
+  if (big && !drain && !collected) pointsTo.push(big.wallet_signed && big.fee_payer === o.wallet
+    ? "The big send was signed with this wallet's own key and paid its own fee: either the owner sent it, or someone who has the seed phrase or private key did. The chain looks the same both ways."
+    : "The big send was signed with this wallet's key while another wallet paid the fee, which is how sweepers on a stolen key work.");
   if (top) pointsTo.push(/program/.test(top.kind) ? `The money went to an address a program controls (${short(top.address)}): a bridge, exchange or app, not a person's wallet. Whoever runs it may see where it went next.`
     : top.kind.startsWith("wallet") ? `The money went to a regular wallet that can sign (${short(top.address)}).` : `The money went to ${short(top.address)} (${top.kind}).`);
 
@@ -236,10 +278,14 @@ export function reportFor(o: { wallet: string; network: string; flows: Flow[]; d
     ...(top ? [`Send the Solscan links below to whoever runs ${short(top.address)} (an exchange or bridge, if it is one) and to your wallet app's support.`] : []),
     "Report the theft: ic3.gov in the US, or your local police. Keep this report and the links.",
     "Ignore anyone who offers to recover the funds for a fee; that is usually a second scam.");
+  if (big && !drain && !collected) nextSteps.push(
+    `If you didn't send the ${bigWhat}, treat this wallet as compromised: move anything left to a new wallet with a new seed phrase, and report it (ic3.gov in the US) with the Solscan link.`,
+    ...(/program/.test(top?.kind ?? "") && top?.address === big.to ? ["It went to an address a program controls, the kind exchanges, swap services and apps give out for deposits. If you used one around then, check your account there first."] : []));
   if (collected) nextSteps.push("If this is a deposit address from an exchange or a bot's wallet, nothing is wrong. If it's your own personal wallet and you didn't send this, treat it as compromised: move what's left to a new wallet with a new seed phrase.");
   if (has("lookalike_dust") || has("dust_received")) nextSteps.push("Never copy an address from your transaction history; check the whole address against one you saved yourself.");
   if (!drain && !o.flags.length && o.flows.length) nextSteps.push("If money is missing, it may be further back: trace again with before set to next_before.");
-  return { problem, evidence, destinations: o.destinations.map((d) => ({ ...d, solscan: solscan("account", d.address, o.network) })), confidence, points_to: pointsTo, next_steps: nextSteps };
+  const biggest_move = o.biggest ? { ...o.biggest, solscan: solscan("tx", o.biggest.tx_id, o.network) } : null;
+  return { problem, biggest_move, evidence, destinations: o.destinations.map((d) => ({ ...d, solscan: solscan("account", d.address, o.network) })), confidence, points_to: pointsTo, next_steps: nextSteps };
 }
 
 export const traceWallet: ToolDef = {
@@ -263,10 +309,10 @@ export const traceWallet: ToolDef = {
     { field: "summary", type: "string", is: "What happened, in plain words, with the flags.", howWorkedOut: "Built from the fields below." },
     { field: "period", type: "{ from, to }", is: "The time span the transactions cover (UTC).", howWorkedOut: "Oldest and newest block times." },
     { field: "sol_now", type: "string | null", is: "SOL the wallet holds now. null if it couldn't be read.", howWorkedOut: "getBalance." },
-    { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
-    { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown).", howWorkedOut: "Outgoing flows grouped by counterparty; kind from the account's owner and whether the address is on the ed25519 curve." },
+    { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, sol_before (the wallet's SOL just before), token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
+    { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown), value_usd (null when prices are unavailable).", howWorkedOut: "Outgoing flows grouped by counterparty, ranked by USD value at today's Jupiter prices (tokens with no price count 0), or tokens first then SOL when Jupiter can't be reached; kind from the account's owner and whether the address is on the ed25519 curve." },
     { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied, swept_to_collection_wallet.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
-    { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied) into anything but a busy collection wallet, medium for that case and for single signs, low when nothing matched. Built only from the fields above." },
+    { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line; a single send of half or more of the wallet's SOL leads it), biggest_move (the largest send: tx_id, time, to, sol, tokens, value_usd, share_of_sol_pct, wallet_signed, fee_payer, solscan; null if nothing went out), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied) into anything but a busy collection wallet, medium for that case and for single signs, low when nothing matched. Built only from the fields above." },
     { field: "unread", type: "number", is: "Transactions listed for the wallet that couldn't be loaded; they're left out, never guessed.", howWorkedOut: "Signatures minus loaded transactions." },
     { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
@@ -296,6 +342,11 @@ export const traceWallet: ToolDef = {
     if (sigs.length && !loaded.length) throw new ToolError(503, "Couldn't read this wallet's transactions right now.", "Retry in a moment.");
     const mints = [...new Set(loaded.flatMap((x) => [...(x.tx.meta!.preTokenBalances ?? []), ...(x.tx.meta!.postTokenBalances ?? [])].filter((b) => b.owner === address).map((b) => b.mint)))];
     const symbols = mints.length ? await symbolsFor(ctx)(mints) : new Map<string, string | null>();
+    // USD prices (Jupiter) to rank where the money went by value, so a spam token can't outrank real SOL. If the
+    // lookup fails, prices stay unknown and ranking falls back to tokens first, then SOL.
+    const prices = network === "mainnet-beta" ? await jupByMints(ctx, [SOL_MINT, ...mints])
+      .then((m) => new Map([...m].filter(([, t]) => typeof t.usdPrice === "number").map(([id, t]) => [id, t.usdPrice!]))).catch(() => null) : null;
+    const solUsd = prices?.get(SOL_MINT);
     const flows = loaded.map((x) => flowOf(address, x.tx, x.s.memo ?? null, symbols));
     const unread = sigs.length - loaded.length;
 
@@ -313,8 +364,14 @@ export const traceWallet: ToolDef = {
     }
     // Only addresses that actually received something from the wallet (a swap pool's own accounts can show up as the
     // other side with nothing sent to them).
+    // Ranked by USD value when Jupiter priced SOL (tokens it has no price for count 0). Until 2026-11-11 any token
+    // outranked SOL, so 22,466 of a spam token led over 83.9 SOL sent elsewhere. Without prices the old order stays
+    // (tokens first): stolen tokens are what token drains take (Adilak: JTO, RAY, PUMP over the sweeper's SOL).
+    const usdOf = (d: { sol_out: bigint; tokens: Map<string, { raw: bigint; decimals: number }> }) => solUsd === undefined ? null
+      : Number(d.sol_out) / 1e9 * solUsd + [...d.tokens].reduce((sum, [mint, e]) => sum + Number(formatUnits(e.raw, e.decimals)) * (prices!.get(mint) ?? 0), 0);
     const top = [...dest.values()].filter((d) => d.sol_out > 0n || d.tokens.size)
-      .sort((a, b) => (b.tokens.size - a.tokens.size) || (b.sol_out > a.sol_out ? 1 : b.sol_out < a.sol_out ? -1 : b.transactions - a.transactions)).slice(0, 3);
+      .sort((a, b) => solUsd !== undefined ? usdOf(b)! - usdOf(a)! || b.transactions - a.transactions
+        : (b.tokens.size - a.tokens.size) || (b.sol_out > a.sol_out ? 1 : b.sol_out < a.sol_out ? -1 : b.transactions - a.transactions)).slice(0, 3);
     const infos = await conn.getMultipleAccountsInfo(top.map((d) => new PublicKey(d.address)), "confirmed").catch(() => top.map(() => undefined));
     const kindOf = (addr: string, info: any) => {
       if (info === undefined) return "unknown";
@@ -326,7 +383,8 @@ export const traceWallet: ToolDef = {
       return labelFor(owner) ? `account owned by ${labelFor(owner)}` : "program-controlled account";
     };
     const topDestinations = top.map((d, k) => ({ address: d.address, transactions: d.transactions, sol_out: lamportsToSol(d.sol_out),
-      tokens_out: [...d.tokens.entries()].map(([token, e]) => ({ token, symbol: e.symbol, amount: formatUnits(e.raw, e.decimals) })), kind: kindOf(d.address, infos[k]) }));
+      tokens_out: [...d.tokens.entries()].map(([token, e]) => ({ token, symbol: e.symbol, amount: formatUnits(e.raw, e.decimals) })), kind: kindOf(d.address, infos[k]),
+      value_usd: (() => { const v = usdOf(d); return v === null ? null : Math.round(v * 100) / 100; })() }));
     // Only when the drain pattern shows and the money went to a regular wallet: is that wallet a busy collection
     // wallet? One more lookup. If it fails, busy stays null and the drain warning stands.
     let busy: Busy | null = null;
@@ -359,7 +417,7 @@ export const traceWallet: ToolDef = {
     return {
       wallet: address, network, summary, period: { from: times[times.length - 1] ?? null, to: times[0] ?? null },
       sol_now: balance === null ? null : lamportsToSol(balance), flows, top_destinations: topDestinations, flags,
-      report: reportFor({ wallet: address, network, flows, destinations: topDestinations, flags, unread, timeZone: time_zone }),
+      report: reportFor({ wallet: address, network, flows, destinations: topDestinations, flags, unread, timeZone: time_zone, biggest: biggestMove(flows, prices) }),
       unread, next_before: sigs.length === how_many ? sigs[sigs.length - 1].signature : null,
     };
   },

@@ -8,7 +8,7 @@ import { loadFixture, replayContext } from "./helpers/replay";
 const W = "AvLELvhjDEs9jG54EV3PQ8QGptYyWceEduGQb1gDpmAj";
 const flow = (over: Partial<Flow>): Flow => ({
   tx_id: Math.random().toString(36).slice(2), time: "2026-10-18T03:06:56.000Z", result: "success", direction: "in",
-  sol_change: "0", raw_sol_change: "0", token_changes: [], counterparty: null, fee_payer: W, wallet_signed: true,
+  sol_change: "0", raw_sol_change: "0", sol_before: "1", raw_sol_before: "1000000000", token_changes: [], counterparty: null, fee_payer: W, wallet_signed: true,
   programs: ["System Program"], memo: null, ...over,
 });
 const names = (flags: { name: string }[]) => flags.map((f) => f.name).sort();
@@ -172,4 +172,26 @@ test("swept into a busy collection wallet: noted, not a drain, and no 'seed leak
   const quiet = flagsFor(W, flows, 0n, null);
   assert.ok(quiet.every((f) => f.level === "warn"), "the same sweep into a quiet wallet stays a drain");
   assert.equal(reportFor({ wallet: W, network: "mainnet-beta", flows, destinations: [], flags: quiet, unread: 0 }).confidence.level, "high");
+});
+
+test("big send leads the report (recorded 2026-11-11): 83.9 SOL in one transfer outranks a spam token and poisoning dust", async () => {
+  const fixture = loadFixture("trace-big-send-poisoned");
+  const r: any = await traceWallet.run(z.object(traceWallet.inputs).parse({ ...fixture.args, time_zone: "America/Chicago" }), replayContext(fixture));
+  const big = r.report.biggest_move;
+  assert.equal(big.to, "HRts3nMxZoERwrLPMNiKuHrkXeH5BBXUT7SQReuKmnXe");
+  assert.equal(big.sol, "83.900005006");
+  assert.ok(big.share_of_sol_pct > 99, `took ${big.share_of_sol_pct}% of the wallet's SOL`);
+  assert.equal(big.wallet_signed, true);
+  assert.match(r.report.problem, /^The biggest move: 83\.900005006 SOL.*99\.\d+% of the wallet's SOL.*signed by this wallet and paid with its own fee\. Someone is trying address poisoning/);
+  assert.equal(r.top_destinations[0].address, "HRts3nMxZoERwrLPMNiKuHrkXeH5BBXUT7SQReuKmnXe", "the SOL leads, not the spam token");
+  assert.match(r.summary, /Most went to HRts…mnXe/);
+  assert.ok(r.report.next_steps.some((s: string) => /If you didn't send the 83\.900005006 SOL/.test(s)));
+  assert.ok(r.report.points_to.some((s: string) => /owner sent it, or someone who has the seed phrase/.test(s)));
+  assert.notEqual(r.report.confidence.level, "high", "not the full drain pattern: the chain can't tell owner from thief here");
+});
+
+test("no biggest-move headline when the largest send is small next to the wallet", () => {
+  const rep = reportFor({ wallet: W, network: "mainnet-beta", flows: [], destinations: [], flags: [], unread: 0,
+    biggest: { tx_id: "x", time: null, to: "Friend", sol: "0.1", tokens: [], value_usd: null, share_of_sol_pct: 10, wallet_signed: true, fee_payer: W } });
+  assert.doesNotMatch(rep.problem, /biggest move/i);
 });

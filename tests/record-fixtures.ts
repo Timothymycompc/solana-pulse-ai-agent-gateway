@@ -3,6 +3,7 @@
 import { clusterApiUrl, ComputeBudgetProgram, Connection, Keypair, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction, type TransactionInstruction } from "@solana/web3.js";
 import { createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
+import { traceWallet } from "../server/tools/trace";
 import "dotenv/config";
 import { getCompiledTransactionMessageEncoder, getTransactionEncoder } from "@solana/kit";
 import { checkTransactionIntent, exampleTransaction, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
@@ -117,6 +118,10 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   { name: "token-verdict-aodf-insiders", tool: tokenVerdict, args: async () => ({ token: "4AWLQqBBZxDYNJ872F9CP4t6kWF8RZ5nNuGknV6Zpump" }) },
   // The other AODF (pfQB…pump), a different token with the same ticker that dumped 99% 25 minutes later.
   { name: "token-verdict-aodf-clone", tool: tokenVerdict, args: async () => ({ token: "pfQBdLdT3TTaWYUc83whsm16vPd3XA6Y22GDbwEpump" }) },
+  // trace (2026-11-11): a wallet reported as drained whose page showed only address-poisoning signs. On 2026-11-06 it sent
+  // 83.9 SOL (99.98% of its SOL) in one transfer, own signature and fee, to a program-controlled address; "where the
+  // money went" led with 22,466 of a spam token instead.
+  { name: "trace-big-send-poisoned", tool: traceWallet, args: async () => ({ wallet: "p61XNrfPs4y6gNEp61mDssSsnSpSmXhLGd68Gh6aLoq", how_many: 50 }) },
   // build_tx (2026-10-29): what it builds must pass check_tx and tx_matches; a swap into a rug token must be refused.
   { name: "build-sol-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" }) },
   { name: "build-usdt-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", amount: "1" }) },
