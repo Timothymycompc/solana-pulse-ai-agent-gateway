@@ -180,19 +180,32 @@ export type WalletChange = { wallet: string; asset: string; symbol: string | nul
 // Simulate and compute every balance change on the transaction's writable accounts.
 export async function simulateWithChanges(conn: Connection, loaded: LoadedTransaction, symbols: (mints: string[]) => Promise<Map<string, string>>) {
   const watched = loaded.writable.slice(0, 64);
-  const preInfos = await conn.getMultipleAccountsInfo(watched.map((k) => new PublicKey(k)), "confirmed");
-  const sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed", accounts: { encoding: "base64", addresses: watched } });
-  const value = sim.value;
+  // Balances before and after the dry run must come from the same moment. Newer nodes return the "before" balances
+  // with the dry run (preBalances); a separate read counts only when it comes from the same slot. A busy wallet read at
+  // another moment can show a loss that isn't this transaction's (measured 2026-11-12: a 1-lamport gap on an exchange
+  // wallet turned a correct transfer into a MISMATCH). Some RPC nodes answer without preBalances, so try up to 3 times,
+  // then report sameMoment: false instead of presenting the gap as the transaction's.
+  type Simulation = Awaited<ReturnType<Connection["simulateTransaction"]>>;
+  let preInfos: Awaited<ReturnType<Connection["getMultipleAccountsInfo"]>> = [];
+  let sim: Simulation | null = null;
+  let nodeGavePre = false;
+  let sameMoment = false;
+  for (let attempt = 0; attempt < 3 && !sameMoment; attempt++) {
+    const pre = await conn.getMultipleAccountsInfoAndContext(watched.map((k) => new PublicKey(k)), "confirmed");
+    sim = await conn.simulateTransaction(loaded.tx, { sigVerify: false, replaceRecentBlockhash: true, commitment: "confirmed", accounts: { encoding: "base64", addresses: watched } });
+    preInfos = pre.value;
+    nodeGavePre = Array.isArray((sim.value as any).preBalances) && (sim.value as any).preBalances.length === loaded.keys.length;
+    sameMoment = nodeGavePre || pre.context.slot === sim.context.slot;
+    if (sim.value.err) break; // a failed dry run reports no balance changes, so retrying can't help
+  }
+  const value = sim!.value;
   const changes: WalletChange[] = [];
   // Raw lamport change of every watched account, token accounts included (e.g. the deposit that creates one).
   const lamportDeltas = new Map<string, bigint>();
   // Owner and mint of every watched token account, so a wallet's own token accounts can be counted as its own.
   const tokenAccounts = new Map<string, { owner: string; mint: string }>();
-  // Newer nodes report the balances before the dry run from the same moment as the ones after. Reading them
-  // separately can catch a busy wallet mid-change and show a loss that isn't this transaction's.
-  const sameMoment = Array.isArray((value as any).preBalances) && (value as any).preBalances.length === loaded.keys.length;
-  const preLamports: number[] | null = sameMoment ? (value as any).preBalances : null;
-  const preTokenAmounts: Map<number, bigint> | null = sameMoment && Array.isArray((value as any).preTokenBalances)
+  const preLamports: number[] | null = nodeGavePre ? (value as any).preBalances : null;
+  const preTokenAmounts: Map<number, bigint> | null = nodeGavePre && Array.isArray((value as any).preTokenBalances)
     ? new Map((value as any).preTokenBalances.map((t: any) => [t.accountIndex, BigInt(t.uiTokenAmount.amount)])) : null;
   const keyIndex = new Map(loaded.keys.map((k, i) => [k, i]));
   if (!value.err && value.accounts) {
@@ -233,6 +246,7 @@ export async function simulateWithChanges(conn: Connection, loaded: LoadedTransa
   return {
     success: value.err === null, error: value.err ?? null, unitsConsumed: value.unitsConsumed ?? null,
     logs: (value.logs ?? []).slice(-25), changes, lamportDeltas, tokenAccounts, watchedAccounts: watched.length, totalWritable: loaded.writable.length,
+    sameMoment,
   };
 }
 

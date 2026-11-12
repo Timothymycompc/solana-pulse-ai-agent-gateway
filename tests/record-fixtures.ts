@@ -122,6 +122,16 @@ const SCENARIOS: { name: string; tool: ToolDef; args: (conn: Connection) => Prom
   // 83.9 SOL (99.98% of its SOL) in one transfer, own signature and fee, to a program-controlled address; "where the
   // money went" led with 22,466 of a spam token instead.
   { name: "trace-big-send-poisoned", tool: traceWallet, args: async () => ({ wallet: "p61XNrfPs4y6gNEp61mDssSsnSpSmXhLGd68Gh6aLoq", how_many: 50 }) },
+  // check_tx (2026-11-12): a 0.01 SOL -> USDC swap from a wallet that already holds wrapped SOL. The swap closes the
+  // wrapped-SOL account, so its whole balance (1,330 SOL that day) moves back to plain SOL; the summary said
+  // "Your wallet sends: 1330.42 wrapped SOL". The tx comes from build_tx (Jupiter) for that wallet.
+  {
+    name: "preflight-swap-wsol-close", tool: preflightTransaction,
+    args: async () => {
+      const built: any = await buildTransaction.run(z.object(buildTransaction.inputs).parse({ action: "swap", from: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", token: "SOL", amount: "0.01", buy: USDC_MINT }), recordingContext(RPC).ctx);
+      return { tx: built.tx };
+    },
+  },
   // build_tx (2026-10-29): what it builds must pass check_tx and tx_matches; a swap into a rug token must be refused.
   { name: "build-sol-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "SOL", amount: "0.01" }) },
   { name: "build-usdt-transfer", tool: buildTransaction, args: async () => ({ action: "transfer", from: EXAMPLE_WALLET, to: EXAMPLE_RECIPIENT, token: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", amount: "1" }) },

@@ -1,0 +1,48 @@
+{
+  "name": "agentkit-solana-pulse",
+  "version": "0.1.0",
+  "description": "Coinbase AgentKit action provider for Solana Pulse: check a Solana transaction before the agent signs it (OK, REVIEW or BLOCK from a mainnet dry run), confirm a swap or transfer does exactly what was asked, and sign only when it does.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external @solana/web3.js --external zod",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": ["agentkit", "coinbase-agentkit", "action-provider", "solana", "pre-sign", "transaction-simulation", "jupiter", "ai-agent", "drainer", "x402"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway.git",
+    "directory": "agentkit"
+  },
+  "homepage": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/main/agentkit",
+  "license": "MIT",
+  "peerDependencies": {
+    "@coinbase/agentkit": ">=0.10.0",
+    "@solana/web3.js": "^1.98.0",
+    "zod": "^3.23.8 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@coinbase/agentkit": { "optional": true }
+  },
+  "devDependencies": {
+    "@coinbase/agentkit": "^0.10.4",
+    "@solana/web3.js": "^1.98.4",
+    "@types/node": "^22.20.5",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "zod": "^3.25.0"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "tool": "check_tx",
+  "recordedAt": "2026-11-12T07:06:17.167291+00:00",
+  "status": 200,
+  "input": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQACBH6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbySMAbUFkAVFXZ3LDGvOzctPtbLqvBqagrVzkrqqQPBOYDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQGhnrlfyYOUysJpLCZmjfJRmuoNnQNduOPfbAsvaOsgDAgAFAkgDAAACAAkDZ48AAAAAAAADAgABDAIAAACAlpgAAAAAAAA="
+  },
+  "body": {
+    "network": "mainnet-beta",
+    "verdict": "OK",
+    "summary": "OK: Your wallet sends: 0.010005032 SOL (SOL includes fees).",
+    "fee_payer": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+    "signers": [
+      "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+    ],
+    "checks": [
+      {
+        "name": "simulation",
+        "result": "pass",
+        "detail": "Dry run worked, using 450 compute units."
+      },
+      {
+        "name": "blockhash",
+        "result": "pass",
+        "detail": "Blockhash is still valid."
+      },
+      {
+        "name": "fee_payer_balance",
+        "result": "pass",
+        "detail": "Fee payer holds 9300003.246657372 SOL; fees are 0.000005031 SOL."
+      },
+      {
+        "name": "outflow",
+        "result": "info",
+        "detail": "Your wallet sends: 0.010005032 SOL (SOL includes fees)."
+      }
+    ],
+    "balance_changes": [
+      {
+        "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "is_you": true,
+        "token": "SOL",
+        "symbol": "SOL",
+        "before": "9300003.246657372",
+        "after": "9300003.23665234",
+        "change": "-0.010005032",
+        "raw_change": "-10005032",
+        "decimals": 9
+      },
+      {
+        "wallet": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+        "is_you": false,
+        "token": "SOL",
+        "symbol": "SOL",
+        "before": "65.746168004",
+        "after": "65.756168004",
+        "change": "0.01",
+        "raw_change": "10000000",
+        "decimals": 9
+      }
+    ],
+    "steps": [
+      {
+        "index": 0,
+        "program_id": "ComputeBudget111111111111111111111111111111",
+        "program": "Compute Budget",
+        "accounts": [],
+        "type": "set_compute_unit_limit",
+        "info": {
+          "units": 840
+        }
+      },
+      {
+        "index": 1,
+        "program_id": "ComputeBudget111111111111111111111111111111",
+        "program": "Compute Budget",
+        "accounts": [],
+        "type": "set_compute_unit_price",
+        "info": {
+          "micro_lamports_per_compute_unit": "36711"
+        }
+      },
+      {
+        "index": 2,
+        "program_id": "11111111111111111111111111111111",
+        "program": "System Program",
+        "accounts": [
+          "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
+        ],
+        "type": "sol_transfer",
+        "info": {
+          "from": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "to": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+          "lamports": "10000000"
+        }
+      }
+    ],
+    "fee": {
+      "base_lamports": "5000",
+      "priority_lamports": "31",
+      "total_lamports": "5031",
+      "total_sol": "0.000005031",
+      "compute_unit_limit": 840,
+      "compute_unit_limit_from": "set in transaction",
+      "compute_unit_price": "36711"
+    },
+    "simulation": {
+      "worked": true,
+      "error": null,
+      "error_explained": null,
+      "compute_used": 450,
+      "logs": [
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program 11111111111111111111111111111111 invoke [1]",
+        "Program 11111111111111111111111111111111 success"
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "solana-pulse"
+version = "0.1.0"
+description = "Check a Solana transaction before you sign it: dry-run on mainnet, OK / REVIEW / BLOCK with each wallet's SOL and token changes, and confirm a transfer or swap does exactly what you asked."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = []
+authors = [{ name = "Solana Pulse" }]
+keywords = ["solana", "pre-sign", "transaction-simulation", "jupiter", "trading-bot", "ai-agent", "drainer", "x402"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Security",
+  "Topic :: Office/Business :: Financial",
+]
+
+[project.optional-dependencies]
+test = ["solders>=0.21"]
+
+[project.urls]
+Homepage = "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway"
+Source = "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/main/python"
+Issues = "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/solana_pulse"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE"]

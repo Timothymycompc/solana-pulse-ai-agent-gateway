@@ -87,11 +87,14 @@ export function replayContext(fixture: Fixture, options: { httpDown?: boolean } 
     get(_target, prop) {
       if (prop === "then") return undefined;
       return async () => {
-        const queue = queues[String(prop)];
+        // Fixtures recorded before 2026-11-12 hold getMultipleAccountsInfo; the dry run now asks for the same accounts
+        // with their slot. Serve those, with slot 0 (an unknown slot never counts as "same moment" by itself).
+        const aliased = prop === "getMultipleAccountsInfoAndContext" && !queues[prop]?.length && queues.getMultipleAccountsInfo?.length;
+        const queue = queues[aliased ? "getMultipleAccountsInfo" : String(prop)];
         if (!queue?.length) throw new Error(`Fixture ${fixture.name} has no recorded ${String(prop)} response`);
         const next: any = queue.shift();
         if (next && typeof next.__error === "string") throw new Error(next.__error);
-        return decode(next);
+        return aliased ? { context: { slot: 0 }, value: decode(next) } : decode(next);
       };
     },
   }) as Connection;
