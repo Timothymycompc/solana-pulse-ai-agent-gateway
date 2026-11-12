@@ -1,0 +1,59 @@
+# Tests the client packages (python/, agentkit/, eliza-plugin/) on every push and pull request that touches them.
+# Tests replay real answers recorded from the live service, so they need no network access to Pulse or Solana.
+# The AgentKit job also installs the real @coinbase/agentkit and checks AgentKit picks the provider up.
+name: Packages
+on:
+  push:
+    paths: [python/**, agentkit/**, eliza-plugin/**, .github/workflows/packages.yml]
+  pull_request:
+    paths: [python/**, agentkit/**, eliza-plugin/**, .github/workflows/packages.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install solders build
+      - run: python -m unittest discover -s tests -v
+      - run: python -m build
+
+  agentkit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agentkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  eliza-plugin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eliza-plugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build

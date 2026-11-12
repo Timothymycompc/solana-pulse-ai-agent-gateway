@@ -1,0 +1,98 @@
+{
+  "tool": "token_safety",
+  "recordedAt": "2026-11-12T07:06:41.609290+00:00",
+  "status": 200,
+  "input": {
+    "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"
+  },
+  "body": {
+    "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "network": "mainnet-beta",
+    "verdict": "SAFE",
+    "summary": "No red flags found: a real holder's sale worked in a simulation, the creator has no rug record, nobody can mint more, nobody can freeze holders, Jupiter verifies it, it has over $100,000 of liquidity, the top 10 holders own under half, it has traded for over a day. Not checked: RugCheck is unavailable for this token right now, so liquidity locks, insider wallets and the creator's rug history were not checked.",
+    "rug_chance": null,
+    "about": {
+      "symbol": "JUP",
+      "name": "Jupiter",
+      "decimals": 6,
+      "supply": "6861485685.760334",
+      "token_program": "spl-token",
+      "who_can_mint": null,
+      "who_can_freeze": null,
+      "extensions": [],
+      "usd_price": 0.25412062574985783,
+      "liquidity_usd": 5601460,
+      "holders": 836789,
+      "top10_share_pct": 15.3,
+      "first_traded": "2024-01-29T17:33:29Z",
+      "creator": "JUPhop9E8ZfdJ5FNHhxQt4uAih822Vs4QpqsWcewFbq",
+      "creator_tokens_launched": 1,
+      "metadata_can_change": null,
+      "total_value_usd": 1743645036,
+      "value_to_liquidity": 311.3
+    },
+    "checks": [
+      {
+        "name": "verified",
+        "result": "pass",
+        "detail": "Listed as verified by Jupiter.",
+        "source": "jupiter"
+      },
+      {
+        "name": "mint_authority",
+        "result": "pass",
+        "detail": "Mint authority revoked: supply is fixed.",
+        "source": "on-chain"
+      },
+      {
+        "name": "freeze_authority",
+        "result": "pass",
+        "detail": "Freeze authority revoked: nobody can freeze holders.",
+        "source": "on-chain"
+      },
+      {
+        "name": "liquidity",
+        "result": "pass",
+        "detail": "About $5,601,460 of DEX liquidity.",
+        "source": "jupiter"
+      },
+      {
+        "name": "holder_concentration",
+        "result": "pass",
+        "detail": "Top 10 holders own 15.3% of supply.",
+        "source": "jupiter"
+      },
+      {
+        "name": "age",
+        "result": "pass",
+        "detail": "Trading since 2024-01-29.",
+        "source": "jupiter"
+      },
+      {
+        "name": "value_vs_liquidity",
+        "result": "info",
+        "detail": "The token's total value ($1,743.6M) is 311x its DEX liquidity ($5.6M). Common for an established token, where part of the supply is locked or trades on exchanges.",
+        "source": "jupiter"
+      },
+      {
+        "name": "rugcheck_data",
+        "result": "info",
+        "detail": "RugCheck is unavailable for this token right now, so liquidity locks, insider wallets and the creator's rug history were not checked.",
+        "source": "rugcheck"
+      },
+      {
+        "name": "creator_history",
+        "result": "pass",
+        "detail": "No rugged tokens in the creator's history (1 token launched).",
+        "source": "jupiter"
+      },
+      {
+        "name": "sell_test",
+        "result": "pass",
+        "detail": "A real holder (6DBy\u2026WA3P) selling 78.7028 tokens for SOL succeeded in a mainnet simulation.",
+        "source": "simulation"
+      }
+    ],
+    "history": null
+  }
+}

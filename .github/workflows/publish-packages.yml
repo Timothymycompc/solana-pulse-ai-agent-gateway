@@ -1,0 +1,81 @@
+# Publishes the client packages whenever a package's version changes on main:
+#   agentkit/      -> npm  agentkit-solana-pulse
+#   eliza-plugin/  -> npm  elizaos-plugin-solana-pulse
+#   python/        -> PyPI solana-pulse
+# No tokens. npm and PyPI accept GitHub's identity token (OIDC) for this repo and this workflow file once it's set up:
+# npm under each package's Settings > Trusted Publisher; PyPI under "Publishing" (a pending publisher works before the
+# first release). Each job skips when that version is already published.
+name: Publish packages
+on:
+  push:
+    branches: [main]
+    paths: [agentkit/package.json, eliza-plugin/package.json, python/pyproject.toml]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [agentkit, eliza-plugin]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Skip if this version is already on npm
+        id: check
+        run: |
+          NAME=$(jq -r .name package.json); VERSION=$(jq -r .version package.json)
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm; bump the version to publish."; echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build, test and publish
+        if: steps.check.outputs.skip != 'true'
+        env:
+          # Only for a package's very first release (npm can't trust this workflow for a package that doesn't exist yet).
+          # Delete the NPM_TOKEN secret afterwards; later releases use Trusted Publishing.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm install -g npm@latest
+          npm install --no-audit --no-fund
+          npm run build
+          npm test
+          npm publish --access public --provenance
+
+  pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Skip if this version is already on PyPI
+        id: check
+        working-directory: python
+        run: |
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if curl -sf "https://pypi.org/pypi/solana-pulse/$VERSION/json" >/dev/null; then
+            echo "solana-pulse $VERSION is already on PyPI; bump the version to publish."; echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Test and build
+        if: steps.check.outputs.skip != 'true'
+        working-directory: python
+        run: |
+          pip install solders build
+          python -m unittest discover -s tests -v
+          python -m build
+      - name: Publish to PyPI
+        if: steps.check.outputs.skip != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist
