@@ -1,12 +1,12 @@
-# Tests the client packages (python/, agentkit/, eliza-plugin/) on every push and pull request that touches them.
+# Tests the client packages (python/, js/, agentkit/, eliza-plugin/) on every push and pull request that touches them.
 # Tests replay real answers recorded from the live service, so they need no network access to Pulse or Solana.
 # The AgentKit job also installs the real @coinbase/agentkit and checks AgentKit picks the provider up.
 name: Packages
 on:
   push:
-    paths: [python/**, agentkit/**, eliza-plugin/**, .github/workflows/packages.yml]
+    paths: [python/**, agentkit/**, eliza-plugin/**, js/**, .github/workflows/packages.yml]
   pull_request:
-    paths: [python/**, agentkit/**, eliza-plugin/**, .github/workflows/packages.yml]
+    paths: [python/**, agentkit/**, eliza-plugin/**, js/**, .github/workflows/packages.yml]
 
 permissions:
   contents: read
@@ -55,5 +55,20 @@ jobs:
         with:
           node-version: 24
       - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+
+  js:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
       - run: npm test
       - run: npm run build
