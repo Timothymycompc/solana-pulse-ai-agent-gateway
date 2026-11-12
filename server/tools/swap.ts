@@ -2,7 +2,7 @@
 // pools inside other programs, so its steps don't say where the output lands. The dry run does, so every check here
 // reads the simulated balances.
 import { PublicKey, type Connection } from "@solana/web3.js";
-import { feeBreakdown, simulateWithChanges, type LoadedTransaction } from "./decode";
+import { feeBreakdown, simulateWithChanges, SOL_DRIFT_LAMPORTS, type LoadedTransaction } from "./decode";
 import { explainError } from "./errors";
 import { assertAddress, formatUnits, NATIVE_MINT, parseUnits } from "./lib";
 import { permissionCheck } from "./permissions";
@@ -93,7 +93,7 @@ export async function matchSwap(conn: Connection, loaded: LoadedTransaction, exp
     }
     // When SOL is neither side of the swap, the sender may spend only the fee.
     const solLost = -change(NATIVE_MINT);
-    if (sellMint !== NATIVE_MINT && buyMint !== NATIVE_MINT && solLost > 0n) {
+    if (sellMint !== NATIVE_MINT && buyMint !== NATIVE_MINT && solLost > SOL_DRIFT_LAMPORTS) {
       unexpected.push(sim.sameMoment ? `Dry run: the sender loses ${formatUnits(solLost, 9)} SOL beyond the fee.` : NOT_SAME_MOMENT("SOL"));
     }
     // Exchanges and apps take a small cut of the bought token. In the everyday test (200 real transactions, Oct 2026), 9

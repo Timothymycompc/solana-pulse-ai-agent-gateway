@@ -3,7 +3,7 @@ import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, Ver
 import { getBase58Decoder } from "@solana/kit";
 import { createApproveInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { z } from "zod";
-import { feeBreakdown, loadTransaction, simulateWithChanges, tokenAccountOwners, type DecodedInstruction, type LoadedTransaction } from "./decode";
+import { feeBreakdown, loadTransaction, simulateWithChanges, SOL_DRIFT_LAMPORTS, tokenAccountOwners, type DecodedInstruction, type LoadedTransaction } from "./decode";
 import { explainError } from "./errors";
 import { permissionCheck, permissionChecks, type Check } from "./permissions";
 import { recentMarket } from "./fee-market";
@@ -269,7 +269,7 @@ export const checkTransactionIntent: ToolDef = {
     for (const c of sim.changes) {
       if (c.wallet !== sender || !c.changeRaw.startsWith("-")) continue;
       const allowed = allowedLoss(c.asset);
-      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(sim.sameMoment
+      if (-BigInt(c.changeRaw) > allowed + (c.asset === "SOL" ? SOL_DRIFT_LAMPORTS : 0n)) unexpectedEffects.push(sim.sameMoment
         ? `Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`
         : `Couldn't confirm the sender's ${c.symbol ?? c.asset} change: the RPC didn't give balances from before and after the dry run at the same moment (tried 3 times), so a busy wallet's other activity may be mixed in. Retry before signing.`);
     }

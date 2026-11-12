@@ -79,11 +79,31 @@ test("tx_matches retries the dry run until the node gives same-moment balances",
 });
 
 test("tx_matches says it couldn't confirm, instead of reporting a loss, when balances never come from the same moment", async () => {
-  const r = await matchWith(withoutSameMoment([{ preBalances: false }, { preBalances: false }, { preBalances: false }], 1n));
+  const r = await matchWith(withoutSameMoment([{ preBalances: false }, { preBalances: false }, { preBalances: false }], 5000n));
   assert.equal(r.verdict, "MISMATCH");
   assert.equal(r.unexpected.length, 1);
   assert.match(r.unexpected[0], /Couldn't confirm the sender's SOL change/);
   assert.doesNotMatch(r.unexpected[0], /loses/);
+});
+
+// The node's own numbers can disagree by a lamport or two (3 of 13 dry runs on 2026-11-12); a real extra loss can't hide
+// in that margin (SOL_DRIFT_LAMPORTS, 100 lamports).
+function withSenderLoss(extraLamports: number) {
+  const fixture = structuredClone(loadFixture("intent-sol-match"));
+  const sim: any = (fixture.recording.calls as any).simulateTransaction[0];
+  sim.value.accounts[0].lamports -= extraLamports;
+  return { fixture, ctx: replayContext(fixture) };
+}
+
+test("tx_matches allows the 1-2 lamport drift seen inside a node's own dry-run numbers", async () => {
+  const r = await matchWith(withSenderLoss(2));
+  assert.equal(r.verdict, "MATCH", JSON.stringify(r.unexpected));
+});
+
+test("tx_matches still catches a real extra SOL loss just past that margin", async () => {
+  const r = await matchWith(withSenderLoss(5000));
+  assert.equal(r.verdict, "MISMATCH");
+  assert.match(r.unexpected[0], /the sender loses/);
 });
 
 test("a separate read from the dry run's own slot counts as the same moment", async () => {
