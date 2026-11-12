@@ -21,6 +21,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+pay = ["x402[svm,requests]>=2.27"]
 test = ["solders>=0.21"]
 
 [project.urls]

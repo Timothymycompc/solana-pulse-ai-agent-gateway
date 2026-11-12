@@ -53,9 +53,31 @@ check_before_sign(tx, expected={"token": USDC_MINT, "amount": "5", "to": recipie
 | `PulseBlocked` | Pulse answered BLOCK, or REVIEW (unless `allow_review=True`), or the transfer/swap doesn't match `expected`. `.verdict` and `.check` hold Pulse's full answer. |
 | `PulseUnavailable` | Pulse couldn't be reached or couldn't check. Not checked is never treated as safe. |
 | `PulsePaymentRequired` | Today's free calls are used up. `.terms` holds the x402 payment terms. |
+| `PulsePaymentRefused` | `pay` is set but the call was over a cap or couldn't be paid. Nothing was paid. |
 
 Lower-level calls return Pulse's answer as a dict: `check_tx(tx)`, `tx_matches(tx, expected)`, `token_safety(mint)`, or
 the same methods on `PulseClient(api_key=..., base_url=..., timeout=...)`.
+
+## Pay automatically (opt-in, from 0.2.0)
+
+By default a call past the free tier raises `PulsePaymentRequired`. Give the client a wallet and caps and it pays those
+calls itself with [x402](https://github.com/x402-foundation/x402) (USDC on Solana), so a busy bot keeps running:
+
+```python
+# pip install "solana-pulse[pay]"
+from solana_pulse import Pay, PulseClient
+
+pulse = PulseClient(pay=Pay(secret_key="~/payer.json", max_per_call_usd=0.05, max_per_day_usd=1))
+pulse.check_before_sign(tx)
+```
+
+- Caps are checked against Pulse's price **before anything is signed**: a call over `max_per_call_usd`, or one that
+  would take today's total (UTC, this process) over `max_per_day_usd`, raises `PulsePaymentRefused` and nothing is
+  paid. Defaults: $0.05 per call, $50 a day.
+- `secret_key` is a keypair file path, its list of numbers, or 64 bytes. Only USDC on Solana mainnet is ever paid; the
+  wallet needs USDC but no SOL (the facilitator pays network fees).
+- A payment is counted only when the paid call succeeds. Pulse never charges a call that fails.
+- Off unless you pass `pay`. Without it the package has no dependencies and never pays.
 
 ## Cost
 

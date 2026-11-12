@@ -8,6 +8,9 @@ Every answer comes from a dry run on live Solana mainnet and names what each wal
 the traps Pulse knows about are present; no check can promise a transaction is safe. No dependencies: the standard
 library only. Each tool gives 25 free calls a day per caller; after that Pulse answers 402 with x402 payment terms,
 raised here as PulsePaymentRequired (calls that fail are never charged). Set PULSE_API_KEY to use a key.
+
+Opt-in automatic payment (pip install "solana-pulse[pay]"): PulseClient(pay=Pay(secret_key="~/payer.json")) pays
+calls past the free tier in USDC on Solana, within caps ($0.05 per call, $50 per day by default; both changeable).
 """
 from __future__ import annotations
 
@@ -19,35 +22,14 @@ import urllib.request
 from typing import Any, Optional
 
 __version__ = "0.1.0"
-__all__ = ["PulseClient", "check_before_sign", "check_tx", "tx_matches", "token_safety", "to_base64",
-           "PulseError", "PulseBlocked", "PulseUnavailable", "PulsePaymentRequired", "DEFAULT_URL"]
+from .errors import PulseBlocked, PulseError, PulsePaymentRefused, PulsePaymentRequired, PulseUnavailable
+from .pay import Pay
+
+__all__ = ["PulseClient", "check_before_sign", "check_tx", "tx_matches", "token_safety", "to_base64", "Pay",
+           "PulseError", "PulseBlocked", "PulseUnavailable", "PulsePaymentRequired", "PulsePaymentRefused",
+           "DEFAULT_URL"]
 
 DEFAULT_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app"
-
-
-class PulseError(Exception):
-    """Base class for every error this package raises."""
-
-
-class PulseBlocked(PulseError):
-    """Pulse looked at the transaction and did not answer OK (or the transfer/swap is not what you asked for)."""
-
-    def __init__(self, message: str, verdict: str, check: Optional[dict] = None):
-        super().__init__(message)
-        self.verdict = verdict
-        self.check = check or {}
-
-
-class PulseUnavailable(PulseError):
-    """Pulse could not be reached or could not check the transaction. Not checked is never treated as safe."""
-
-
-class PulsePaymentRequired(PulseError):
-    """Today's free calls for this tool are used up. `terms` holds the x402 payment terms Pulse sent."""
-
-    def __init__(self, message: str, terms: Optional[dict] = None):
-        super().__init__(message)
-        self.terms = terms
 
 
 def to_base64(tx: Any) -> str:
@@ -71,20 +53,26 @@ def to_base64(tx: Any) -> str:
 
 
 class PulseClient:
-    """Calls Solana Pulse tools over HTTPS. `api_key` and `base_url` default to PULSE_API_KEY and PULSE_URL."""
+    """Calls Solana Pulse tools over HTTPS. `api_key` and `base_url` default to PULSE_API_KEY and PULSE_URL.
+    `pay` (opt-in, off by default) pays calls past the free tier from your wallet, within its caps."""
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: float = 30.0,
-                 user_agent: Optional[str] = None):
+                 user_agent: Optional[str] = None, pay: Optional[Pay] = None):
         self.api_key = api_key if api_key is not None else os.environ.get("PULSE_API_KEY")
         self.base_url = (base_url or os.environ.get("PULSE_URL") or DEFAULT_URL).rstrip("/")
         self.timeout = timeout
         self.user_agent = user_agent or f"solana-pulse-python/{__version__}"
+        self.pay = pay
+        self._payer = None
 
     def call(self, tool: str, payload: dict) -> dict:
-        """Calls one tool and returns its JSON answer. Raises PulsePaymentRequired on 402, PulseUnavailable otherwise."""
+        """Calls one tool and returns its JSON answer. Raises PulsePaymentRequired on 402 (PulsePaymentRefused when
+        `pay` is set and the call couldn't be paid within the caps), PulseUnavailable otherwise."""
         headers = {"content-type": "application/json", "user-agent": self.user_agent}
         if self.api_key:
             headers["x-api-key"] = self.api_key
+        if self.pay is not None:
+            return self._call_paying(tool, payload, headers)
         req = urllib.request.Request(f"{self.base_url}/api/tools/{tool}", data=json.dumps(payload).encode(),
                                      headers=headers, method="POST")
         try:
@@ -104,6 +92,22 @@ class PulseClient:
     def _open(self, req):  # one place to swap out in tests
         return urllib.request.urlopen(req, timeout=self.timeout)
 
+    def _call_paying(self, tool: str, payload: dict, headers: dict) -> dict:
+        if self._payer is None:
+            from .pay import Payer
+            self._payer = Payer(self.pay)
+        try:
+            status, res_headers, raw = self._payer.post(f"{self.base_url}/api/tools/{tool}", json.dumps(payload).encode(),
+                                                        headers, self.timeout)
+        except self._payer.request_error as e:
+            raise PulseUnavailable(f"Could not reach Solana Pulse at {self.base_url}: {e}") from None
+        if status == 402:
+            raise PulsePaymentRefused(f"{tool}: the payment didn't go through (Pulse still answered 402). Check the wallet "
+                                      "holds enough USDC; nothing was charged.")
+        if status >= 400:
+            raise PulseUnavailable(f"{tool}: Solana Pulse answered HTTP {status}: {_json(raw).get('error', 'no details')}")
+        return _json(raw)
+
     def check_tx(self, tx: Any, network: str = "mainnet-beta") -> dict:
         """Dry-runs the transaction and answers OK, REVIEW or BLOCK with each wallet's SOL and token changes."""
         return self.call("check_tx", {"tx": to_base64(tx), "network": network})
@@ -120,7 +124,8 @@ class PulseClient:
                           network: str = "mainnet-beta") -> dict:
         """Call right before signing. Returns Pulse's check when it answers OK (or REVIEW with allow_review=True).
         Raises PulseBlocked on BLOCK, on REVIEW unless allowed, and when `expected` is given and the transaction does
-        not match it. Raises PulseUnavailable / PulsePaymentRequired when it couldn't check: never treated as safe."""
+        not match it. Raises PulseUnavailable / PulsePaymentRequired / PulsePaymentRefused when it couldn't check:
+        never treated as safe."""
         check = self.check_tx(tx, network)
         verdict = str(check.get("verdict", "UNKNOWN"))
         if not (verdict == "OK" or (verdict == "REVIEW" and allow_review)):
