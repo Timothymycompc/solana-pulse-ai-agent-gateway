@@ -9,7 +9,7 @@ description = "Check a Solana transaction before you sign it: dry-run on mainnet
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
 authors = [{ name = "Solana Pulse" }]
 keywords = ["solana", "pre-sign", "transaction-simulation", "jupiter", "trading-bot", "ai-agent", "drainer", "x402"]
