@@ -1,14 +1,14 @@
 {
   "tool": "check_tx",
-  "recordedAt": "2026-11-12T07:06:19.795253+00:00",
+  "recordedAt": "2026-11-12T08:04:04.787221+00:00",
   "status": 200,
   "input": {
-    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAGCX6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbybQ/ffN89KMzS1moKr3xD+eaLjFLD93Uu7/6fCChoRW/T6oz1rKyozQUgdRIXXEPO9Upd2Z7eIKFrVSU3OPOX3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAEedVb8jHAbu50xW7OaBUH/bGy3qP0jlECsc2iVrwTjwbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpNZtjiLgkUYJsu4O7lCF6+WWGCGKfgWNPCiRJ3mtQnHa0P/on9df2SnTAmx8pWHneSwmrNt/J3VFLMhqns4zl6EeNRUUJDVxVaC5UEHUBfhmcXbz0jex7wEhxad61xLMzBgQABQIHpAAABAAJA1LDAAAAAAAAAwIAAQwCAAAAgJaYAAAAAAAGAQEBEQUZBgABAgUSBQgFEAwRCQoLDQECAAYOBhIPByPlF8uXeuOtKgEAAADDZAABgJaYAAAAAACqoQwAAAAAADIAAAYDAQAAAQkB5/ZBVPFDc6MnqlZldOclDSP2jLECXz9Pp/vCPqDMew8FurO0t7gFDbK1tiQ="
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAHDX6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbybQ/ffN89KMzS1moKr3xD+eaLjFLD93Uu7/6fCChoRW97JG9j5rlhGsolLuwBywaO4Oik/WofQJB9IXZuaUWf/J/43rvWtAKt63/xo/m0GIswN6GN2K3xGVAh/0KvrCDopkhyHU5UOFu9r36XjTY2czgq8ZAtpTyr8GUVmE5c/GjT6oz1rKyozQUgdRIXXEPO9Upd2Z7eIKFrVSU3OPOX3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAEedVb8jHAbu50xW7OaBUH/bGy3qP0jlECsc2iVrwTjwbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpYDFHBDQN7d83H9QkchSPJI6dGm0aXrKsOs2Lf9XWskO0P/on9df2SnTAmx8pWHneSwmrNt/J3VFLMhqns4zl6L6TmoMJ9WQHGH//MKxUsWlJi+mfbY4b/UJEaAzU99HicZfqYwNQ4Yv4/eAFmsYXXphoje5iz3Ea6Fy1pQhWSzcFBwAFAhPEAQAGAgABDAIAAACAlpgAAAAAAAkBAQERCB4JAAEFCBYICwgSABUPAQUOEA0JFBETFhcEAwIKDAgj5RfLl3rjrSoBAAAAnGQAAYCWmAAAAAAAtagMAAAAAAAyAAAJAwEAAAEJAay0JLBPt7vO77vEm3mycDc1EokoxlI1OOS5dimcQNdbBLLTs7UHz7EFDNKOtw=="
   },
   "body": {
     "network": "mainnet-beta",
     "verdict": "OK",
-    "summary": "OK: Your wallet sends: 1330.421946494 So11111111111111111111111111111111111111112 (SOL includes fees).",
+    "summary": "OK: Your wallet sends: 0.007965722 SOL (SOL includes fees, with wrapped SOL counted as SOL).",
     "fee_payer": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
     "signers": [
       "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
@@ -17,7 +17,7 @@
       {
         "name": "simulation",
         "result": "pass",
-        "detail": "Dry run worked, using 34266 compute units."
+        "detail": "Dry run worked, using 92394 compute units."
       },
       {
         "name": "blockhash",
@@ -27,12 +27,12 @@
       {
         "name": "fee_payer_balance",
         "result": "pass",
-        "detail": "Fee payer holds 9300003.246657372 SOL; fees are 0.0000071 SOL."
+        "detail": "Fee payer holds 9300003.246657372 SOL; fees are 0.000005 SOL."
       },
       {
         "name": "outflow",
         "result": "info",
-        "detail": "Your wallet sends: 1330.421946494 So11111111111111111111111111111111111111112 (SOL includes fees)."
+        "detail": "Your wallet sends: 0.007965722 SOL (SOL includes fees, with wrapped SOL counted as SOL)."
       }
     ],
     "balance_changes": [
@@ -42,16 +42,16 @@
         "token": "SOL",
         "symbol": "SOL",
         "before": "9300003.246657372",
-        "after": "9301333.660636044",
-        "change": "1330.413978672",
-        "raw_change": "1330413978672",
+        "after": "9301333.660638144",
+        "change": "1330.413980772",
+        "raw_change": "1330413980772",
         "decimals": 9
       },
       {
         "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
         "is_you": true,
         "token": "So11111111111111111111111111111111111111112",
-        "symbol": null,
+        "symbol": "SOL",
         "before": "1330.421946494",
         "after": "0",
         "change": "-1330.421946494",
@@ -62,33 +62,33 @@
         "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
         "is_you": true,
         "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        "symbol": null,
+        "symbol": "USDC",
         "before": "1108.538251",
-        "after": "1109.365145",
-        "change": "0.826894",
-        "raw_change": "826894",
+        "after": "1109.367644",
+        "change": "0.829393",
+        "raw_change": "829393",
         "decimals": 6
       },
       {
-        "wallet": "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+        "wallet": "9GTj99g9tbz9U6UYDsX6YeRTgUnkYG6GTnHv3qLa5aXq",
         "is_you": false,
         "token": "So11111111111111111111111111111111111111112",
-        "symbol": null,
-        "before": "2626.180427062",
-        "after": "2626.190427062",
+        "symbol": "SOL",
+        "before": "346.273820807",
+        "after": "346.283820807",
         "change": "0.01",
         "raw_change": "10000000",
         "decimals": 9
       },
       {
-        "wallet": "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+        "wallet": "9GTj99g9tbz9U6UYDsX6YeRTgUnkYG6GTnHv3qLa5aXq",
         "is_you": false,
         "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        "symbol": null,
-        "before": "230833.391186",
-        "after": "230832.564292",
-        "change": "-0.826894",
-        "raw_change": "-826894",
+        "symbol": "USDC",
+        "before": "5901.028605",
+        "after": "5900.199212",
+        "change": "-0.829393",
+        "raw_change": "-829393",
         "decimals": 6
       }
     ],
@@ -100,21 +100,11 @@
         "accounts": [],
         "type": "set_compute_unit_limit",
         "info": {
-          "units": 41991
+          "units": 115731
         }
       },
       {
         "index": 1,
-        "program_id": "ComputeBudget111111111111111111111111111111",
-        "program": "Compute Budget",
-        "accounts": [],
-        "type": "set_compute_unit_price",
-        "info": {
-          "micro_lamports_per_compute_unit": "50002"
-        }
-      },
-      {
-        "index": 2,
         "program_id": "11111111111111111111111111111111",
         "program": "System Program",
         "accounts": [
@@ -129,7 +119,7 @@
         }
       },
       {
-        "index": 3,
+        "index": 2,
         "program_id": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         "program": "SPL Token",
         "accounts": [
@@ -141,7 +131,7 @@
         }
       },
       {
-        "index": 4,
+        "index": 3,
         "program_id": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
         "program": "Jupiter Aggregator v6",
         "accounts": [
@@ -154,22 +144,27 @@
           "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
           "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
           "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
-          "ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY",
-          "BwNJma5cJzn9jobrsc4d7UuWHekjai1B7oUdRzRnVqAM",
-          "ziVBjUsjvWLdaeNcFT5DuuWxFgUUEExs2jb4qgTqYSy",
-          "3QrF4jzbFn8EWWZi55wonziCoC3ZK2eLmwT2v3EBEsYq",
-          "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
-          "7bFrELm2JUsKfjghdHRXo75ZzQwKWATMLreP5QSnKLcE",
-          "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+          "REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2",
+          "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "4E6xP73xzTs4aCvY92hbXRwWkYptNwvViPZmLcZEBUk4",
+          "9GTj99g9tbz9U6UYDsX6YeRTgUnkYG6GTnHv3qLa5aXq",
           "8LjUgMjzZuHj8VdyxzkmLLQVmW4C3gd56md1nLd76TNW",
           "FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B",
-          "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+          "5BzogZvHNEuwstR4iwTWdd7jknFBZqJQWVjxPsDfEUD6",
+          "HL8turx8hJEEPVH4ivxzxwfdxVA1PH3LeYbSmh3hYfzz",
+          "3T6qNbQqWYDfSTew1ifsNedtoeDP8LRuCegmUH27ykEZ",
           "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+          "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
           "So11111111111111111111111111111111111111112",
-          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          "Sysvar1nstructions1111111111111111111111111",
-          "4cG31VNF9TzFinNc7BmnjhFvGjxkY3sCETVMtMgbrhPs"
+          "GuDQwyNv6g6jtZg13VNcDnK9mb6q8pTj534BDehqvtzF",
+          "CC6kTPt82Gn59gko7gjybeJau5DTFsHZSqvCuy8pCZSw",
+          "BmTvhfXDHE3ic4cSvEg4hiYcuDQwUHu33FgPUrFXeYiT",
+          "9HhNUStU7co3E4Bcmz9SPPYmZ9Yxu1uxmGSZKKKX4qmm",
+          "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE",
+          "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX",
+          "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
         ],
         "type": "other",
         "info": {
@@ -177,7 +172,7 @@
         }
       },
       {
-        "index": 5,
+        "index": 4,
         "program_id": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         "program": "SPL Token",
         "accounts": [
@@ -195,43 +190,43 @@
     ],
     "fee": {
       "base_lamports": "5000",
-      "priority_lamports": "2100",
-      "total_lamports": "7100",
-      "total_sol": "0.0000071",
-      "compute_unit_limit": 41991,
+      "priority_lamports": "0",
+      "total_lamports": "5000",
+      "total_sol": "0.000005",
+      "compute_unit_limit": 115731,
       "compute_unit_limit_from": "set in transaction",
-      "compute_unit_price": "50002"
+      "compute_unit_price": "0"
     },
     "simulation": {
       "worked": true,
       "error": null,
       "error_explained": null,
-      "compute_used": 34266,
+      "compute_used": 92394,
       "logs": [
-        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
-        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 41541 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 115431 compute units",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
         "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [1]",
         "Program log: Instruction: Route",
-        "Program ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY invoke [2]",
-        "Program log: Instruction: swap_v4",
+        "Program REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2 invoke [2]",
+        "Program log: Instruction: SwapV3Dyn",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
-        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 27990 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 33804 compute units",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
-        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 187 of 26543 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 30826 compute units",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
-        "Program data: RnAAHurUU30DD4N2dKhUhdrW9Tw+ipyV/q3q+gpg7OCq4bkSHOKEfeVLCjAiaJmjoSckGLrlncPdO/O1vs2ftaJIk4CQnQDGwTA3yODnPr/rN0v+1V2cVsfwIf/zbOnuuRG6NrI42KrbQcGrpLa8/6Td9oZr21u0a1HfldKppcKb6t8e6tRTfe0MVRrziy50AuF24xF3i+4BnNoGfR/Oj8kVSPniLmnM2McCt0LXR7586BbZzcUGQXfWoR9P/GV4Or95rPyXBjR3O9bQ5uc+v1OaVefTXZxWawhgvjmTFhEChvR3eMcnVezdErvvhwnASEf6honfW7Q7uzSO0qmlwgIyDx7q1FN9oY3Rj8u+m0sC4XbjEXd70Z1jJfnh4DFwGRJI+X7RljObxwK3QtdHvnzoFtnFxQZBn9WhH0/8ZXgqmHms/ZYGNEGmr8jg5z6/5alH/tVdnFbG8SH/82zp7rkRujayONiqbEuKu++HCcBG2faGid9btMmQNI7SqaXCQnAAHurUU32hjdGPy76bSwLhduMRd3vRnWMl+eHgMXAZEkj5ftGWM5vHArdC10e+fOgW2cXFBkGf1aEfT/xleCqYeaz9lgY0QaavyODnPr/lqUf+1V2cVsbxIf/zbOnuuRG6NrI42KpsS4q774cJwEbZ9oaJ31u0yZA0jtKppcJCcAAe6tRTfaGN0Y/LvptLAuF24xF3e9GdYyX54eAxcBkSSPl+0ZYzm8cCt0LXR7586BbZxcUGQZ/VoR9P/GV4Kph5rP2WBjRBpq/I4Oc+v+WpR/7VXZxWxvEh//Ns6e65Ebo2sjjYqmxLirvvhwnARtn2honfW7RtUd+V0qmlwg39Fh+O7rRloUf6h6+EfFME4XbjEVpK0AuZWLNzOzUlLc0g5r4J/62iWveabLnpeRVyjtF2/61Y",
-        "Program ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY consumed 26950 of 37384 compute units",
-        "Program ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY success",
+        "Program data: QMbN6CYIceJ6021nz0kLt8HMcaZ+XETLDdTGMFJ8mMKdnBxRzXSVMH6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbybQ/ffN89KMzS1moKr3xD+eaLjFLD93Uu7/6fCChoRW/T6oz1rKyozQUgdRIXXEPO9Upd2Z7eIKFrVSU3OPOX3ICWmAAAAAAAAAAAAAAAAADRpwwAAAAAAAAAAAAAAAAAAUSfqTWSG7tJAAAAAAAAAACPyStEIQAAAAAAAAAAAAAAv57//w==",
+        "Program data: KPdCew/0HL56021nz0kLt8HMcaZ+XETLDdTGMFJ8mMKdnBxRzXSVMB6nJi6UdjwVAAAAAAAAAACAl9fWW389FQAAAAAAAAAAAAAAAAAAAADd0iCwBgAAAAAAAAAAAAAA/Yy6XwEAAAAAAAAAAAAAAAABAAAAZAAKFCgyWgAAAAAAAABAAAAAmgAAAJsAAAA=",
+        "Program REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2 consumed 84344 of 110416 compute units",
+        "Program REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2 success",
         "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [2]",
-        "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 93 of 8562 compute units",
+        "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 93 of 24174 compute units",
         "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
-        "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 33497 of 41340 compute units",
-        "Program return: JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 Dp4MAAAAAAA=",
+        "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 91775 of 115230 compute units",
+        "Program return: JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 0acMAAAAAAA=",
         "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
-        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 7843 compute units",
+        "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 23455 compute units",
         "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success"
       ]
     }
