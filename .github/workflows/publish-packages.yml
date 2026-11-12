@@ -4,7 +4,8 @@
 #   python/        -> PyPI solana-pulse
 # No tokens. npm and PyPI accept GitHub's identity token (OIDC) for this repo and this workflow file once it's set up:
 # npm under each package's Settings > Trusted Publisher; PyPI under "Publishing" (a pending publisher works before the
-# first release). Each job skips when that version is already published.
+# first release). Each job skips when that version is already published. Pushes publish only once the repo variable
+# PUBLISH_PACKAGES is "true" (set after that one-time setup); a manual run always tries.
 name: Publish packages
 on:
   push:
@@ -18,6 +19,7 @@ permissions:
 
 jobs:
   npm:
+    if: vars.PUBLISH_PACKAGES == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -53,6 +55,7 @@ jobs:
           npm publish --access public --provenance
 
   pypi:
+    if: vars.PUBLISH_PACKAGES == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
