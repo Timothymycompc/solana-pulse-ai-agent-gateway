@@ -133,8 +133,19 @@ export const preflightTransaction: ToolDef = {
     if (unknown.length) checks.push({ name: "unknown_programs", result: "warn", detail: `Calls program(s) we don't recognize: ${unknown.join(", ")}. Make sure you trust them.` });
     if (BigInt(fee.priorityLamports) > 10_000_000n) checks.push({ name: "priority_fee", result: "warn", detail: `Priority fee is ${lamportsToSol(fee.priorityLamports)} SOL, unusually high. The fee tool shows a fair price.` });
     const changes = sim.changes.map((c) => ({ ...c, isSigner: signers.has(c.wallet) }));
-    const outflows = changes.filter((c) => c.isSigner && c.changeRaw.startsWith("-"));
-    if (outflows.length) checks.push({ name: "outflow", result: "info", detail: `Your wallet sends: ${outflows.map((c) => `${c.change.slice(1)} ${c.symbol ?? c.asset}`).join(", ")} (SOL includes fees).` });
+    // Wrapped SOL is SOL. A swap that closes the wallet's wrapped-SOL account moves that whole balance back to plain SOL;
+    // read as two separate changes it looked like "sends 1330.42 wrapped SOL" for a 0.01 SOL swap (2026-11-12). So the
+    // summary nets each signer's SOL and wrapped SOL; balance_changes still lists every account as it is.
+    const solNet = new Map<string, bigint>();
+    for (const c of changes) {
+      if (c.isSigner && (c.asset === "SOL" || c.asset === NATIVE_MINT)) solNet.set(c.wallet, (solNet.get(c.wallet) ?? 0n) + BigInt(c.changeRaw));
+    }
+    const wrapped = changes.some((c) => c.isSigner && c.asset === NATIVE_MINT);
+    const outflows = [
+      ...[...solNet.values()].filter((d) => d < 0n).map((d) => `${formatUnits(-d, 9)} SOL`),
+      ...changes.filter((c) => c.isSigner && c.asset !== "SOL" && c.asset !== NATIVE_MINT && c.changeRaw.startsWith("-")).map((c) => `${c.change.slice(1)} ${c.symbol ?? c.asset}`),
+    ];
+    if (outflows.length) checks.push({ name: "outflow", result: "info", detail: `Your wallet sends: ${outflows.join(", ")} (SOL includes fees${wrapped ? ", with wrapped SOL counted as SOL" : ""}).` });
     const fails = checks.filter((c) => c.result === "fail");
     const warns = checks.filter((c) => c.result === "warn");
     const verdict = fails.length ? "BLOCK" : warns.length ? "REVIEW" : "OK";
@@ -258,7 +269,9 @@ export const checkTransactionIntent: ToolDef = {
     for (const c of sim.changes) {
       if (c.wallet !== sender || !c.changeRaw.startsWith("-")) continue;
       const allowed = allowedLoss(c.asset);
-      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(`Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`);
+      if (-BigInt(c.changeRaw) > allowed) unexpectedEffects.push(sim.sameMoment
+        ? `Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, but ${c.asset === "SOL" ? "the transfer, fees and deposits account" : "the transfer accounts"} for only ${formatUnits(allowed, c.decimals)}.`
+        : `Couldn't confirm the sender's ${c.symbol ?? c.asset} change: the RPC didn't give balances from before and after the dry run at the same moment (tried 3 times), so a busy wallet's other activity may be mixed in. Retry before signing.`);
     }
     const verdict = compared.every((c) => c.ok) && !unexpectedEffects.length ? "MATCH" : "MISMATCH";
     const firstBad = compared.find((c) => !c.ok);

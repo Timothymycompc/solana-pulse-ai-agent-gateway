@@ -46,6 +46,64 @@ test("tx_matches matches a plain SOL transfer", async () => {
   assert.deepEqual(r.unexpected, []);
 });
 
+// Balances before and after the dry run must come from the same moment. 2026-11-12: a fresh 0.01 SOL transfer from a
+// busy exchange wallet came back MISMATCH ("loses 0.010005032 SOL ... only 0.010005031") because the "before" balance
+// was read at another moment and the wallet had moved 1 lamport. Mainnet fees matched Pulse's formula in 249 of 249
+// landed transactions, so the gap wasn't the fee. These variants of the real intent-sol-match recording play an RPC
+// node that answers without preBalances.
+function withoutSameMoment(attempts: { preBalances: boolean; slot?: number }[], drift = 0n) {
+  const fixture = structuredClone(loadFixture("intent-sol-match"));
+  const calls: any = fixture.recording.calls;
+  const [early, preRead] = calls.getMultipleAccountsInfo;
+  const sim = calls.simulateTransaction[0];
+  calls.getMultipleAccountsInfo = [early];
+  calls.getMultipleAccountsInfoAndContext = attempts.map((a) => ({
+    context: { slot: a.slot ?? 1 },
+    value: preRead.map((acc: any) => acc && { ...acc, lamports: acc.lamports + Number(drift) }),
+  }));
+  calls.simulateTransaction = attempts.map((a) => {
+    const value = { ...sim.value };
+    if (!a.preBalances) delete value.preBalances;
+    return { ...sim, value };
+  });
+  return replayContextFor(fixture);
+}
+const replayContextFor = (fixture: any) => ({ fixture, ctx: replayContext(fixture) });
+async function matchWith(variant: { fixture: any; ctx: any }) {
+  return checkTransactionIntent.run(z.object(checkTransactionIntent.inputs).parse(currentArgs(checkTransactionIntent, variant.fixture.args)), variant.ctx) as Promise<any>;
+}
+
+test("tx_matches retries the dry run until the node gives same-moment balances", async () => {
+  const r = await matchWith(withoutSameMoment([{ preBalances: false }, { preBalances: false }, { preBalances: true }], 1n));
+  assert.equal(r.verdict, "MATCH", JSON.stringify(r.unexpected));
+});
+
+test("tx_matches says it couldn't confirm, instead of reporting a loss, when balances never come from the same moment", async () => {
+  const r = await matchWith(withoutSameMoment([{ preBalances: false }, { preBalances: false }, { preBalances: false }], 1n));
+  assert.equal(r.verdict, "MISMATCH");
+  assert.equal(r.unexpected.length, 1);
+  assert.match(r.unexpected[0], /Couldn't confirm the sender's SOL change/);
+  assert.doesNotMatch(r.unexpected[0], /loses/);
+});
+
+test("a separate read from the dry run's own slot counts as the same moment", async () => {
+  const slot = loadFixture("intent-sol-match").recording.calls.simulateTransaction[0].context.slot;
+  const r = await matchWith(withoutSameMoment([{ preBalances: false, slot }]));
+  assert.equal(r.verdict, "MATCH", JSON.stringify(r.unexpected));
+});
+
+test("check_tx counts wrapped SOL as SOL when a swap closes the wallet's wrapped-SOL account", async () => {
+  const r = await replay(preflightTransaction, "preflight-swap-wsol-close");
+  const me = (token: string) => r.balance_changes.find((c: any) => c.is_you && c.token === token);
+  const wrappedBefore = Number(me("So11111111111111111111111111111111111111112").before);
+  assert.ok(wrappedBefore > 1, "the wallet held wrapped SOL before the swap");
+  const outflow = r.checks.find((c: any) => c.name === "outflow").detail;
+  const sent = Number(/sends: ([\d.]+) SOL/.exec(outflow)![1]);
+  assert.ok(sent > 0 && sent < 0.02, `a 0.01 SOL swap sends about 0.01 SOL, not ${outflow}`);
+  assert.match(outflow, /wrapped SOL counted as SOL/);
+  assert.doesNotMatch(outflow, /So1111/);
+});
+
 // Version 1 transactions were 40% of non-vote transactions in a mainnet block on 2026-10-19, and web3.js can't read them.
 test("check_tx and tx_matches read a version 1 transaction, with its fee from the v1 config", async () => {
   const r = await replay(preflightTransaction, "preflight-v1-sol-transfer");

@@ -22,6 +22,9 @@ async function decimalsOf(conn: Connection, mint: string, field: string) {
 }
 
 type Simulated = Awaited<ReturnType<typeof simulateWithChanges>>;
+// When the RPC can't give balances before and after the dry run from the same moment, a busy wallet's other activity
+// can look like a loss. Say that instead of presenting it as the transaction's.
+const NOT_SAME_MOMENT = (asset: string) => `Couldn't confirm the sender's ${asset} change: the RPC didn't give balances from before and after the dry run at the same moment (tried 3 times), so a busy wallet's other activity may be mixed in. Retry before signing.`;
 
 // A wallet's net change in one token. For SOL that is the wallet's own SOL plus every SOL its token accounts hold:
 // wrapped SOL, and the deposit that opens one. Both stay the wallet's, and closing the account hands them back, which
@@ -86,12 +89,12 @@ export async function matchSwap(conn: Connection, loaded: LoadedTransaction, exp
     // The dry run's ground truth: the sender gives up only the sold token, and only the sender receives the bought one.
     for (const c of sim.changes) {
       if (c.wallet !== sender || !c.changeRaw.startsWith("-") || [sellMint, buyMint, NATIVE_MINT, "SOL"].includes(c.asset)) continue;
-      unexpected.push(`Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, which this swap doesn't sell.`);
+      unexpected.push(sim.sameMoment ? `Dry run: the sender loses ${c.change.slice(1)} ${c.symbol ?? c.asset}, which this swap doesn't sell.` : NOT_SAME_MOMENT(c.symbol ?? c.asset));
     }
     // When SOL is neither side of the swap, the sender may spend only the fee.
     const solLost = -change(NATIVE_MINT);
     if (sellMint !== NATIVE_MINT && buyMint !== NATIVE_MINT && solLost > 0n) {
-      unexpected.push(`Dry run: the sender loses ${formatUnits(solLost, 9)} SOL beyond the fee.`);
+      unexpected.push(sim.sameMoment ? `Dry run: the sender loses ${formatUnits(solLost, 9)} SOL beyond the fee.` : NOT_SAME_MOMENT("SOL"));
     }
     // Exchanges and apps take a small cut of the bought token. In the everyday test (200 real transactions, Oct 2026), 9
     // of 24 ordinary swaps paid 0.47-0.77% of the output to fee wallets, the same few again and again. A redirected
