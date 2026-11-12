@@ -63,6 +63,12 @@ Each tool gives 25 free calls a day per caller, with no key. After that a call c
 token_safety), paid per request with [x402](https://github.com/x402-foundation/x402), or set `PULSE_API_KEY`. Calls that
 fail are never charged.
 
+## Also
+
+- JavaScript / TypeScript: `npm install solana-pulse` (`await checkBeforeSign(tx)`)
+- Coinbase AgentKit: `npm install agentkit-solana-pulse` · elizaOS: `npm install elizaos-plugin-solana-pulse`
+- MCP server and HTTP API: [Solana Pulse](https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway)
+
 ## Tests
 
 ```bash

@@ -60,6 +60,17 @@ export const ConnectPage: React.FC = () => (
       ['Server-Sent Events', <Code>{`${origin()}/mcp/sse`}</Code>],
     ]} />
 
+    <H2>From your own code: check before you sign</H2>
+    <P>If your bot or agent signs a transaction someone else built (Jupiter, PumpPortal, Bags, a launchpad or checkout API), one call right before the signature dry-runs it on mainnet and throws unless Pulse answers OK. "Couldn't check" is never treated as safe.</P>
+    <CodeBlock title="JavaScript / TypeScript (npm install solana-pulse)" code={`import { checkBeforeSign } from "solana-pulse";\n\nawait checkBeforeSign(tx);   // throws unless Pulse answers OK\n// a swap: also confirm it's exactly the one you asked for\nawait checkBeforeSign(tx, { expected: { action: "swap", sell: "SOL", amount: "0.5", buy: USDC_MINT } });`} />
+    <CodeBlock title="Python (pip install solana-pulse)" code={`from solana_pulse import check_before_sign\n\ncheck_before_sign(tx)   # raises PulseBlocked unless Pulse answers OK`} />
+    <Table head={['Framework', 'Package']} minWidth={420} rows={[
+      ['Coinbase AgentKit', <Code>npm install agentkit-solana-pulse</Code>],
+      ['elizaOS', <Code>npm install elizaos-plugin-solana-pulse</Code>],
+      ['Solana Agent Kit', <Code>npm install solana-agent-kit-plugin-pulse</Code>],
+    ]} />
+    <P>No dependencies in the JavaScript and Python packages. The same 25 free calls a day apply; set <Code>PULSE_API_KEY</Code> to use a key.</P>
+
     <H2>Have a trial key?</H2>
     <P>A key runs every tool without the daily limit. Where it goes depends on the app:</P>
     <ul className="mb-5 max-w-[68ch] list-disc space-y-1.5 pl-5 text-[15px] leading-[1.7] text-ink-300 marker:text-ink-500">

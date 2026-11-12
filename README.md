@@ -12,6 +12,20 @@
 - Open source (MIT) and free to use: every tool gives 25 free calls a day
 - Built on [our principles](PRINCIPLES.md): real data with its source, "unknown" instead of a guess, and no false data on the chain. A safety check doesn't make a token safe, and it can't. It looks for the known ways people get robbed with a token. "SAFE" really means "none of the traps we know about are present." Every rule exists because it matches a real scam.
 
+## Check before you sign, in one line
+
+If your bot or agent signs a transaction someone else built (Jupiter, PumpPortal, Bags, a launchpad or checkout API), check it right before the signature:
+
+| Stack | Install | Before signing |
+| --- | --- | --- |
+| JavaScript / TypeScript | `npm install solana-pulse` | `await checkBeforeSign(tx)` |
+| Python | `pip install solana-pulse` | `check_before_sign(tx)` |
+| Coinbase AgentKit | `npm install agentkit-solana-pulse` | `actionProviders: [solanaPulseActionProvider()]`, or `checkedSignAndSend(walletProvider, tx)` |
+| elizaOS | `npm install elizaos-plugin-solana-pulse` | `plugins: [pulsePlugin]`, or `await assertSafeToSign(runtime, tx)` |
+| Solana Agent Kit | `npm install solana-agent-kit-plugin-pulse` | `agent.use(PulsePlugin)` |
+
+Each one dry-runs the unsigned transaction on mainnet and stops (throws) unless Pulse answers OK. Add `expected` (for a swap: `{ action: "swap", sell, amount, buy }`) to also confirm it's exactly the swap or transfer you asked for. "Couldn't check" is never treated as safe. No dependencies in the JS and Python packages. Sources: [`js/`](js/README.md), [`python/`](python/README.md), [`agentkit/`](agentkit/README.md), [`eliza-plugin/`](eliza-plugin/README.md), [`agent-kit/`](agent-kit/README.md).
+
 ## Proof
 
 - **9 of 9 attacks caught, no false alarm:** 10 cases built from real mainnet accounts and simulated against live mainnet state (wrong recipient, wrong amount, wrong token, hidden transfer, balance drain, malicious program, replayed payment...). [Benchmark](benchmark/README.md); `benchmark/score.ts` scores any other checker on the same cases.
@@ -90,7 +104,7 @@ MCP, at `https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`:
 - **Codex CLI**: `codex mcp add solana-pulse --url https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp`
 - **Zed** (settings.json): `{ "context_servers": { "solana-pulse": { "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
 - **OpenCode** (`opencode.json`): `{ "mcp": { "solana-pulse": { "type": "remote", "url": "https://solana-pulse-gateway-1021990235790.us-central1.run.app/mcp" } } }`
-- **ElizaOS and Coinbase AgentKit**: setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
+- **ElizaOS and Coinbase AgentKit**: `npm install elizaos-plugin-solana-pulse` / `npm install agentkit-solana-pulse` (see [Check before you sign](#check-before-you-sign-in-one-line)); more setup on the [Connect page](https://solana-pulse-gateway-1021990235790.us-central1.run.app/docs/connect).
 
 Solana Agent Kit (SendAI): a plugin in [`agent-kit/`](agent-kit/README.md) ([`solana-agent-kit-plugin-pulse`](https://www.npmjs.com/package/solana-agent-kit-plugin-pulse) on npm) turns each tool into an action (`PULSE_CHECK_TX`, `PULSE_TOKEN_SAFETY`, ...) and a method (`agent.methods.pulseCheckTx(agent, { tx })`). Its tool list is generated from the same registry (`npm run agent-kit`), and `tests/agent-kit.test.ts` fails if it falls behind.
 
