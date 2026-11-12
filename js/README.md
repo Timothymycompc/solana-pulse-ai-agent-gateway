@@ -40,6 +40,22 @@ Lower-level calls return Pulse's answer: `checkTx(tx)`, `txMatches(tx, expected)
 Every answer comes from live mainnet data and names its source. "OK" means none of the traps Pulse knows about are
 present; no check can promise a transaction is safe.
 
+## Pay automatically (opt-in, from 0.2.0)
+
+By default a call past the free tier throws `PAYMENT_REQUIRED`. Give the client a wallet and caps and it pays those calls itself with [x402](https://github.com/x402-foundation/x402) (USDC on Solana), so a busy bot keeps running:
+
+```ts
+// npm install solana-pulse @x402/fetch @x402/svm @solana/kit
+await checkBeforeSign(tx, {
+  pay: { secretKey: payerKeypair.secretKey, maxPerCallUsd: 0.05, maxPerDayUsd: 1 },
+});
+```
+
+- Caps are checked against Pulse's price **before anything is signed**: a call over `maxPerCallUsd`, or one that would take today's total (UTC, this process) over `maxPerDayUsd`, throws `PAYMENT_REFUSED` and nothing is paid. Defaults: $0.05 per call, $50 a day.
+- Only USDC on Solana mainnet is ever paid. The paying wallet needs USDC but no SOL (the facilitator pays network fees).
+- A payment is counted only when the paid call succeeds. Pulse never charges a call that fails.
+- Off unless you pass `pay`. Without it the package has no dependencies and never pays.
+
 ## Cost
 
 Each tool gives 25 free calls a day per caller, with no key. After that a call costs $0.02 USDC, paid per request with

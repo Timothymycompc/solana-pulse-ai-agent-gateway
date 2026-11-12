@@ -1,7 +1,7 @@
 {
   "name": "solana-pulse",
   "version": "0.1.0",
-  "description": "Check a Solana transaction before you sign it: one call, checkBeforeSign(tx). Mainnet dry run, OK / REVIEW / BLOCK with each wallet's SOL and token changes, and confirms a swap or transfer does exactly what you asked. No dependencies.",
+  "description": "Check a Solana transaction before you sign it: one call, checkBeforeSign(tx). Mainnet dry run, OK / REVIEW / BLOCK with each wallet's SOL and token changes, and confirms a swap or transfer does exactly what you asked. No dependencies; optional automatic x402 payment with spending caps.",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -13,14 +13,29 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm test"
   },
-  "keywords": ["solana", "pre-sign", "transaction-simulation", "jupiter", "trading-bot", "ai-agent", "wallet", "drainer", "x402", "web3"],
+  "keywords": [
+    "solana",
+    "pre-sign",
+    "transaction-simulation",
+    "jupiter",
+    "trading-bot",
+    "ai-agent",
+    "wallet",
+    "drainer",
+    "x402",
+    "web3"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway.git",
@@ -28,12 +43,34 @@
   },
   "homepage": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/main/js",
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
+    "@solana/kit": "^8.6.0",
     "@solana/web3.js": "^1.98.4",
     "@types/node": "^22.20.5",
+    "@x402/core": "^2.30.0",
+    "@x402/fetch": "^2.30.0",
+    "@x402/svm": "^2.30.0",
     "tsup": "^8.5.0",
     "tsx": "^4.20.0",
     "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "@x402/fetch": ">=2.30.0",
+    "@x402/svm": ">=2.30.0",
+    "@solana/kit": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@x402/fetch": {
+      "optional": true
+    },
+    "@x402/svm": {
+      "optional": true
+    },
+    "@solana/kit": {
+      "optional": true
+    }
   }
 }
