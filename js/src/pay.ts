@@ -14,7 +14,7 @@ export interface PayOptions {
   secretKey: Uint8Array | number[];
   /** Largest single payment, in USD. Default 0.05. */
   maxPerCallUsd?: number;
-  /** Largest total per UTC day for this process, in USD. Default 1. */
+  /** Largest total per UTC day for this process, in USD. Default 50. */
   maxPerDayUsd?: number;
   /** Solana RPC used to build the payment. Default: the public mainnet RPC. */
   rpcUrl?: string;
@@ -42,7 +42,7 @@ export function choosePayment(requirements: Requirement[], wallet: string, opts:
   const perCall = usdToBase(opts.maxPerCallUsd ?? 0.05);
   if (amount > perCall) throw new PaymentRefusedError(`This call costs $${Number(amount) / 1e6}, over your maxPerCallUsd of $${Number(perCall) / 1e6}.`, Number(amount) / 1e6);
   const key = `${today()}:${wallet}`;
-  const perDay = usdToBase(opts.maxPerDayUsd ?? 1);
+  const perDay = usdToBase(opts.maxPerDayUsd ?? 50);
   const already = spent.get(key) ?? 0n;
   if (already + amount > perDay) throw new PaymentRefusedError(`Paying $${Number(amount) / 1e6} would take today's total to $${Number(already + amount) / 1e6}, over your maxPerDayUsd of $${Number(perDay) / 1e6}.`, Number(amount) / 1e6);
   return req;

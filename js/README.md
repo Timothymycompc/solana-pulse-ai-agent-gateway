@@ -51,7 +51,7 @@ await checkBeforeSign(tx, {
 });
 ```
 
-- Caps are checked against Pulse's price **before anything is signed**: a call over `maxPerCallUsd`, or one that would take today's total (UTC, this process) over `maxPerDayUsd`, throws `PAYMENT_REFUSED` and nothing is paid. Defaults: $0.05 per call, $1 a day.
+- Caps are checked against Pulse's price **before anything is signed**: a call over `maxPerCallUsd`, or one that would take today's total (UTC, this process) over `maxPerDayUsd`, throws `PAYMENT_REFUSED` and nothing is paid. Defaults: $0.05 per call, $50 a day.
 - Only USDC on Solana mainnet is ever paid. The paying wallet needs USDC but no SOL (the facilitator pays network fees).
 - A payment is counted only when the paid call succeeds. Pulse never charges a call that fails.
 - Off unless you pass `pay`. Without it the package has no dependencies and never pays.

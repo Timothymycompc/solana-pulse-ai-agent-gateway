@@ -28,6 +28,13 @@ test("refuses terms that aren't USDC on Solana mainnet", () => {
   assert.throws(() => choosePayment([{ ...usdc("10000"), asset: "So11111111111111111111111111111111111111112" }], "w2", {}), PaymentRefusedError);
 });
 
+test("the default daily cap is $50", () => {
+  recordPayment("w4", 49_990_000n);
+  assert.equal(choosePayment([usdc("10000")], "w4", {}).amount, "10000"); // reaches exactly $50
+  recordPayment("w4", 10_000n);
+  assert.throws(() => choosePayment([usdc("10000")], "w4", {}), /over your maxPerDayUsd of \$50/);
+});
+
 test("the daily cap counts what this wallet already paid today", () => {
   recordPayment("w3", 980_000n);
   assert.equal(spentTodayUsd("w3"), 0.98);
