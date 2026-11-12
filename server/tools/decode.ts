@@ -177,6 +177,13 @@ const readState = (lamports: number | bigint, owner: string, data: Buffer | null
 
 export type WalletChange = { wallet: string; asset: string; symbol: string | null; before: string; after: string; change: string; changeRaw: string; decimals: number };
 
+// How far a dry run's own SOL numbers can disagree with themselves. Measured 2026-11-12 on a busy exchange wallet: in 3
+// of 13 dry runs the node's "before" minus "after" exceeded transfer + the node's own reported fee by 1 or 2 lamports
+// (0 in the other 10), with balances from the same moment; mainnet fees matched the fee formula in 249 of 249 landed
+// transactions. Checks that compare a SOL loss with what the transaction should cost allow this much. 100 lamports
+// (0.0000001 SOL) is 50 times the largest gap seen and far below any real theft (opening an account costs ~890,880).
+export const SOL_DRIFT_LAMPORTS = 100n;
+
 // Simulate and compute every balance change on the transaction's writable accounts.
 export async function simulateWithChanges(conn: Connection, loaded: LoadedTransaction, symbols: (mints: string[]) => Promise<Map<string, string>>) {
   const watched = loaded.writable.slice(0, 64);
