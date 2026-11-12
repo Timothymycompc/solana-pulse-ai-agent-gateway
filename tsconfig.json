@@ -19,6 +19,8 @@
     "dist",
     "agent-kit",
     "templates",
-    "eliza-plugin"
+    "eliza-plugin",
+    "agentkit",
+    "python"
   ]
 }

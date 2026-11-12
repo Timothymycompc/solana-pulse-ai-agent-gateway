@@ -87,7 +87,7 @@ test("tx_matches says it couldn't confirm, instead of reporting a loss, when bal
 });
 
 test("a separate read from the dry run's own slot counts as the same moment", async () => {
-  const slot = loadFixture("intent-sol-match").recording.calls.simulateTransaction[0].context.slot;
+  const slot = (loadFixture("intent-sol-match").recording.calls as any).simulateTransaction[0].context.slot;
   const r = await matchWith(withoutSameMoment([{ preBalances: false, slot }]));
   assert.equal(r.verdict, "MATCH", JSON.stringify(r.unexpected));
 });
