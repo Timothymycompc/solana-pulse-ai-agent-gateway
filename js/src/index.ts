@@ -7,6 +7,9 @@
 // No dependencies: uses fetch (Node 18+, browsers, edge runtimes). Each tool gives 25 free calls a day per caller; after
 // that Pulse answers 402 with x402 payment terms. Set PULSE_API_KEY (or pass apiKey) to use a key. "OK" means none of the
 // traps Pulse knows about are present; no check can promise a transaction is safe.
+import type { PayOptions } from "./pay";
+export type { PayOptions } from "./pay";
+
 export const DEFAULT_URL = "https://solana-pulse-gateway-1021990235790.us-central1.run.app";
 export const VERSION = "0.1.0";
 
@@ -17,6 +20,8 @@ export interface PulseOptions {
   baseUrl?: string;
   /** "mainnet-beta" (default) or "devnet". */
   network?: "mainnet-beta" | "devnet";
+  /** Opt-in: pay calls past the free tier with x402 (USDC on Solana) from this wallet, within caps. Off by default. */
+  pay?: PayOptions;
 }
 
 export type Expected =
@@ -27,7 +32,8 @@ export type Expected =
 export class PulseBlockedError extends Error {
   constructor(
     message: string,
-    /** BLOCK, REVIEW, MISMATCH, UNKNOWN (couldn't check) or PAYMENT_REQUIRED (free calls used up). */
+    /** BLOCK, REVIEW, MISMATCH, UNKNOWN (couldn't check), PAYMENT_REQUIRED (free calls used up, no `pay`) or
+     *  PAYMENT_REFUSED (`pay` is set but the call was over a cap or couldn't be paid; nothing was paid). */
     readonly verdict: string,
     /** Pulse's full answer, when there is one. */
     readonly check?: Record<string, any>,
@@ -64,17 +70,31 @@ export function toBase64(tx: unknown): string {
 export async function callPulse(tool: string, input: Record<string, unknown>, options: PulseOptions = {}): Promise<Record<string, any>> {
   const baseUrl = (options.baseUrl || env("PULSE_URL") || DEFAULT_URL).replace(/\/$/, "");
   const key = options.apiKey || env("PULSE_API_KEY");
+  let doFetch: typeof fetch = fetch;
+  if (options.pay) {
+    try {
+      doFetch = await payerFor(options.pay);
+    } catch (error) {
+      throw new PulseBlockedError(error instanceof Error ? error.message : String(error), "PAYMENT_REFUSED");
+    }
+  }
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/api/tools/${tool}`, {
+    res = await doFetch(`${baseUrl}/api/tools/${tool}`, {
       method: "POST",
       headers: { "content-type": "application/json", "user-agent": `solana-pulse-js/${VERSION}`, ...(key ? { "x-api-key": key } : {}) },
       body: JSON.stringify({ ...input, network: options.network ?? "mainnet-beta" }),
     });
   } catch (error) {
+    if (error instanceof Error && (error.name === "PaymentRefusedError" || /payment/i.test(error.message)) && options.pay) {
+      throw new PulseBlockedError(`Not paid: ${error.message}`, "PAYMENT_REFUSED");
+    }
     throw new PulseBlockedError(`Couldn't reach Solana Pulse at ${baseUrl}: ${error instanceof Error ? error.message : String(error)}`, "UNKNOWN");
   }
   const data: any = await res.json().catch(() => ({}));
+  if (res.status === 402 && options.pay) {
+    throw new PulseBlockedError(`${tool}: the payment didn't go through (Pulse still answered 402). Check the wallet holds enough USDC; nothing was charged.`, "PAYMENT_REFUSED");
+  }
   if (res.status === 402) {
     let terms: unknown = null;
     try { terms = JSON.parse(atob(res.headers.get("payment-required") ?? "")); } catch { /* no terms */ }
@@ -107,4 +127,16 @@ export async function checkBeforeSign(tx: unknown, options: PulseOptions & { exp
   const match = await callPulse("tx_matches", { tx: b64, expected: options.expected }, options);
   if (match.verdict !== "MATCH") throw new PulseBlockedError(String(match.summary ?? "The transaction doesn't match what was asked for."), String(match.verdict ?? "MISMATCH"), match);
   return { ...check, tx_matches: match };
+}
+
+// One paying fetch per `pay` object, created on first use.
+const payers = new WeakMap<PayOptions, Promise<typeof fetch>>();
+function payerFor(pay: PayOptions): Promise<typeof fetch> {
+  let p = payers.get(pay);
+  if (!p) {
+    p = import("./pay").then((m) => m.payingFetch(pay)).then((x) => x.fetch);
+    p.catch(() => payers.delete(pay));
+    payers.set(pay, p);
+  }
+  return p;
 }
