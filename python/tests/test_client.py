@@ -73,6 +73,11 @@ class CheckBeforeSign(unittest.TestCase):
         self.assertIn("Wrong amount", str(e.exception))
         self.assertEqual(c.sent[1][1]["expected"], expected)
 
+    def test_correct_transfer_passes_with_expected(self):
+        c = Replay({"check_tx": "check_tx_transfer", "tx_matches": "tx_matches_transfer"})
+        check = c.check_before_sign(TRANSFER, expected=fixture("tx_matches_transfer")["input"]["expected"])
+        self.assertEqual(check["tx_matches"]["verdict"], "MATCH")
+
     def test_unreachable_is_never_safe(self):
         c = Replay({"check_tx": urllib.error.URLError("no route")})
         with self.assertRaises(PulseUnavailable):

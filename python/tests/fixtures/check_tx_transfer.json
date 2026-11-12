@@ -1,14 +1,14 @@
 {
   "tool": "check_tx",
-  "recordedAt": "2026-11-12T07:06:17.167291+00:00",
+  "recordedAt": "2026-11-12T08:04:02.633623+00:00",
   "status": 200,
   "input": {
-    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQACBH6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbySMAbUFkAVFXZ3LDGvOzctPtbLqvBqagrVzkrqqQPBOYDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQGhnrlfyYOUysJpLCZmjfJRmuoNnQNduOPfbAsvaOsgDAgAFAkgDAAACAAkDZ48AAAAAAAADAgABDAIAAACAlpgAAAAAAAA="
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQACBH6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbySMAbUFkAVFXZ3LDGvOzctPtbLqvBqagrVzkrqqQPBOYDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3qBOaSc5IWMIg7pB8ciQrcFo0ZtCYxssrpUggC2Fzg4DAgAFAkgDAAACAAkDUMMAAAAAAAADAgABDAIAAACAlpgAAAAAAAA="
   },
   "body": {
     "network": "mainnet-beta",
     "verdict": "OK",
-    "summary": "OK: Your wallet sends: 0.010005032 SOL (SOL includes fees).",
+    "summary": "OK: Your wallet sends: 0.010005044 SOL (SOL includes fees).",
     "fee_payer": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
     "signers": [
       "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
@@ -27,12 +27,12 @@
       {
         "name": "fee_payer_balance",
         "result": "pass",
-        "detail": "Fee payer holds 9300003.246657372 SOL; fees are 0.000005031 SOL."
+        "detail": "Fee payer holds 9300003.246657372 SOL; fees are 0.000005042 SOL."
       },
       {
         "name": "outflow",
         "result": "info",
-        "detail": "Your wallet sends: 0.010005032 SOL (SOL includes fees)."
+        "detail": "Your wallet sends: 0.010005044 SOL (SOL includes fees)."
       }
     ],
     "balance_changes": [
@@ -42,9 +42,9 @@
         "token": "SOL",
         "symbol": "SOL",
         "before": "9300003.246657372",
-        "after": "9300003.23665234",
-        "change": "-0.010005032",
-        "raw_change": "-10005032",
+        "after": "9300003.236652328",
+        "change": "-0.010005044",
+        "raw_change": "-10005044",
         "decimals": 9
       },
       {
@@ -77,7 +77,7 @@
         "accounts": [],
         "type": "set_compute_unit_price",
         "info": {
-          "micro_lamports_per_compute_unit": "36711"
+          "micro_lamports_per_compute_unit": "50000"
         }
       },
       {
@@ -98,12 +98,12 @@
     ],
     "fee": {
       "base_lamports": "5000",
-      "priority_lamports": "31",
-      "total_lamports": "5031",
-      "total_sol": "0.000005031",
+      "priority_lamports": "42",
+      "total_lamports": "5042",
+      "total_sol": "0.000005042",
       "compute_unit_limit": 840,
       "compute_unit_limit_from": "set in transaction",
-      "compute_unit_price": "36711"
+      "compute_unit_price": "50000"
     },
     "simulation": {
       "worked": true,
