@@ -1,0 +1,70 @@
+{
+  "tool": "tx_matches",
+  "recordedAt": "2026-11-12T08:04:03.988121+00:00",
+  "status": 200,
+  "input": {
+    "tx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQACBH6MCIdgv94d3c8ywX8gm4JC7lKq8TH6zYjQ6ixtCwbySMAbUFkAVFXZ3LDGvOzctPtbLqvBqagrVzkrqqQPBOYDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3qBOaSc5IWMIg7pB8ciQrcFo0ZtCYxssrpUggC2Fzg4DAgAFAkgDAAACAAkDUMMAAAAAAAADAgABDAIAAACAlpgAAAAAAAA=",
+    "expected": {
+      "token": "SOL",
+      "amount": "0.02",
+      "to": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+      "from": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+    }
+  },
+  "body": {
+    "network": "mainnet-beta",
+    "verdict": "MISMATCH",
+    "summary": "Wrong amount: expected 0.02 (20000000 raw), transaction has 0.01 (10000000 raw).",
+    "expected": {
+      "token_address": "So11111111111111111111111111111111111111112",
+      "raw_amount": "20000000",
+      "decimals": 9,
+      "to": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+      "from": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+    },
+    "compared": [
+      {
+        "what": "token",
+        "expected": "SOL",
+        "actual": "SOL",
+        "ok": true
+      },
+      {
+        "what": "amount",
+        "expected": "0.02 (20000000 raw)",
+        "actual": "0.01 (10000000 raw)",
+        "ok": false
+      },
+      {
+        "what": "to",
+        "expected": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+        "actual": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+        "ok": true
+      },
+      {
+        "what": "from",
+        "expected": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "actual": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "ok": true
+      },
+      {
+        "what": "simulation",
+        "expected": "succeeds",
+        "actual": "succeeds",
+        "ok": true
+      }
+    ],
+    "transfers": [
+      {
+        "step": 2,
+        "from": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "to": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+        "token": "SOL",
+        "amount": "0.01",
+        "raw_amount": "10000000",
+        "decimals": 9
+      }
+    ],
+    "unexpected": []
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "solana-pulse",
+  "version": "0.1.0",
+  "description": "Check a Solana transaction before you sign it: one call, checkBeforeSign(tx). Mainnet dry run, OK / REVIEW / BLOCK with each wallet's SOL and token changes, and confirms a swap or transfer does exactly what you asked. No dependencies.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": ["solana", "pre-sign", "transaction-simulation", "jupiter", "trading-bot", "ai-agent", "wallet", "drainer", "x402", "web3"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway.git",
+    "directory": "js"
+  },
+  "homepage": "https://github.com/Timothymycompc/solana-pulse-ai-agent-gateway/tree/main/js",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "@types/node": "^22.20.5",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}

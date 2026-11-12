@@ -21,6 +21,7 @@
     "templates",
     "eliza-plugin",
     "agentkit",
-    "python"
+    "python",
+    "js"
   ]
 }
