@@ -632,6 +632,12 @@ ${section("wallets", "Wallets")}
 ${section("network", "Network")}
 ${section("reference", "Reference")}
 
+## Check before signing from your own code
+- JavaScript / TypeScript: npm install solana-pulse, then await checkBeforeSign(tx) (throws unless check_tx answers OK; add { expected: { action: "swap", sell, amount, buy } } to also run tx_matches).
+- Python: pip install solana-pulse, then check_before_sign(tx) (raises PulseBlocked unless OK; expected= works the same).
+- Coinbase AgentKit: npm install agentkit-solana-pulse (action provider + checkedSignAndSend). elizaOS: npm install elizaos-plugin-solana-pulse. Solana Agent Kit: npm install solana-agent-kit-plugin-pulse.
+- No dependencies in the JS and Python packages; "couldn't check" is never treated as safe.
+
 ## Guides
 - RPC error -32015 "Transaction version (1) is not supported by the requesting client": the fix for each library, which versions can read version 1 (tested on mainnet) and a live checker: ${PUBLIC_URL}/fix/transaction-version-not-supported`);
   });

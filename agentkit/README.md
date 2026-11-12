@@ -52,6 +52,9 @@ safe.
 Every answer comes from live mainnet data and names its source. "OK" means none of the traps Pulse knows about are
 present; no check can promise a transaction is safe.
 
+Not on AgentKit? The plain client is `npm install solana-pulse` (`await checkBeforeSign(tx)`, no dependencies); for
+Python, `pip install solana-pulse`.
+
 ## Settings
 
 `solanaPulseActionProvider({ apiKey, baseUrl, allowReview })`. `apiKey` defaults to `PULSE_API_KEY`, `baseUrl` to
