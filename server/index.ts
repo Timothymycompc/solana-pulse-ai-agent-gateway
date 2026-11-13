@@ -22,7 +22,7 @@ import { siteReports } from "./reports/list";
 import { reportRuns, syncReportRuns } from "./reports/runs";
 import { admitCall, apiKeyOf, getFreeCallStatus, hashIp, isOwnerKey, keyLabelOf, paidRouteMiddleware, refundFreeCall } from "./meter";
 import { FREE_CALLS_PER_TOOL, FREE_CALLS_RESET, FREE_CALLS_TEXT, priceOf, TOOL_PRICES } from "./pricing";
-import { createX402, X402_NETWORK } from "./x402";
+import { BASE_NETWORK, BASE_PAY_TO, createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
 import { ownerCall, ownerCalls, publicUsage } from "./calls";
 import { runXPost } from "./x";
@@ -193,7 +193,7 @@ async function startServer() {
   // The tool list, also put into every rendered page (pages.ts) so the site starts with it.
   const toolsIndex = () => ({
     freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET,
-    payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET },
+    payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, alsoAccepts: [{ network: BASE_NETWORK, asset: "USDC", payTo: BASE_PAY_TO }] },
     tools: TOOLS.map(toolDoc),
   });
   app.get("/api/tools", noCache, (_req, res) => res.json(toolsIndex()));
@@ -569,7 +569,7 @@ async function startServer() {
   app.delete("/mcp", (_req, res) => res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null }));
 
   // ---------- Discovery ----------
-  const pricingSummary = `Every tool gives each caller ${FREE_CALLS_TEXT} (reset ${FREE_CALLS_RESET}), then costs $0.01 USDC per call ($0.02 for the three pre-sign and token safety checks), paid per request with x402 on Solana mainnet. Calls that return an error are never charged.`;
+  const pricingSummary = `Every tool gives each caller ${FREE_CALLS_TEXT} (reset ${FREE_CALLS_RESET}), then costs 1-3 cents in USDC per call ($0.02 for the pre-sign and token safety checks), paid per request with x402 in USDC on Solana mainnet or on Base. Calls that return an error are never charged.`;
 
   app.get("/.well-known/mcp.json", noCache, (_req, res) => {
     res.json({
@@ -577,7 +577,7 @@ async function startServer() {
       version: VERSION,
       description: "An intelligence layer between Solana and AI agents: checks transactions before signing, verifies they match intent, gives token safety verdicts and explains failures.",
       instructions: `Connect with POST /mcp (Streamable HTTP) or /mcp/sse. ${pricingSummary} Paid calls follow the x402 v2 MCP transport: an unpaid call returns a PaymentRequired result and the client retries with _meta["x402/payment"]. No account or API key is needed. Field-by-field docs for every tool: GET /api/tools/<name>.`,
-      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET },
+      payments: { protocol: "x402", x402Version: 2, scheme: "exact", network: X402_NETWORK, asset: "USDC", payTo: GATEWAY_WALLET, alsoAccepts: [{ network: BASE_NETWORK, asset: "USDC", payTo: BASE_PAY_TO }], freeCallsPerTool: FREE_CALLS_PER_TOOL, freeCallsReset: FREE_CALLS_RESET },
       mcp_sse_endpoint: "/mcp/sse",
       tools: TOOLS.map((t) => ({ name: t.name, description: `${t.useWhen} ${priceText(t.name)}.`, price: priceOf(t.name) })),
     });

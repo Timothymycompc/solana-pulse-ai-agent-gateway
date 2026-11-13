@@ -54,7 +54,7 @@ export function openApiDocument(serverUrl: string) {
         requestBody: { required: true, content: { "application/json": { schema: inputSchema(tool.inputs) } } },
         responses: {
           "200": { description: "The answer, every field explained.", content: { "application/json": { schema: { type: "object", properties } } } },
-          ...(price ? { "402": { description: `Payment required: ${price} USDC on Solana via x402. The challenge is in the PAYMENT-REQUIRED header and the body.` } } : {}),
+          ...(price ? { "402": { description: `Payment required: ${price} USDC on Solana or Base via x402. The challenge is in the PAYMENT-REQUIRED header and the body.` } } : {}),
           "400": { description: "An input is missing or invalid; the body says which and how to fix it." },
         },
       },
