@@ -118,12 +118,16 @@ class EndToEnd(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("PULSE_LIVE_PAY") == "1", "set PULSE_LIVE_PAY=1 and PULSE_PAYER_KEY")
 class Live(unittest.TestCase):
     def test_pays_one_check_tx_within_the_caps(self):
-        client = PulseClient(pay=Pay(secret_key=os.environ["PULSE_PAYER_KEY"], max_per_call_usd=0.05, max_per_day_usd=0.5))
+        # Costs $0.02 per run. The pay/<name>/<n> User-Agent is on the server's no-free-calls list (server/meter.ts
+        # NO_FREE_CALLS_UA), so Pulse always asks for payment; with the default one a free call would answer unpaid.
+        client = PulseClient(user_agent="pay/pulselivetest/1",
+                             pay=Pay(secret_key=os.environ["PULSE_PAYER_KEY"], max_per_call_usd=0.05, max_per_day_usd=0.5))
         try:
             client.check_before_sign(TRANSFER)
-        except PulseBlocked:
-            pass  # the recorded transfer may have expired by now; what matters is that the call was paid and answered
-        self.assertGreater(spent_today_usd(client._payer.wallet), 0)
+        except PulseBlocked as e:
+            # the recorded transfer may have expired by now; what matters is that the call was paid and answered
+            self.assertNotIn(e.verdict, ("PAYMENT_REFUSED", "PAYMENT_REQUIRED", "UNKNOWN"), str(e))
+        self.assertAlmostEqual(spent_today_usd(client._payer.wallet), 0.02)
 
 
 if __name__ == "__main__":
