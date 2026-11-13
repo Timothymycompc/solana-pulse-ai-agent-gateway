@@ -77,11 +77,12 @@ async function mainPool(ctx: Parameters<ToolDef["run"]>[1], mint: string): Promi
 }
 
 const MAX_PAGES = 40; // 40,000 signatures: past that, the pool's start is not reached and the answer says so
-// A paid call's x402 payment is good for 60 s (server/x402.ts maxTimeoutSeconds) and is settled after the tool answers,
-// so a slower answer can never be paid: on 2026-11-13 BONK with hours 2 took 124 s and all 17 paid calls in 30 days
-// failed. Stop reading at 40 s and answer with what was read; paging back to the start gets at most 20 s of that.
-export const TIME_BUDGET_MS = 40_000;
-export const PAGING_BUDGET_MS = 20_000;
+// A paid call is settled after the tool answers, and the payment is a Solana transaction whose blockhash expires:
+// on 2026-11-13 BONK with hours 2 took 124 s and all 17 paid calls in 30 days failed with 402; with a 40 s limit the
+// answer came in 43 s and the facilitator still refused it (BlockhashNotFound). Stop at 20 s from the start of the
+// call and answer with what was read; paging back to the start gets at most 10 s of that.
+export const TIME_BUDGET_MS = 20_000;
+export const PAGING_BUDGET_MS = 10_000;
 
 export const tokenTraders: ToolDef = {
   name: "token_traders",
@@ -107,8 +108,8 @@ export const tokenTraders: ToolDef = {
   outputs: [
     { field: "pool / launch_time / launch_slot", type: "string / string | null / number", is: "The pool read and its first transaction.", howWorkedOut: "The oldest signature of the pool address (getSignaturesForAddress, paged back to the start)." },
     { field: "window", type: "{ from, to, hours, cut_short }", is: "The time read. cut_short is true when max_trades or the time limit ran out before the hours did.", howWorkedOut: "Launch time plus hours, and the last transaction actually read." },
-    { field: "stopped_for_time", type: "boolean", is: "True when reading stopped at the 40-second limit, so the window holds fewer transactions than asked. Ask again with a shorter hours or smaller max_trades for a full window.", howWorkedOut: "Time since the call began, checked before each batch of 10 transactions. The limit keeps a paid answer inside its payment's 60-second window." },
-    { field: "start_reached", type: "boolean", is: "False when the pool's start couldn't be reached (over 40,000 transactions, or paging back took over 20 seconds); launch then means the oldest one read.", howWorkedOut: "Signature pages left over, or the 20-second paging limit." },
+    { field: "stopped_for_time", type: "boolean", is: "True when reading stopped at the 20-second limit, so the window holds fewer transactions than asked. Ask again with a shorter hours or smaller max_trades for a full window.", howWorkedOut: "Time since the call began, checked before each batch of 10 transactions. The limit keeps a paid answer inside the time its payment stays valid." },
+    { field: "start_reached", type: "boolean", is: "False when the pool's start couldn't be reached (over 40,000 transactions, or paging back took over 10 seconds); launch then means the oldest one read.", howWorkedOut: "Signature pages left over, or the 10-second paging limit." },
     { field: "transactions_read / trades / unread", type: "number", is: "Transactions loaded, how many were a wallet buying or selling the token, and how many couldn't be loaded (left out, never guessed).", howWorkedOut: "getTransaction on each signature in the window." },
     { field: "wallets_count / profitable_count", type: "number", is: "Wallets that traded, and how many took out more SOL than they put in.", howWorkedOut: "Counted from wallets[] before the how_many cut." },
     { field: "wallets[]", type: "array", is: "Most profit first: wallet, buys, sells, sol_spent, sol_received, profit_sol, tokens_bought, tokens_sold, tokens_left, first_buy, first_buy_after_launch_s, bought_in_launch_slot, sold_more_than_bought, created_pool, held_minutes.", howWorkedOut: "Each trade is the signing wallet's own token and SOL (plus wrapped SOL) balance change in one transaction, fees and tips included. profit_sol = SOL received minus SOL spent in the window; tokens_left are not valued. sold_more_than_bought means the wallet got tokens another way (a transfer, often from the creator). held_minutes is first buy to last sell." },
@@ -121,11 +122,11 @@ export const tokenTraders: ToolDef = {
   ],
   example: async () => ({ token: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", hours: 0.5, max_trades: 50 }),
   run: async ({ token, pool, hours, max_trades, how_many, network }, ctx) => {
+    const now = ctx.clock ?? Date.now, started = now();
     const mint = assertAddress(token, "token");
     const poolAddress = pool ? assertAddress(pool, "pool") : await mainPool(ctx, mint);
     if (!poolAddress) throw new ToolError(404, "No pool found for this token.", "Pass the pool address (from a DEX page or GeckoTerminal).");
     const conn = ctx.connection(network);
-    const now = ctx.clock ?? Date.now, started = now();
 
     // Page back to the pool's first transaction (newest first, 1,000 per page).
     const sigs: { signature: string; slot: number; blockTime?: number | null; err: unknown }[] = [];

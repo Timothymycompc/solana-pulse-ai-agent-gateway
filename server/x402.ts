@@ -90,9 +90,16 @@ export function createX402(payTo: string) {
 
   // Revenue ledger: every successful settlement, HTTP or MCP. The tool is the last segment of the resource URL,
   // decoded so a percent-encoded request ("token%5Fverdict") is credited to the real tool name.
+  // A failed settlement answers 402 and the caller pays nothing; log why (2026-11-13: BlockhashNotFound when
+  // token_traders answered after 43 s was only visible in the response header).
+  const settleUrl = (p: { resource?: { url?: string } }) => String(p.resource?.url ?? "");
+  resourceServer.onSettleFailure(async ({ paymentPayload, error }) => {
+    console.warn(`[x402] settle failed for ${settleUrl(paymentPayload)}: ${error.message}`);
+  });
   resourceServer.onAfterSettle(async ({ paymentPayload, requirements, result }) => {
+    if (!result.success) console.warn(`[x402] settle refused for ${settleUrl(paymentPayload)}: ${result.errorReason ?? "no reason"} ${result.errorMessage ?? ""}`);
     if (!result.success || !result.transaction) return;
-    const resourceUrl = String(paymentPayload.resource?.url ?? "");
+    const resourceUrl = settleUrl(paymentPayload);
     const segment = resourceUrl.split(/[/?#]/).filter(Boolean).pop() ?? "unknown";
     let tool = segment;
     try { tool = decodeURIComponent(segment); } catch { /* keep the raw segment */ }
