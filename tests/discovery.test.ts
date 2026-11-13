@@ -54,3 +54,14 @@ test("the OpenAPI document lists every tool with a payment-prompt summary Pay.sh
     assert.ok(op.requestBody.content["application/json"].schema.properties, `${tool.name} documents its inputs`);
   }
 });
+
+// Bazaar search matches the opening words and tags (2026-11-13: Pulse was missing from "token safety solana").
+test("every paid tool's listing opens with its search phrase and has its own search tags", async () => {
+  const { BAZAAR_LISTING } = await import("../server/bazaar-listing");
+  for (const name of PAID) {
+    const { description, tags } = discoveryFor(name);
+    assert.ok(description.startsWith(BAZAAR_LISTING[name].lead), `${name}: listing doesn't open with its lead`);
+    assert.equal(tags.length, 5, `${name}: 5 search tags`);
+  }
+  assert.ok(discoveryFor("token_safety").tags.includes("rug check"));
+});

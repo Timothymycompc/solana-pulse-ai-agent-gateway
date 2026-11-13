@@ -1,8 +1,9 @@
-// x402 v2 payments: USDC on Solana mainnet, verified and settled by a facilitator that also pays network fees.
+// x402 v2 payments: USDC on Solana mainnet or on Base, verified and settled by a facilitator that also pays network fees.
 import type { RequestHandler } from "express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { createPaymentWrapper } from "@x402/mcp";
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { z } from "zod";
@@ -10,9 +11,18 @@ import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
 import { recordPayment } from "./db";
 import { TOOLS_BY_NAME } from "./tools";
 import { cdpFacilitator } from "./cdp";
+import { BAZAAR_LISTING } from "./bazaar-listing";
 import { BONK_MINT, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "./tools/lib";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+// Base USDC too: on 2026-11-13, 998 of the 1,000 most-used listings in Coinbase's Bazaar took Base and 1 took only
+// Solana (Pulse), so most paying agents had no way to pay. Base payments go to the wallet Base Pulse is paid to.
+// Solana stays first in every list, so Solana clients (Pulse's own packages included) keep paying on Solana.
+export const BASE_NETWORK = "eip155:8453";
+export const BASE_PAY_TO = "0x717bFe8505FA89C038b9832dCc187871003d4B93";
+// A Base payment is a signed authorization with its own expiry, not a transaction with a blockhash, so it can wait
+// for a slow tool longer than a Solana one can (Base Pulse uses 300 s).
+const BASE_TIMEOUT_SECONDS = 300;
 const PAYAI_FACILITATOR_URL = "https://facilitator.payai.network";
 
 // Discovery listing (the x402 Bazaar extension). Facilitators that keep a directory of paid tools, Coinbase's Bazaar
@@ -60,9 +70,11 @@ export function discoveryFor(name: string) {
   const tool = TOOLS_BY_NAME.get(name);
   const example = LISTING_EXAMPLES[name];
   if (!tool || !example) throw new Error(`Paid tool ${name} needs a tool definition and a LISTING_EXAMPLES entry`);
+  const listing = BAZAAR_LISTING[name];
+  if (!listing) throw new Error(`Paid tool ${name} needs a BAZAAR_LISTING entry (server/bazaar-listing.ts)`);
   return {
-    description: fitDescription(`${tool.useWhen} ${tool.description}`),
-    tags: ["solana", "ai-agents", "agent-safety", "mcp", tool.category],
+    description: fitDescription(`${listing.lead} ${tool.useWhen} ${tool.description}`),
+    tags: listing.tags,
     inputSchema: z.toJSONSchema(z.object(tool.inputs), { io: "input" }) as Record<string, unknown>,
     example,
   };
@@ -86,6 +98,7 @@ function facilitators() {
 export function createX402(payTo: string) {
   const resourceServer = new x402ResourceServer(facilitators())
     .register(X402_NETWORK, new ExactSvmScheme())
+    .register(BASE_NETWORK, new ExactEvmScheme())
     .registerExtension(bazaarResourceServerExtension);
 
   // Revenue ledger: every successful settlement, HTTP or MCP. The tool is the last segment of the resource URL,
@@ -120,7 +133,10 @@ export function createX402(payTo: string) {
   const accepts = new Map<string, ReturnType<typeof resourceServer.buildPaymentRequirements>>();
   const acceptsFor = (price: Exclude<ToolPrice, null>) => {
     if (!accepts.has(price)) {
-      const built = ensureReady().then(() => resourceServer.buildPaymentRequirements({ scheme: "exact", network: X402_NETWORK, payTo, price, maxTimeoutSeconds: 60 }));
+      const built = ensureReady().then(async () => [
+        ...(await resourceServer.buildPaymentRequirements({ scheme: "exact", network: X402_NETWORK, payTo, price, maxTimeoutSeconds: 60 })),
+        ...(await resourceServer.buildPaymentRequirements({ scheme: "exact", network: BASE_NETWORK, payTo: BASE_PAY_TO, price, maxTimeoutSeconds: BASE_TIMEOUT_SECONDS })),
+      ]);
       built.catch(() => accepts.delete(price));
       accepts.set(price, built);
     }
@@ -133,7 +149,10 @@ export function createX402(payTo: string) {
     if (!price) continue;
     const { description, tags, inputSchema, example } = discoveryFor(tool);
     routes[`POST ${TOOL_ROUTE_PREFIX}${tool}`] = {
-      accepts: [{ scheme: "exact", price, network: X402_NETWORK, payTo, maxTimeoutSeconds: 60 }],
+      accepts: [
+        { scheme: "exact", price, network: X402_NETWORK, payTo, maxTimeoutSeconds: 60 },
+        { scheme: "exact", price, network: BASE_NETWORK, payTo: BASE_PAY_TO, maxTimeoutSeconds: BASE_TIMEOUT_SECONDS },
+      ],
       description,
       mimeType: "application/json",
       serviceName: SERVICE_NAME,
