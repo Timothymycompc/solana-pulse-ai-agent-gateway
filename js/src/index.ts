@@ -20,6 +20,8 @@ export interface PulseOptions {
   baseUrl?: string;
   /** "mainnet-beta" (default) or "devnet". */
   network?: "mainnet-beta" | "devnet";
+  /** Sent as User-Agent so Pulse can tell callers apart. Default: solana-pulse-js/<version>. */
+  userAgent?: string;
   /** Opt-in: pay calls past the free tier with x402 (USDC on Solana) from this wallet, within caps. Off by default. */
   pay?: PayOptions;
 }
@@ -82,7 +84,7 @@ export async function callPulse(tool: string, input: Record<string, unknown>, op
   try {
     res = await doFetch(`${baseUrl}/api/tools/${tool}`, {
       method: "POST",
-      headers: { "content-type": "application/json", "user-agent": `solana-pulse-js/${VERSION}`, ...(key ? { "x-api-key": key } : {}) },
+      headers: { "content-type": "application/json", "user-agent": options.userAgent || `solana-pulse-js/${VERSION}`, ...(key ? { "x-api-key": key } : {}) },
       body: JSON.stringify({ ...input, network: options.network ?? "mainnet-beta" }),
     });
   } catch (error) {

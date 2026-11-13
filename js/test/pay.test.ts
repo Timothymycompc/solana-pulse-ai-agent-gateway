@@ -43,8 +43,10 @@ test("the daily cap counts what this wallet already paid today", () => {
   assert.throws(() => choosePayment([usdc("10000")], "w3", { maxPerDayUsd: 1 }), /over your maxPerDayUsd/);
 });
 
-test("end to end: an over-cap call is refused and nothing is signed or sent", async () => {
+test("end to end: an over-cap call is refused and nothing is signed or sent", async (t) => {
   const seen: Record<string, string>[] = [];
+  const realFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = realFetch; }); // later tests (the live one) must reach the real network
   globalThis.fetch = (async (input: any, init: any) => {
     const req = input instanceof Request ? input : new Request(input, init);
     seen.push(Object.fromEntries(req.headers.entries()));
@@ -58,9 +60,16 @@ test("end to end: an over-cap call is refused and nothing is signed or sent", as
   assert.ok(seen.every((h) => !h["payment-signature"] && !h["x-payment"]), "no payment header was ever sent");
 });
 
+// Costs $0.02 per run. The pay/<name>/<n> User-Agent is on the server's no-free-calls list (server/meter.ts
+// NO_FREE_CALLS_UA), so Pulse always asks for payment; with the default User-Agent a free call would answer and
+// nothing would be paid, which is how this test once passed without paying.
+const LIVE_PAY_UA = "pay/pulselivetest/1";
 test("live: pays one check_tx within the caps", { skip: process.env.PULSE_LIVE_PAY !== "1" && "set PULSE_LIVE_PAY=1 and PULSE_PAYER_KEY" }, async () => {
-  const secretKey = JSON.parse(readFileSync(process.env.PULSE_PAYER_KEY!, "utf8"));
-  const check = await checkBeforeSign(TRANSFER, { pay: { secretKey, maxPerCallUsd: 0.05, maxPerDayUsd: 0.5 } }).catch((e) => e);
+  const secretKey: number[] = JSON.parse(readFileSync(process.env.PULSE_PAYER_KEY!, "utf8"));
+  const wallet = Keypair.fromSecretKey(Uint8Array.from(secretKey)).publicKey.toBase58();
+  const before = spentTodayUsd(wallet);
+  const check = await checkBeforeSign(TRANSFER, { userAgent: LIVE_PAY_UA, pay: { secretKey, maxPerCallUsd: 0.05, maxPerDayUsd: 0.5 } }).catch((e) => e);
   // The transfer fixture may have expired by now; what matters is that the call was paid and answered.
   assert.ok(!(check instanceof PulseBlockedError) || !["PAYMENT_REFUSED", "PAYMENT_REQUIRED", "UNKNOWN"].includes(check.verdict), String(check?.message));
+  assert.equal(spentTodayUsd(wallet) - before, 0.02, "the call must actually be paid ($0.02), not answered from the free tier");
 });
