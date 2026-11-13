@@ -129,3 +129,25 @@ test("whats_this: an address with no SOL says whether it holds tokens and was us
   assert.equal(unknown.details.token_accounts, null);
   assert.match(unknown.summary, /couldn't be checked/);
 });
+
+// 2026-11-13: whats_this called a program-derived address kind "wallet" while its summary said PDA. Off-curve
+// addresses owned by the System Program are "pda": no one can sign for them. Real addresses: a payer wallet (a
+// wallet) and the bridge address named in the drain report (program-derived).
+test("whats_this: a System Program address no one can sign for is kind pda, not wallet", async () => {
+  const tool = TOOLS_BY_NAME.get("whats_this")!;
+  const PDA = "6tckHFBpiJ8YgYN8FUskvtvTpXQZ55g5LHeo1kvELoDQ", WALLET = "HGKYVGfQGvWdd9Y7uEm7NyHHPjmf5KMFAkfeYMvk5nVV";
+  const ctx = (lamports: number | null) => ({
+    connection: () => ({
+      getParsedAccountInfo: async () => ({ value: lamports === null ? null : { owner: new PublicKey("11111111111111111111111111111111"), lamports, data: ["", "base64"], executable: false } }),
+      getTokenAccountsByOwner: async () => ({ value: [{}] }),
+      getSignaturesForAddress: async () => [{}],
+    }) as any,
+    fetchJson: async () => ({}),
+  });
+  const pda: any = await tool.run({ address: PDA, network: "mainnet-beta" }, ctx(5_000_000_000));
+  assert.equal(pda.kind, "pda"); assert.equal(pda.can_sign, false);
+  const wallet: any = await tool.run({ address: WALLET, network: "mainnet-beta" }, ctx(5_000_000_000));
+  assert.equal(wallet.kind, "wallet"); assert.equal(wallet.can_sign, true);
+  const emptyPda: any = await tool.run({ address: PDA, network: "mainnet-beta" }, ctx(null));
+  assert.equal(emptyPda.kind, "pda", "no SOL but holds tokens: still a pda");
+});

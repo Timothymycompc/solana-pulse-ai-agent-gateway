@@ -163,13 +163,21 @@ export const jupSearch = async (ctx: ToolContext, query: string): Promise<JupTok
 
 // Look up many mints at once (Jupiter accepts up to 100 comma-separated mints per request).
 export async function jupByMints(ctx: ToolContext, mints: string[]): Promise<Map<string, JupToken>> {
-  const out = new Map<string, JupToken>();
+  return (await jupByMintsChecked(ctx, mints)).found;
+}
+
+// The same, plus the mints Jupiter couldn't be asked about (it refused or timed out). Those are unknown, not
+// unverified: on 2026-11-13 a failed lookup made wallet report USDC and USDT as unverified and leave ~$600k out.
+export async function jupByMintsChecked(ctx: ToolContext, mints: string[]): Promise<{ found: Map<string, JupToken>; failed: Set<string> }> {
+  const found = new Map<string, JupToken>(), failed = new Set<string>();
   const unique = [...new Set(mints)];
   for (let i = 0; i < unique.length; i += 100) {
-    const batch = await jupSearch(ctx, unique.slice(i, i + 100).join(","));
-    for (const token of batch) if (unique.includes(token.id)) out.set(token.id, token);
+    const chunk = unique.slice(i, i + 100);
+    const batch = await jupLookup(ctx, chunk.join(","));
+    if (!batch.ok) chunk.forEach((m) => failed.add(m));
+    for (const token of batch.tokens) if (unique.includes(token.id)) found.set(token.id, token);
   }
-  return out;
+  return { found, failed };
 }
 
 export const isoTime = (unixSeconds: number | null | undefined) => (unixSeconds ? new Date(unixSeconds * 1000).toISOString() : null);

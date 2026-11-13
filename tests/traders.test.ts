@@ -57,3 +57,21 @@ test("token_traders on HAMSTER's real pool (recorded 2026-11-09): reads from the
   const sorted = out.wallets.map((w: any) => w.profit_sol);
   assert.deepEqual(sorted, [...sorted].sort((a: number, b: number) => b - a), "most profit first");
 });
+
+test("token_traders stops at the time limit and says so, so a paid answer lands inside its 60 s payment window", async () => {
+  const fx = loadFixture("traders-hamster");
+  let t = 0;
+  const clock = () => (t += 45_000) - 45_000; // 0 at the start, then 45 s later at each check
+  const out: any = await tokenTraders.run(fx.args, { ...replayContext(fx), clock });
+  assert.equal(out.stopped_for_time, true);
+  assert.equal(out.transactions_read, 10, "the first batch of 10 is always read; the second is skipped past 40 s");
+  assert.equal(out.window.cut_short, true);
+  assert.equal(out.start_reached, false, "the pool has more than one page of signatures; paging stopped after the first at 20 s");
+});
+
+test("token_traders within the time limit reads everything asked", async () => {
+  const fx = loadFixture("traders-hamster");
+  const out: any = await tokenTraders.run(fx.args, { ...replayContext(fx), clock: () => 0 });
+  assert.equal(out.stopped_for_time, false);
+  assert.equal(out.transactions_read, 15);
+});

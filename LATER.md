@@ -152,3 +152,7 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - Creator equal-split burst: AODF's creator sent ~667 transfers in 3 seconds, 3 minutes after launch, to hide who holds the supply. A check could flag a creator that splits supply into many equal parts right after launch. Measure on the desk's coin watch (trade-desk desk_watch) first.
 - Very spread-out holders on a very valuable new coin (AODF top 10 = 0.5%, XTO 0.6%, both worth hundreds of millions to billions): measure before it becomes a rule.
 - Measure value_vs_liquidity's 100x line on every coin the desk sees (desk lessons), not just the 3 rugs it came from.
+
+## 2026-11-13: from the wallet / token_traders fixes
+- trace and transactions (explain_tx labels) still use jupByMints, which hides a failed Jupiter lookup as "no data". Switch them to jupByMintsChecked and say "unknown" the same way tokens/wallet now do.
+- tests/helpers/replay.ts queues RPC answers by method, so two calls to the same method made at once (tokens' classic + Token-2022 lookups) can replay in a different order than recorded. Big wallets then miss their Jupiter URLs. Key recordings by method + params instead.

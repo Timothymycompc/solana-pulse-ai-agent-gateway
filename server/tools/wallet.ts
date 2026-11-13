@@ -21,9 +21,10 @@ export const walletSnapshot: ToolDef = {
   outputs: [
     { field: "sol", type: "string", is: "SOL balance.", howWorkedOut: "The balance tool." },
     { field: "sol_usd", type: "number | null", is: "USD value of the SOL.", howWorkedOut: "sol x Jupiter's SOL price, rounded to cents." },
-    { field: "tokens_usd", type: "number", is: "USD value of the verified, priced tokens among the top 10.", howWorkedOut: "The tokens tool's total_usd for the top 10 (unverified tokens left out)." },
-    { field: "unverified_usd", type: "number", is: "Claimed USD value of unverified top tokens, kept out of the total because spam often carries a fake price.", howWorkedOut: "The tokens tool's unverified_usd for the top 10." },
-    { field: "total_usd", type: "number", is: "Estimated total worth: SOL plus verified, priced top tokens.", howWorkedOut: "sol_usd + tokens_usd. Unverified tokens, unpriced tokens and anything outside the top 10 aren't counted." },
+    { field: "tokens_usd", type: "number | null", is: "USD value of the verified, priced tokens among the top 10. null when Jupiter couldn't be reached (see lookup_failed).", howWorkedOut: "The tokens tool's total_usd for the top 10 (unverified tokens left out)." },
+    { field: "unverified_usd", type: "number | null", is: "Claimed USD value of unverified top tokens, kept out of the total because spam often carries a fake price.", howWorkedOut: "The tokens tool's unverified_usd for the top 10." },
+    { field: "total_usd", type: "number | null", is: "Estimated total worth: SOL plus verified, priced top tokens. null when a part is unknown (Jupiter unreachable, or no SOL price while the wallet holds SOL); never a guess.", howWorkedOut: "sol_usd + tokens_usd. Unverified tokens, unpriced tokens and anything outside the top 10 aren't counted." },
+    { field: "lookup_failed", type: "boolean", is: "True when Jupiter couldn't be reached for some top tokens: their verified, symbol and price are null (unknown) and the token totals are null. Ask again in a few seconds.", howWorkedOut: "The tokens tool's lookup_failed." },
     { field: "partial", type: "boolean", is: "True when the total leaves something out (unpriced or unverified tokens, or more tokens than shown).", howWorkedOut: "A top token has no price or isn't verified, or the wallet holds more tokens than returned." },
     { field: "token_count", type: "number", is: "How many token accounts with a balance the wallet has.", howWorkedOut: "The tokens tool's accounts_with_balance." },
     { field: "unverified_count", type: "number", is: "Top tokens that aren't verified (maybe spam or scams). Don't present these as real value.", howWorkedOut: "The tokens tool's unverified_count for the top 10." },
@@ -40,11 +41,13 @@ export const walletSnapshot: ToolDef = {
       jupSearch(ctx, NATIVE_MINT).then((r) => r.find((t) => t.id === NATIVE_MINT)?.usdPrice ?? null),
     ]) as any[];
     const solUsd = typeof solPrice === "number" ? Math.round(Number(balance.sol) * solPrice * 100) / 100 : null;
-    const tokensUsd = tokens.total_usd as number;
-    const partial = tokens.tokens.some((t: any) => t.usd_value === null || !t.verified) || tokens.accounts_with_balance > tokens.returned;
+    const tokensUsd = tokens.total_usd as number | null;
+    const partial = tokens.tokens.some((t: any) => t.usd_value === null || t.verified !== true) || tokens.accounts_with_balance > tokens.returned;
+    const solKnown = solUsd !== null || Number(balance.sol) === 0;
+    const totalUsd = tokensUsd === null || !solKnown ? null : Math.round(((solUsd ?? 0) + tokensUsd) * 100) / 100;
     return {
       wallet: balance.wallet, network, sol: balance.sol, sol_usd: solUsd, tokens_usd: tokensUsd, unverified_usd: tokens.unverified_usd,
-      total_usd: Math.round(((solUsd ?? 0) + tokensUsd) * 100) / 100, partial,
+      total_usd: totalUsd, partial, lookup_failed: tokens.lookup_failed,
       token_count: tokens.accounts_with_balance, unverified_count: tokens.unverified_count, top_tokens: tokens.tokens,
       activity: { checked: recent.count, failed: recent.failed_count, last_active: recent.transactions[0]?.time ?? null },
     };
