@@ -26,6 +26,8 @@ export type ToolContext = {
   postJson?: (url: string, body: unknown, timeoutMs?: number) => Promise<any>;
   // Pause before retrying a failed outside call. Tests set 0.
   retryDelayMs?: number;
+  // Milliseconds now, for tools with a time limit. Default Date.now; tests pass a fake clock.
+  clock?: () => number;
 };
 
 export type ToolCategory = "transactions" | "tokens" | "wallets" | "network" | "reference";

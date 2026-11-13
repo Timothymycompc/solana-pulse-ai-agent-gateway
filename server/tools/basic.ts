@@ -4,7 +4,7 @@ import { getAccountLenForMint, getAssociatedTokenAddressSync, getMint } from "@s
 import { z } from "zod";
 import { explainError } from "./errors";
 import {
-  assertAddress, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, jupSearch, labelFor, lamportsToSol,
+  assertAddress, EXAMPLE_WALLET, formatUnits, isoTime, jupByMintsChecked, jupSearch, labelFor, lamportsToSol,
   NATIVE_MINT, NETWORK_DOC, parseUnits, snakeKeys, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, USDC_MINT,
 } from "./lib";
 import { ToolError, type ToolDef } from "./types";
@@ -67,12 +67,13 @@ export const getTokenAccounts: ToolDef = {
     { field: "accounts_total", type: "number", is: "Every token account the wallet owns, empty ones included.", howWorkedOut: "Token accounts across the SPL Token and Token-2022 programs." },
     { field: "accounts_with_balance", type: "number", is: "Token accounts holding more than zero.", howWorkedOut: "Accounts with a raw amount above 0." },
     { field: "returned", type: "number", is: "How many tokens are in this answer.", howWorkedOut: "Up to how_many, after sorting." },
-    { field: "unverified_count", type: "number", is: "Returned tokens Jupiter doesn't mark verified. A big number usually means spam airdrops.", howWorkedOut: "Tokens without Jupiter's verified flag, or that Jupiter doesn't know." },
-    { field: "total_usd", type: "number", is: "USD value of the returned tokens that are verified and priced. Spam often has a price from a tiny pool, so unverified tokens are left out.", howWorkedOut: "Sum of tokens[].usd_value for verified tokens. Unpriced tokens add nothing, so this can be low." },
-    { field: "unverified_usd", type: "number", is: "The claimed USD value of the unverified tokens, kept apart. Don't trust it.", howWorkedOut: "Sum of tokens[].usd_value for unverified tokens." },
+    { field: "lookup_failed", type: "boolean", is: "True when Jupiter couldn't be reached for some tokens. Their verified, symbol and price are then null (unknown), and the USD totals are null. Ask again in a few seconds.", howWorkedOut: "Jupiter's token lookup failed twice for those tokens." },
+    { field: "unverified_count", type: "number", is: "Returned tokens Jupiter doesn't mark verified. A big number usually means spam airdrops.", howWorkedOut: "Tokens without Jupiter's verified flag, or that Jupiter doesn't know. Tokens whose lookup failed are not counted." },
+    { field: "total_usd", type: "number | null", is: "USD value of the returned tokens that are verified and priced. Spam often has a price from a tiny pool, so unverified tokens are left out. null when lookup_failed.", howWorkedOut: "Sum of tokens[].usd_value for verified tokens. Unpriced tokens add nothing, so this can be low." },
+    { field: "unverified_usd", type: "number | null", is: "The claimed USD value of the unverified tokens, kept apart. Don't trust it. null when lookup_failed.", howWorkedOut: "Sum of tokens[].usd_value for unverified tokens." },
     { field: "tokens[].address", type: "string", is: "The token's address, its unique identity. Tickers aren't unique; addresses are.", howWorkedOut: "From the token account." },
     { field: "tokens[].symbol / name", type: "string | null", is: "Ticker and name from Jupiter. Copycats can share a ticker, so trust the address, not the symbol.", howWorkedOut: "Jupiter token search by address." },
-    { field: "tokens[].verified", type: "boolean", is: "Whether Jupiter lists the token as verified.", howWorkedOut: "Jupiter's isVerified flag. false when unknown." },
+    { field: "tokens[].verified", type: "boolean | null", is: "Whether Jupiter lists the token as verified. null when Jupiter couldn't be reached (unknown, not unverified).", howWorkedOut: "Jupiter's isVerified flag. false when Jupiter doesn't know the token." },
     { field: "tokens[].amount", type: "string (decimal)", is: "The balance in normal units.", howWorkedOut: "raw_amount / 10^decimals with exact integer math." },
     { field: "tokens[].raw_amount", type: "string (integer)", is: "The balance in raw units, the number that goes into transfers.", howWorkedOut: "From the token account." },
     { field: "tokens[].decimals", type: "number", is: "How many decimal places the token uses.", howWorkedOut: "From the token account." },
@@ -97,19 +98,22 @@ export const getTokenAccounts: ToolDef = {
     });
     const nonZero = all.filter((t) => BigInt(t.amountRaw) > 0n);
     const pool = include_empty ? all : nonZero;
-    const jup = await jupByMints(ctx, pool.slice(0, 300).map((t) => t.mint));
+    const { found: jup, failed } = await jupByMintsChecked(ctx, pool.slice(0, 300).map((t) => t.mint));
     const tokens = pool.map((t) => {
       const j = jup.get(t.mint);
       const amount = formatUnits(t.amountRaw, t.decimals);
       const usdPrice = typeof j?.usdPrice === "number" ? j.usdPrice : null;
       const valueUsd = usdPrice !== null ? Math.round(Number(amount) * usdPrice * 100) / 100 : null;
-      return { address: t.mint, symbol: j?.symbol ?? null, name: j?.name ?? null, verified: j?.isVerified === true, amount, raw_amount: t.amountRaw, decimals: t.decimals, holding_account: t.tokenAccount, token_program: t.tokenProgram, frozen: t.frozen, usd_price: usdPrice, usd_value: valueUsd };
+      const verified = failed.has(t.mint) ? null : j?.isVerified === true;
+      return { address: t.mint, symbol: j?.symbol ?? null, name: j?.name ?? null, verified, amount, raw_amount: t.amountRaw, decimals: t.decimals, holding_account: t.tokenAccount, token_program: t.tokenProgram, frozen: t.frozen, usd_price: usdPrice, usd_value: valueUsd };
     }).sort((x, y) => (y.usd_value ?? -1) - (x.usd_value ?? -1) || Number(y.verified) - Number(x.verified)).slice(0, how_many);
+    const lookupFailed = tokens.some((t) => t.verified === null);
+    const usd = (keep: (t: (typeof tokens)[number]) => boolean) => (lookupFailed ? null : Math.round(tokens.reduce((sum, t) => sum + (keep(t) ? t.usd_value ?? 0 : 0), 0) * 100) / 100);
     return {
       wallet: owner.toBase58(), network, accounts_total: all.length, accounts_with_balance: nonZero.length, returned: tokens.length,
-      unverified_count: tokens.filter((t) => !t.verified).length,
-      total_usd: Math.round(tokens.reduce((sum, t) => sum + (t.verified ? t.usd_value ?? 0 : 0), 0) * 100) / 100,
-      unverified_usd: Math.round(tokens.reduce((sum, t) => sum + (t.verified ? 0 : t.usd_value ?? 0), 0) * 100) / 100,
+      lookup_failed: lookupFailed, unverified_count: tokens.filter((t) => t.verified === false).length,
+      total_usd: usd((t) => t.verified === true),
+      unverified_usd: usd((t) => t.verified === false),
       tokens,
     };
   },
@@ -256,7 +260,7 @@ export const inspectAddress: ToolDef = {
   inputDocs: [{ name: "address", type: "string (base58 address)", required: true, lookingFor: "Any Solana address.", whereToGet: "The address you're about to use." }, NETWORK_DOC],
   outputs: [
     { field: "exists", type: "boolean", is: "Whether an account with SOL lives at this address. A wallet with no SOL doesn't, though it can still own tokens (see details.token_accounts).", howWorkedOut: "Looked up on chain." },
-    { field: "kind", type: "string", is: "wallet, token_account, mint (a token), program, program_data, stake_account, vote_account, lookup_table, program_owned_account or not_found.", howWorkedOut: "From the owner program, whether it's a program, and its data." },
+    { field: "kind", type: "string", is: "wallet, pda (a program-derived address: a program controls it, no one can sign for it), token_account, mint (a token), program, program_data, stake_account, vote_account, lookup_table, program_owned_account or not_found.", howWorkedOut: "From the owner program, whether it's a program, and its data." },
     { field: "summary", type: "string", is: "What it is, in plain words, and what's safe to do with it.", howWorkedOut: "Fixed text per kind." },
     { field: "lamports / sol", type: "string", is: "SOL held by the account, in lamports and in SOL.", howWorkedOut: "The account's lamports; sol = lamports / 10^9." },
     { field: "owner_program", type: "string | null", is: "The program that owns the account.", howWorkedOut: "The account owner." },
@@ -287,7 +291,7 @@ export const inspectAddress: ToolDef = {
         : tokenAccounts === 0 && hasHistory === false ? "Nothing has ever happened here: no SOL, no tokens and no past transactions. Sending SOL creates it."
         : tokenAccounts === 0 ? "Nothing here now: no SOL and no tokens. Whether it was used before couldn't be checked right now."
         : "No SOL here. Whether it holds tokens couldn't be checked right now.";
-      return { address: key.toBase58(), network, exists: false, kind: tokenAccounts ? "wallet" : "not_found", summary, lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: { token_accounts: tokenAccounts, has_history: hasHistory } };
+      return { address: key.toBase58(), network, exists: false, kind: tokenAccounts ? (onCurve ? "wallet" : "pda") : "not_found", summary, lamports: "0", sol: "0", owner_program: null, owner_program_name: null, is_program: false, can_sign: onCurve, details: { token_accounts: tokenAccounts, has_history: hasHistory } };
     }
     const acc = res.value;
     const owner = acc.owner.toBase58();
@@ -297,7 +301,7 @@ export const inspectAddress: ToolDef = {
     let explanation = `A data account owned by ${labelFor(owner) ?? owner}. Don't send money here unless that program's docs say to.`;
     let details: Record<string, unknown> = {};
     if (acc.executable) { kind = "program"; explanation = "A program. Never send money to a program address."; }
-    else if (owner === SYSTEM_PROGRAM && !dataLength) { kind = "wallet"; explanation = onCurve ? "A normal wallet. Safe to send SOL. Send tokens to its token account (token_account)." : "A program-derived address. Money sent here is controlled by a program, not a person."; }
+    else if (owner === SYSTEM_PROGRAM && !dataLength) { kind = onCurve ? "wallet" : "pda"; explanation = onCurve ? "A normal wallet. Safe to send SOL. Send tokens to its token account (token_account)." : "A program-derived address. Money sent here is controlled by a program, not a person."; }
     else if ((owner === TOKEN_PROGRAM || owner === TOKEN_2022_PROGRAM) && parsed?.type === "account") {
       kind = "token_account";
       const i = parsed.info;

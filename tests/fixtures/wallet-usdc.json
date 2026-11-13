@@ -1,0 +1,370 @@
+{
+ "name": "wallet-usdc",
+ "recordedAt": "2026-11-13T02:12:00.129Z",
+ "args": {
+  "wallet": "2QG95BvyBicw9WCf1eD4caTpN2VTdHbJPnwfmnLfoAtN",
+  "network": "mainnet-beta"
+ },
+ "recording": {
+  "calls": {
+   "getBalanceAndContext": [
+    {
+     "context": {
+      "apiVersion": "4.4.0",
+      "slot": 468754740
+     },
+     "value": 10410190
+    }
+   ],
+   "getParsedTokenAccountsByOwner": [
+    {
+     "context": {
+      "slot": 468754741,
+      "apiVersion": "4.3.0-beta.2"
+     },
+     "value": [
+      {
+       "pubkey": {
+        "__pk": "2NVvAnruE4hS1DAKyQtRoha2ykpJaatd8WdwXPiMV9XC"
+       },
+       "account": {
+        "lamports": 1488440,
+        "data": {
+         "program": "spl-token",
+         "parsed": {
+          "info": {
+           "isNative": false,
+           "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+           "owner": "2QG95BvyBicw9WCf1eD4caTpN2VTdHbJPnwfmnLfoAtN",
+           "state": "initialized",
+           "tokenAmount": {
+            "amount": "795698",
+            "decimals": 6,
+            "uiAmount": 0.795698,
+            "uiAmountString": "0.795698"
+           }
+          },
+          "type": "account"
+         },
+         "space": 165
+        },
+        "owner": {
+         "__pk": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        "executable": false,
+        "rentEpoch": 18446744073709552000,
+        "space": 165
+       }
+      }
+     ]
+    },
+    {
+     "context": {
+      "slot": 468754741,
+      "apiVersion": "4.3.0-beta.2"
+     },
+     "value": []
+    }
+   ],
+   "getSignaturesForAddress": [
+    [
+     {
+      "blockTime": 1794534187,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] 643d607a60978446179f1b8528c65bef",
+      "signature": "3UwvHJy4jnGhPKX1u1NnPABS1Rp3eSqYVh5biKqtXSCVbh1cAVyBtrnmh88xArhCrBjSYAmXLyshCBdqhphCgKku",
+      "slot": 468746739,
+      "transactionIndex": 159
+     },
+     {
+      "blockTime": 1794534184,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] d373facffd8139749e7e29d13e6f552b",
+      "signature": "5ivyjtX2bnAhvFSxU8fMUusXCd26WxBZSbDBiC2gz3RtxvF8pDdKpwZTzYGvvwTwGFW6u6i1CTLtY3Q29V38KAnD",
+      "slot": 468746727,
+      "transactionIndex": 228
+     },
+     {
+      "blockTime": 1794534182,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] b90e0d1776910cb7c461d798e86d95bb",
+      "signature": "52qR1H7kxNDz7RW3V7TPwa2UMZ5ZhnPkYqnwsuT9dohtbRQh1SrUfhAYuVfzKZoeyZtRfAnTcpsqUant1vVKCjM1",
+      "slot": 468746716,
+      "transactionIndex": 30
+     },
+     {
+      "blockTime": 1794534179,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] c94eab059d59db5136532e14c6db3231",
+      "signature": "wt3gF1R62uoMmsdt8XFyFtk8CKbBsiDHEyf5wHXdoLS69CYWyksZmQ2ugeHcTMQPnNrG9vsMemXrfpkSY8A161Z",
+      "slot": 468746702,
+      "transactionIndex": 53
+     },
+     {
+      "blockTime": 1794534170,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] 661da336a4cb628c643c371fe4bd8dfb",
+      "signature": "4wK6CQ1zHrAYnq5PiWZhbAehUCda8FLXF1MHR7csUQnpfDx4z5nYxGC3342S6hPAyXYbetbBG8CWsoFDZteKXHr2",
+      "slot": 468746664,
+      "transactionIndex": 54
+     },
+     {
+      "blockTime": 1794534168,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] cf41b67838e29af518b749f0d04b144b",
+      "signature": "AZ6BaWn4bjYjHQzN8fEUR6myn1QTaP58K8nN22fD1tuXKhGgDQMpRrAorVN1em3YEF117i9BYoxdsBPEqg86kbt",
+      "slot": 468746656,
+      "transactionIndex": 191
+     },
+     {
+      "blockTime": 1794534166,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] 1ca2f3e50a6ec4e7fffb8431a2a40595",
+      "signature": "3pD4bsdxN2rht4sdEoVmrjfmJj8xiSwJmZJ5cCXjQJ9sWDxBczKR6eyr9rQA6j7wnSRQPxj2T14J4PeW53dZgW4j",
+      "slot": 468746646,
+      "transactionIndex": 194
+     },
+     {
+      "blockTime": 1794534165,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] 6ec45b049c49ac42970a10fc6ed71202",
+      "signature": "3LcFDEBJdHqv8hvTLYG6LMPvv3GJoxJzrUcAepnirWbAtvKpYnEkoED45L5o4YeseBP8XkZmV6ufbznqkQiTAjUR",
+      "slot": 468746640,
+      "transactionIndex": 181
+     },
+     {
+      "blockTime": 1794534163,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] 2997e773983edeb7a7dd19e87db9b8a1",
+      "signature": "2bywozous8yBUbA5A5upS1cBSSxHFrvdnqhQzMBWnx4aMrzpLQbcAWqzd85AqmmUhxQ5dGQ9eraAkqV8MHbDBqtm",
+      "slot": 468746633,
+      "transactionIndex": 112
+     },
+     {
+      "blockTime": 1794534162,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": "[32] d191a90ef6a70bf3934e87ef9f5193a9",
+      "signature": "2qGvv1bbcsjT4QmjwzyPyMYmPeHkU5EVqFDAGmJZMr7PP2tLJWLvnNvPzk3sMmGtLaS2p3vgiVbiqLDt9WHqUUkC",
+      "slot": 468746624,
+      "transactionIndex": 87
+     }
+    ]
+   ]
+  },
+  "http": {
+   "https://lite-api.jup.ag/tokens/v2/search?query=So11111111111111111111111111111111111111112": [
+    {
+     "id": "So11111111111111111111111111111111111111112",
+     "name": "Wrapped SOL",
+     "symbol": "SOL",
+     "icon": "https://static.datapi.jup.ag/token-icons/79a96c7b893fd899512411dd07a8adf6f9e26dd135989f51d46ddb50f0b8bb6c.webp",
+     "decimals": 9,
+     "circSupply": 589983693.0786384,
+     "totalSupply": 636639246.9984534,
+     "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "holderCount": 3820662,
+     "fdv": 51439980170.40341,
+     "mcap": 47670245929.56058,
+     "usdPrice": 80.79926019786897,
+     "priceBlockId": 468754736,
+     "liquidity": 820394128.3871199,
+     "stats5m": {
+      "priceChange": -0.3152618843943025,
+      "liquidityChange": -0.016700092943777004,
+      "volumeChange": 16.141186912532493,
+      "buyVolume": 4340486.678902255,
+      "sellVolume": 4829891.45341564,
+      "buyOrganicVolume": 49934.85119175893,
+      "sellOrganicVolume": 36524.02867081695,
+      "numBuys": 42617,
+      "numSells": 64218,
+      "numTraders": 28743,
+      "numOrganicBuyers": 206,
+      "numNetBuyers": 2450
+     },
+     "stats1h": {
+      "priceChange": -0.5357182985479603,
+      "liquidityChange": -0.023017295305549926,
+      "volumeChange": -5.277866315270264,
+      "buyVolume": 48743848.75035875,
+      "sellVolume": 49895391.16514627,
+      "buyOrganicVolume": 601229.5497036458,
+      "sellOrganicVolume": 567832.7513821344,
+      "numBuys": 553307,
+      "numSells": 775931,
+      "numTraders": 143685,
+      "numOrganicBuyers": 551,
+      "numNetBuyers": 16908
+     },
+     "stats6h": {
+      "priceChange": -0.7398232699023033,
+      "liquidityChange": 0.1500799342940348,
+      "volumeChange": -20.67584337211244,
+      "buyVolume": 290663898.5363068,
+      "sellVolume": 295005054.925344,
+      "buyOrganicVolume": 3600934.993444619,
+      "sellOrganicVolume": 3754756.9702716386,
+      "numBuys": 3407382,
+      "numSells": 4709089,
+      "numTraders": 420532,
+      "numOrganicBuyers": 2735,
+      "numNetBuyers": 65330
+     },
+     "stats24h": {
+      "priceChange": -3.149120128844391,
+      "liquidityChange": -0.657393472429056,
+      "volumeChange": -5.642944215860038,
+      "buyVolume": 1167879173.512496,
+      "sellVolume": 1180718978.7163606,
+      "buyOrganicVolume": 14802153.526002618,
+      "sellOrganicVolume": 16533620.424601503,
+      "numBuys": 12919816,
+      "numSells": 18167003,
+      "numTraders": 898269,
+      "numOrganicBuyers": 7239,
+      "numNetBuyers": 103082
+     },
+     "firstPool": {
+      "id": "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2",
+      "createdAt": "2021-03-29T10:05:48Z"
+     },
+     "apy": {
+      "jupEarn": 3.88330456106869
+     },
+     "audit": {
+      "mintAuthorityDisabled": true,
+      "freezeAuthorityDisabled": true,
+      "topHoldersPercentage": 0.5787244405990802,
+      "devMints": 1
+     },
+     "organicScore": 99.20598811323669,
+     "organicScoreLabel": "high",
+     "isVerified": true,
+     "tags": [
+      "community",
+      "moonshot-verified",
+      "strict",
+      "verified",
+      "major"
+     ],
+     "createdAt": "2024-06-05T08:55:25.527Z",
+     "updatedAt": "2026-11-13T02:11:58.874467789Z"
+    }
+   ],
+   "https://lite-api.jup.ag/tokens/v2/search?query=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": [
+    {
+     "id": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "name": "USD Coin",
+     "symbol": "USDC",
+     "icon": "https://static.datapi.jup.ag/token-icons/6c4e5669d2a438653105399865445682e4a6cb51e19e1e61dc97578cd27bb9b2.webp",
+     "decimals": 6,
+     "twitter": "https://twitter.com/circle",
+     "discord": "https://discord.com/invite/buildoncircle",
+     "website": "https://www.circle.com/en/usdc",
+     "dev": "5TYZChz7APFopR5QirD5of4rQj1p9AXxeSAg6JndBdGj",
+     "circSupply": 8755166859.816475,
+     "totalSupply": 8755166859.816475,
+     "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "mintAuthority": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+     "freezeAuthority": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+     "holderCount": 5248202,
+     "fdv": 8751078666.146471,
+     "mcap": 8751078666.146471,
+     "usdPrice": 0.9995330535973258,
+     "priceBlockId": 468754723,
+     "liquidity": 383559108.6036516,
+     "stats5m": {
+      "priceChange": -0.0005789354032123152,
+      "liquidityChange": -0.04981314978799508,
+      "volumeChange": -9.133761552005803,
+      "buyVolume": 1647156.0895683537,
+      "sellVolume": 1572696.0063449515,
+      "buyOrganicVolume": 35010.84149914373,
+      "sellOrganicVolume": 31654.55328275742,
+      "numBuys": 9317,
+      "numSells": 12377,
+      "numTraders": 5477,
+      "numOrganicBuyers": 60,
+      "numNetBuyers": 653
+     },
+     "stats1h": {
+      "priceChange": 0.0036832740751697626,
+      "liquidityChange": -0.031746229167299606,
+      "volumeChange": -0.11189098731109882,
+      "buyVolume": 21126558.38027726,
+      "sellVolume": 21439638.0596967,
+      "buyOrganicVolume": 1004872.5849310076,
+      "sellOrganicVolume": 911672.1110499587,
+      "numBuys": 114528,
+      "numSells": 162363,
+      "numTraders": 31079,
+      "numOrganicBuyers": 272,
+      "numNetBuyers": 4313
+     },
+     "stats6h": {
+      "priceChange": 0.005516252202008295,
+      "liquidityChange": 0.21387021178191964,
+      "volumeChange": -39.68498141026506,
+      "buyVolume": 125036941.13424574,
+      "sellVolume": 138397468.74916136,
+      "buyOrganicVolume": 7324082.30071137,
+      "sellOrganicVolume": 4996352.035266221,
+      "numBuys": 826067,
+      "numSells": 1068040,
+      "numTraders": 108126,
+      "numOrganicBuyers": 1543,
+      "numNetBuyers": 18710
+     },
+     "stats24h": {
+      "priceChange": -0.000008633150936430613,
+      "liquidityChange": -0.20870706793652125,
+      "volumeChange": 3.4029211276332747,
+      "buyVolume": 558151041.3930185,
+      "sellVolume": 577127727.3175689,
+      "buyOrganicVolume": 31232080.62316959,
+      "sellOrganicVolume": 20749379.840829838,
+      "numBuys": 3096618,
+      "numSells": 3857377,
+      "numTraders": 255349,
+      "numOrganicBuyers": 4777,
+      "numNetBuyers": 47028
+     },
+     "firstPool": {
+      "id": "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2",
+      "createdAt": "2021-03-29T10:05:48Z"
+     },
+     "apy": {
+      "jupEarn": 4.268342525768487
+     },
+     "audit": {
+      "topHoldersPercentage": 23.55610569263416,
+      "devBalancePercentage": 2.2889129722902934e-7,
+      "devMints": 1
+     },
+     "organicScore": 100,
+     "organicScoreLabel": "high",
+     "isVerified": true,
+     "tags": [
+      "stable",
+      "community",
+      "moonshot-verified",
+      "strict",
+      "verified"
+     ],
+     "createdAt": "2024-06-05T08:55:25.527Z",
+     "updatedAt": "2026-11-13T02:11:56.021659128Z"
+    }
+   ]
+  }
+ }
+}
