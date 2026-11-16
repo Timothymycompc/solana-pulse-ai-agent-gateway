@@ -245,14 +245,26 @@ export function creatorCheck(r: RugReport | null, j: JupToken | undefined, verif
 const NO_AUTHORITY = "11111111111111111111111111111111";
 
 // A name and logo that can still change let a token be renamed to impersonate a real one after people buy it.
-export function metadataCheck(r: RugReport, verified: boolean, stable: string | null): Omit<Check, "name" | "source"> | null {
-  const meta = r.tokenMeta;
+// Token-2022 tokens keep their name in the mint's own tokenMetadata extension: that on-chain record is the truth, and it
+// wins over RugCheck. RugCheck's tokenMeta describes Metaplex metadata; for Tesla xStock it said mutable with update
+// authority 1111…1111 while the mint's own metadata names 5aMN…FvEq, which can change it (checked 2026-11-16). So
+// 1111…1111 from RugCheck is "unknown", never "locked".
+export function metadataCheck(r: RugReport | null, verified: boolean, stable: string | null,
+  onChain?: { updateAuthority?: string | null } | null): (Omit<Check, "name" | "source"> & { source: Check["source"] }) | null {
+  const changeable = (who: string, source: Check["source"]) => ({ source,
+    result: (verified || stable ? "info" : "warn") as Check["result"],
+    detail: `The token's name and logo can still be changed by ${who}${verified || stable ? ", which is common for established tokens." : ", so it could later be renamed to look like another token."}` });
+  if (onChain) {
+    const who = onChain.updateAuthority;
+    if (!who || who === NO_AUTHORITY) return { source: "on-chain", result: "pass", detail: "The token's name and logo are locked and can't be changed (its on-chain metadata has no update authority)." };
+    return changeable(who, "on-chain");
+  }
+  const meta = r?.tokenMeta;
   if (!meta || typeof meta.mutable !== "boolean") return null;
-  // Token-2022 stores "no update authority" as the all-zero key, which prints as 1111…1111 (the System Program).
-  // Nobody can sign as it, so the name and logo are locked even when the report says mutable (Tesla xStock, 2026-10-16).
-  if (!meta.mutable || meta.updateAuthority === NO_AUTHORITY) return { result: "pass", detail: "The token's name and logo are locked and can't be changed." };
-  const who = meta.updateAuthority ? ` by ${meta.updateAuthority}` : "";
-  return { result: verified || stable ? "info" : "warn", detail: `The token's name and logo can still be changed${who}${verified || stable ? ", which is common for established tokens." : ", so it could later be renamed to look like another token."}` };
+  if (!meta.mutable) return { source: "rugcheck", result: "pass", detail: "The token's name and logo are locked and can't be changed." };
+  if (!meta.updateAuthority || meta.updateAuthority === NO_AUTHORITY)
+    return { source: "rugcheck", result: "info", detail: "Unknown whether the token's name and logo can be changed: the metadata report names no real update authority." };
+  return changeable(meta.updateAuthority, "rugcheck");
 }
 
 export const tokenVerdict: ToolDef = {
@@ -387,10 +399,9 @@ export const tokenVerdict: ToolDef = {
       const creator = creatorCheck(rug.report, j, verified);
       if (creator) add("creator_history", creator.result, creator.detail, rug.report ? "rugcheck" : "jupiter");
     }
-    if (rug.report) {
-      const meta = metadataCheck(rug.report, verified, stable);
-      if (meta) add("metadata", meta.result, meta.detail, "rugcheck");
-    }
+    const tokenMetaExt = extensions.find((e) => e.extension === "tokenMetadata");
+    const meta = metadataCheck(rug.report ?? null, verified, stable, tokenMetaExt ? { updateAuthority: tokenMetaExt.state?.updateAuthority ?? null } : null);
+    if (meta) add("metadata", meta.result, meta.detail, meta.source);
     if (!stable && network === "mainnet-beta") {
       const sell = await sellCheck(ctx, conn, mintAddress, Number(info.decimals), typeof j?.usdPrice === "number" ? j.usdPrice : null);
       add("sell_test", sell.result, sell.detail, "simulation");
