@@ -231,6 +231,10 @@ test("insiders, creator history and metadata follow their thresholds", () => {
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, false, null)?.result, "warn");
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, true, null)?.result, "info");
   assert.equal(metadataCheck({ tokenMeta: { mutable: false } }, false, null)?.result, "pass");
+  // Real case: Tesla xStock (XsDoVfqe…zoB) reported mutable with update authority 1111…1111, which nobody can sign as.
+  const locked = metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "11111111111111111111111111111111" } }, true, null);
+  assert.equal(locked?.result, "pass");
+  assert.match(locked!.detail, /locked/);
 });
 
 test("token_safety says AVOID for a token with no market left, but only when Jupiter itself says it isn't tradable", async () => {
