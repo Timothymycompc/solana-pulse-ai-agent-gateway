@@ -242,11 +242,15 @@ export function creatorCheck(r: RugReport | null, j: JupToken | undefined, verif
   return { result: "pass", detail: `No rugged tokens in the creator's history${typeof made === "number" ? ` (${made.toLocaleString("en-US")} token${made === 1 ? "" : "s"} launched)` : ""}.` };
 }
 
+const NO_AUTHORITY = "11111111111111111111111111111111";
+
 // A name and logo that can still change let a token be renamed to impersonate a real one after people buy it.
 export function metadataCheck(r: RugReport, verified: boolean, stable: string | null): Omit<Check, "name" | "source"> | null {
   const meta = r.tokenMeta;
   if (!meta || typeof meta.mutable !== "boolean") return null;
-  if (!meta.mutable) return { result: "pass", detail: "The token's name and logo are locked and can't be changed." };
+  // Token-2022 stores "no update authority" as the all-zero key, which prints as 1111…1111 (the System Program).
+  // Nobody can sign as it, so the name and logo are locked even when the report says mutable (Tesla xStock, 2026-10-16).
+  if (!meta.mutable || meta.updateAuthority === NO_AUTHORITY) return { result: "pass", detail: "The token's name and logo are locked and can't be changed." };
   const who = meta.updateAuthority ? ` by ${meta.updateAuthority}` : "";
   return { result: verified || stable ? "info" : "warn", detail: `The token's name and logo can still be changed${who}${verified || stable ? ", which is common for established tokens." : ", so it could later be renamed to look like another token."}` };
 }
