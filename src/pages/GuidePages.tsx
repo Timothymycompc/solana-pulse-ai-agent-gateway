@@ -31,7 +31,7 @@ export const QuickstartPage: React.FC = () => (
     <NextLink to="/docs/connect">Connect an agent</NextLink>
 
     <H2>4. Pay for heavy use</H2>
-    <P>After a tool's 25 free calls for the day, it answers <Code>402 Payment Required</Code>. An x402 client pays the few-cent USDC price from a Solana wallet and retries automatically.</P>
+    <P>After a tool's 25 free calls for the day, it answers <Code>402 Payment Required</Code>. An x402 client pays the few-cent USDC price from a Solana or Base wallet and retries automatically.</P>
     <NextLink to="/docs/pricing">Pricing and x402 setup</NextLink>
   </article>
 );
@@ -199,7 +199,7 @@ export const CallsPage: React.FC = () => (
     <P>AI agents make the same calls over MCP: instead of a web address, the agent picks a tool by name, such as <Code>balance</Code>, and gets the same answer.</P>
 
     <H2>What calls cost</H2>
-    <P>Every tool, including this balance call, gives each caller 25 free calls a day, then costs $0.01 in USDC ($0.02 for the three safety checks), paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
+    <P>Every tool, including this balance call, gives each caller 25 free calls a day, then costs $0.01 to $0.03 in USDC (balance is $0.01), paid with the request itself through x402. Calls that end in an error are never charged and never use up a free call.</P>
 
     <H2>How a call travels: think of a restaurant</H2>
     <Table head={['In a restaurant', 'In the gateway']} minWidth={480} rows={[

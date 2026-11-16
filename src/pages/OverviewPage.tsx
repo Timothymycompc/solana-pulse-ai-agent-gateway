@@ -102,7 +102,7 @@ export const OverviewPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) 
             <Link to="/toolbox" className={button('secondary')}>Open the toolbox</Link>
           </div>
           <p className="mt-7 max-w-[36rem] text-[14px] leading-[1.6] text-ink-500">
-            Works over MCP and plain HTTP. Every tool gives 25 free calls a day, then costs one or two cents a call in USDC through x402. No account or API key.
+            Works over MCP and plain HTTP. Every tool gives 25 free calls a day, then costs one to three cents a call in USDC through x402. No account or API key.
           </p>
         </div>
         <PreflightReport />

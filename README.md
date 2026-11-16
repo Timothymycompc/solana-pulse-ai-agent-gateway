@@ -64,6 +64,7 @@ Hitting the error yourself? The [fix page](https://solana-pulse-gateway-10219902
 | `find_token` | Copycat tickers: the verified token address for a ticker, with copycats counted | $0.01 |
 | `fee` | Fee unit mistakes: cheap, normal and fast prices in micro-lamports per compute unit, plus the exact cost in SOL | $0.01 |
 | `wallet` | Totals inflated by spam airdrops: holdings with USD values, priced vs unpriced, verified vs unverified | $0.01 |
+| `token_traders` | Not knowing who got in first: reads a token's pool from its first transaction and lists the wallets that traded it, with buys, sells, SOL spent and received, profit, how soon after launch they bought, and launch-block and creator flags (up to 1,000 transactions per call) | $0.03 |
 | `trace` | Guessing where money went after a drain: each transaction's net SOL and token change and the other side, where most of it went (and whether that's a wallet or program-controlled), and drain patterns with the transactions that show them (swept with someone else paying the fee, passed straight through, emptied, lookalike-address dust, dust from strangers), and a ready report: the problem in one line, every transaction with its Solscan link and the caller's local time, a confidence level with its reason, what it points to, and next steps | $0.02 |
 | `convert` | Decimal errors: normal amounts to exact raw units using the token's real decimals | $0.01 |
 | `why_failed` | Blind retries: Solana error codes in plain words, with a fix | $0.01 |
@@ -77,7 +78,7 @@ Hitting the error yourself? The [fix page](https://solana-pulse-gateway-10219902
 
 Every input and returned field is documented in plain words: what an input is looking for and where to get it, what each returned value is and how it's worked out (`GET /api/tools/<name>`). The tools and their fields were renamed in October 2026 to short, plain names (`preflight_transaction` became `check_tx`, `transaction` became `tx`, `walletChanges` became `balance_changes`). The old tool names and input names still work.
 
-Prices apply only after a tool's 25 free calls for the day.
+Prices apply only after a tool's 25 free calls for the day. They come from `server/pricing.ts`, the same list the pricing page, `/.well-known/mcp.json` and `/llms.txt` read. Pay in USDC on Solana or Base.
 
 Every tool documents each input (with how to get it) and each returned field (with what it means and exactly how it is computed): `GET /api/tools` and `GET /api/tools/<name>`. `GET /api/tools/<name>/example` returns ready-to-run inputs built from live mainnet data.
 

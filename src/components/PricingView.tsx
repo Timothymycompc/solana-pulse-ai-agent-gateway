@@ -37,10 +37,15 @@ await client.connect(new StreamableHTTPClientTransport(
 ));
 const result = await client.callTool("check_tx", { tx: "<base64>" });`;
 
-const tiers = [
-  { price: '$0.01', note: 'Reads, lookups, helpers and transaction forensics.' },
-  { price: '$0.02', note: 'The three checks that protect funds.' },
-] as const;
+// Tiers come from TOOL_PRICES itself, so a new price can never be left off this page.
+const TIER_NOTES: Record<string, string> = {
+  '$0.01': 'Reads, lookups, helpers and transaction forensics.',
+  '$0.02': 'The checks that protect funds.',
+  '$0.03': 'Heavier calls: build_tx runs the checks for you, token_traders reads up to 1,000 transactions.',
+};
+const PRICES = [...new Set(Object.values(TOOL_PRICES).filter((p): p is NonNullable<typeof p> => p !== null))].sort();
+const tiers = PRICES.map((price) => ({ price, note: TIER_NOTES[price] ?? '' }));
+const PRICE_RANGE = PRICES.length > 1 ? `${PRICES[0]} to ${PRICES[PRICES.length - 1]}` : PRICES[0];
 
 const CodeBlock: React.FC<{ id: string; title: string; code: string; copied: string | null; onCopy: (id: string, code: string) => void }> = ({ id, title, code, copied, onCopy }) => (
   <div className="min-w-0 rounded-xl border border-line surface-inset">
@@ -66,11 +71,11 @@ export const PricingView: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader title="Pricing & x402" lead={<>Every tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then one or two cents in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
+      <PageHeader title="Pricing & x402" lead={<>Every tool gives you {FREE_CALLS_TEXT} (reset at midnight UTC), then {PRICE_RANGE} in USDC paid with each request through the open x402 protocol. No account or API key; agents with a Solana or Base wallet pay automatically. Calls that return an error are never charged, and network fees are covered.</>} />
 
       <section>
         <H2>Prices after the free calls</H2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           {tiers.map((tier) => {
             const tools = Object.keys(TOOL_PRICES).filter((tool) => TOOL_PRICES[tool] === tier.price);
             return (
@@ -109,7 +114,7 @@ export const PricingView: React.FC = () => {
           <CodeBlock id="http" title="HTTP, with @x402/fetch" code={httpExample} copied={copied} onCopy={copy} />
           <CodeBlock id="mcp" title="MCP, with @x402/mcp" code={mcpExample} copied={copied} onCopy={copy} />
         </div>
-        <p className="text-[13px] leading-[1.6] text-ink-400">Network <code className="text-ink-300">{NETWORK}</code> (Solana mainnet), asset USDC, scheme <code className="text-ink-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-accent-300 hover:text-accent-200">mcp.json</a>, <a href="/llms.txt" className="text-accent-300 hover:text-accent-200">llms.txt</a> and <a href="/api/trial/status" className="text-accent-300 hover:text-accent-200">/api/trial/status</a>.</p>
+        <p className="text-[13px] leading-[1.6] text-ink-400">Networks <code className="text-ink-300">{NETWORK}</code> (Solana mainnet, listed first) and <code className="text-ink-300">eip155:8453</code> (Base), asset USDC, scheme <code className="text-ink-300">exact</code>. Prices are also listed in <a href="/.well-known/mcp.json" className="text-accent-300 hover:text-accent-200">mcp.json</a>, <a href="/llms.txt" className="text-accent-300 hover:text-accent-200">llms.txt</a> and <a href="/api/trial/status" className="text-accent-300 hover:text-accent-200">/api/trial/status</a>.</p>
       </section>
     </div>
   );
