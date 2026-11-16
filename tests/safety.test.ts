@@ -231,10 +231,18 @@ test("insiders, creator history and metadata follow their thresholds", () => {
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, false, null)?.result, "warn");
   assert.equal(metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "x" } }, true, null)?.result, "info");
   assert.equal(metadataCheck({ tokenMeta: { mutable: false } }, false, null)?.result, "pass");
-  // Real case: Tesla xStock (XsDoVfqe…zoB) reported mutable with update authority 1111…1111, which nobody can sign as.
-  const locked = metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "11111111111111111111111111111111" } }, true, null);
-  assert.equal(locked?.result, "pass");
-  assert.match(locked!.detail, /locked/);
+  // Real case, Tesla xStock (XsDoVfqe…zoB), 2026-11-16: RugCheck said mutable with update authority 1111…1111, but the
+  // mint's own tokenMetadata names 5aMN…FvEq. The on-chain record wins; 1111…1111 alone is unknown, never locked.
+  const tsla = metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "11111111111111111111111111111111" } }, true, null,
+    { updateAuthority: "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq" });
+  assert.equal(tsla?.result, "info");
+  assert.equal(tsla?.source, "on-chain");
+  assert.match(tsla!.detail, /can still be changed by 5aMNNLQJ/);
+  const onlyRug = metadataCheck({ tokenMeta: { mutable: true, updateAuthority: "11111111111111111111111111111111" } }, true, null);
+  assert.equal(onlyRug?.result, "info");
+  assert.match(onlyRug!.detail, /^Unknown/);
+  assert.doesNotMatch(onlyRug!.detail, /locked/);
+  assert.equal(metadataCheck(null, false, null, { updateAuthority: null })?.result, "pass", "on-chain metadata with no update authority is locked");
 });
 
 test("token_safety says AVOID for a token with no market left, but only when Jupiter itself says it isn't tradable", async () => {
