@@ -4,7 +4,7 @@ import { Link } from '../router';
 import { toolPath } from '../nav';
 import { CATEGORY_LABELS, loadExample, runTool, type ToolDoc, type ToolsIndex } from '../lib/toolsApi';
 import { H2, P, PageHeader } from '../components/docs/DocParts';
-import { INTRO_VIDEOS, SETUP_VIDEOS, STORY_VIDEO, TOOL_ORDER, TOOL_VIDEOS } from '../data/videos';
+import { BUILT_VIDEO, INTRO_VIDEOS, SETUP_VIDEOS, STORY_VIDEO, TOOL_ORDER, TOOL_VIDEOS } from '../data/videos';
 
 // Start here: the order a newcomer should see things in. The story, what Pulse does, then every tool with its video,
 // what it's for and a live call on mainnet, then how to add Pulse to an app. Tool text comes from the tool registry
@@ -121,6 +121,7 @@ export const StartPage: React.FC<{ index: ToolsIndex | null }> = ({ index }) => 
 
       <H2 id="built">3 · Built with Pulse: tools chained into products</H2>
       <P>Each tool answers one question. Chained, they make products real people use. Both of these are free sites that call Pulse and nothing else for chain data.</P>
+      <div className="mb-6 max-w-3xl"><Video id={BUILT_VIDEO.id} title={BUILT_VIDEO.title} /></div>
       <div className="mb-12 grid gap-5 md:grid-cols-2">
         {BUILT.map((b) => (
           <div key={b.name} className="rounded-2xl border border-line surface p-5">
