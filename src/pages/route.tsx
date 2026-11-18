@@ -12,6 +12,7 @@ import { TrackRecordPage } from './TrackRecordPage';
 import { FlowsPage } from './FlowsPage';
 import { FIX_V1_DESCRIPTION, FIX_V1_PATH, FIX_V1_TITLE, FixV1Page } from './FixV1Page';
 import { MinePage } from './MinePage';
+import { START_DESCRIPTION, START_PATH, START_TITLE, StartPage } from './StartPage';
 import { ReportPage, ReportsPage } from './ReportsPage';
 import { siteReports } from '../../server/reports/list';
 import { ON_SITE } from '../../server/site';
@@ -21,7 +22,7 @@ const toolName = (path: string) => path.match(/^\/docs\/tools\/([a-z_]+)$/)?.[1]
 const reportOf = (path: string) => { const n = path.match(/^\/reports\/([A-Za-z0-9-]+)$/)?.[1]; return n ? siteReports().find((r) => r.name === n) : undefined; };
 
 export function isKnownPath(path: string, index: ToolsIndex | null): boolean {
-  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/toolbox', '/docs/flows', FIX_V1_PATH].includes(path)) return true;
+  if (['/', '/docs/quickstart', '/docs/calls', '/docs/connect', '/docs/pricing', '/status', '/track-record', '/owner', '/mine', '/toolbox', '/docs/flows', FIX_V1_PATH, START_PATH].includes(path)) return true;
   if (path === '/reports' && ON_SITE.reports) return true;
   if (reportOf(path)) return true;
   const name = toolName(path);
@@ -38,6 +39,7 @@ export function pageFor(path: string, index: ToolsIndex | null, error: string): 
   if (path === '/status') return <StatusPage />;
   if (path === '/track-record') return <TrackRecordPage />;
   if (path === FIX_V1_PATH) return <FixV1Page />;
+  if (path === START_PATH) return <StartPage index={index} />;
   if (path === '/owner') return <OwnerPage />;
   if (path === '/mine') return <MinePage index={index} />;
   if (path === '/reports' && ON_SITE.reports) return <ReportsPage />;
@@ -68,6 +70,7 @@ const DESCRIPTIONS: Record<string, string> = {
 export function metaFor(path: string, sections: NavSection[], index: ToolsIndex | null): { title: string; description: string } {
   if (path === '/') return { title: SITE_TITLE, description: SITE_DESCRIPTION };
   if (path === FIX_V1_PATH) return { title: `${FIX_V1_TITLE} · Solana Pulse`, description: FIX_V1_DESCRIPTION };
+  if (path === START_PATH) return { title: START_TITLE, description: START_DESCRIPTION };
   const item = sections.flatMap((s) => s.items).find((i) => i.path === path);
   const tool = index?.tools.find((t) => t.name === toolName(path));
   const report = reportOf(path);

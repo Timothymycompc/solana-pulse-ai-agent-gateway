@@ -12,6 +12,7 @@ export const siteOrigin = () => (typeof window !== 'undefined' ? window.location
 
 const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
+  { title: 'Start here (videos)', path: '/start', keywords: 'start here videos watch story youtube tour every tool live example build chain challenge' },
   { title: 'Quickstart', path: '/docs/quickstart', keywords: 'curl http first request example' },
   { title: 'Toolbox', path: '/toolbox', keywords: 'playground try run every tool edit inputs json history calls' },
   { title: 'What is a call?', path: '/docs/calls', keywords: 'api request response beginner restaurant glossary' },
@@ -34,6 +35,7 @@ const RESOURCE_LINKS: NavItem[] = [
 
 // The top bar: the menus and links people use most. Everything else is in search (⌘K).
 export const TOP_LINKS: NavItem[] = [
+  { title: 'Start here', path: '/start' },
   { title: 'Toolbox', path: '/toolbox' },
   ...(ON_SITE.reports ? [{ title: 'Reports', path: '/reports' }] : []),
   { title: 'Connect', path: '/docs/connect' },
