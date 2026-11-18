@@ -80,7 +80,7 @@ else warn "Skipped (--no-backup)"; fi
 # ---------- 4. Deploy without traffic ----------
 bold "4/6  Uploading and starting the new version (no visitors yet)"
 COMMIT=$(git rev-parse --short HEAD)
-if ! gcloud run deploy $SVC --source . --region $REGION --no-traffic --tag candidate --update-labels commit=$COMMIT --quiet >/tmp/pulse-deploy.log 2>&1; then
+if ! gcloud run deploy $SVC --source . --region $REGION --no-traffic --tag candidate --max-instances 5 --update-labels commit=$COMMIT --quiet >/tmp/pulse-deploy.log 2>&1; then
   NEW=$(gcloud run services describe $SVC --region $REGION --format='value(status.latestCreatedRevisionName)')
   fail "The new version ($NEW) did not start. Reading its logs…"
   LOGS=$(gcloud logging read "resource.type=\"cloud_run_revision\" AND resource.labels.revision_name=\"$NEW\"" --limit=80 --format='value(textPayload)' 2>/dev/null)
