@@ -1,6 +1,6 @@
 // The YouTube videos on the Start here page (/start), in the order a newcomer should watch them. IDs are the channel's
 // own uploads (youtube.com/@timothymycompc1205). A tool without a video still gets its card and live example.
-export const STORY_VIDEO = { id: '', title: 'The Solana Pulse story so far', note: 'Why it was built, what worked, what didn’t, and where it’s heading. Narrated with an AI voice (Google Chirp 3 HD); a version in Tim’s own voice is coming.' };
+export const STORY_VIDEO = { id: 'LmX4NSpCmas', title: 'The Solana Pulse story so far', note: 'Why it was built, what worked, what didn’t, and where it’s heading. Narrated with an AI voice (Google Chirp 3 HD); a version in Tim’s own voice is coming.' };
 export const INTRO_VIDEOS = [
   { id: 'Ie3SSEEmQXE', title: 'Solana Pulse in 90 seconds', note: 'Three live calls on mainnet: a drainer-style transaction blocked, a plain transfer passed, a wrong amount caught.' },
   { id: 'MnMH6ChDHVE', title: 'Full walkthrough', note: 'Every kind of tool, what it answers, and how agents call it.' },
