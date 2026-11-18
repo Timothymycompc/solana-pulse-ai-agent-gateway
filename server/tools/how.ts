@@ -14,6 +14,9 @@
 //    that already held tokens before the transaction counts.
 //  - Reassignment: a normal wallet is owned by the System Program; a signed Assign moves it to another program, which
 //    wallet previews don't show ("the scam a wallet simulator cannot see"). Checked in history and in the state now.
+// Measured 2026-11-18 (tests/measure-how.ts): 30 active wallets from a live block, traced live: no attack method on
+// any of them; 1 got the neutral "signed with this wallet's own key" (a big send, already shown before this), 1 had an
+// approval to a program-controlled address, noted only. 0 failed, 0 with an unreadable part.
 import { PublicKey, type Connection, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { formatUnits, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./lib";
 
