@@ -8,6 +8,7 @@ import { z } from "zod";
 import { assertAddress, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, labelFor, lamportsToSol, NETWORK_DOC, SYSTEM_PROGRAM } from "./lib";
 import { parsedTransaction, symbolsFor } from "./transactions";
 import { ToolError, type ToolDef } from "./types";
+import { grantsIn, howItHappened, stateNow } from "./how";
 
 // Money "passed through" when most of it (PASS_THROUGH_SHARE) left again within PASS_THROUGH_SECONDS of arriving.
 // Timing alone flagged 14 of 40 ordinary active wallets on 2026-10-27; drains forward nearly all of it (Kunal: 2.032
@@ -155,6 +156,19 @@ export function flagsFor(wallet: string, flows: Flow[], balanceNow: bigint | nul
     const senders = [...new Set(dust.map((f) => f.counterparty!))];
     flags.push({ name: "dust_received", level: "info", tx_ids: dust.map((f) => f.tx_id),
       detail: `${dust.length} tiny transfer${dust.length === 1 ? "" : "s"} (0.001 SOL or less) came from ${senders.length === 1 ? "an address" : `${senders.length} addresses`} this wallet never paid (${senders.slice(0, 3).map(short).join(", ")}${senders.length > 3 ? ", ..." : ""}). Address poisoners send these to get into your history; never copy an address from it.` });
+  }
+
+  // Sent to the lookalike itself: the wallet paid an address that first sent it dust and imitates another address in
+  // this history. This is the loss address poisoning aims for, not just the attempt.
+  const dustFrom = (c: string, after: number) => flows.slice(after + 1).some((g) => g.result === "success" && g.direction === "in" && g.counterparty === c
+    && BigInt(g.raw_sol_change) <= DUST_LAMPORTS && !g.wallet_signed);
+  const others = new Set(flows.map((f) => f.counterparty).filter((c): c is string => !!c));
+  const fooled = flows.map((f, k) => ({ f, k })).filter(({ f, k }) => f.result === "success" && f.wallet_signed && f.counterparty
+    && (f.direction === "out" || f.direction === "both") && dustFrom(f.counterparty, k) && [...others].some((o) => lookalike(f.counterparty!, o)));
+  if (fooled.length) {
+    const pairs = [...new Set(fooled.map(({ f }) => `${f.counterparty} (imitating ${[...others].find((o) => lookalike(f.counterparty!, o))})`))];
+    flags.push({ name: "sent_to_lookalike", level: "warn", tx_ids: fooled.map(({ f }) => f.tx_id),
+      detail: `This wallet sent money to ${pairs.join("; ")}: an address that sent it dust first and starts and ends like one it used before. That's address poisoning working: the money went to the imitation.` });
   }
 
   const lastOut = outs[0];
@@ -311,8 +325,11 @@ export const traceWallet: ToolDef = {
     { field: "sol_now", type: "string | null", is: "SOL the wallet holds now. null if it couldn't be read.", howWorkedOut: "getBalance." },
     { field: "flows[]", type: "array", is: "One entry per transaction, newest first: tx_id, time, result, direction (in / out / both / none), sol_change, sol_before (the wallet's SOL just before), token_changes (token, symbol, change, decimals), counterparty, fee_payer, wallet_signed, programs, memo.", howWorkedOut: "The wallet's own balance changes from each transaction's before/after balances; counterparty is the address whose change mirrors the wallet's biggest move; a fee-only change is direction none." },
     { field: "top_destinations[]", type: "array", is: "Where most money went (up to 3, tokens first): address, transactions, sol_out, tokens_out (token, symbol, amount), and kind (wallet that can sign, program-controlled address, program, token account, or unknown), value_usd (null when prices are unavailable).", howWorkedOut: "Outgoing flows grouped by counterparty, ranked by USD value at today's Jupiter prices (tokens with no price count 0), or tokens first then SOL when Jupiter can't be reached; kind from the account's owner and whether the address is on the ed25519 curve." },
-    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, dust_received, emptied, swept_to_collection_wallet.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
+    { field: "flags[]", type: "array", is: "Patterns found, each with name, level (warn / info), detail and the tx_ids that show it: fee_paid_by_other_wallet, passed_straight_through, lookalike_dust, sent_to_lookalike, dust_received, emptied, swept_to_collection_wallet.", howWorkedOut: "Fixed rules on the flows (see each detail). None says who anyone is." },
     { field: "report", type: "object", is: "The same facts as a report a person can act on: problem (one line; a single send of half or more of the wallet's SOL leads it), biggest_move (the largest send: tx_id, time, to, sol, tokens, value_usd, share_of_sol_pct, wallet_signed, fee_payer, solscan; null if nothing went out), evidence (every transaction that moved money, UTC and local time, what moved where, Solscan link), destinations (with Solscan links), confidence (high / medium / low and the reason), points_to, next_steps.", howWorkedOut: "Fixed rules on the flags: high only for the full drain pattern (swept and emptied) into anything but a busy collection wallet, medium for that case and for single signs, low when nothing matched. Built only from the fields above." },
+    { field: "report.how_it_happened", type: "object", is: "How someone got the power to take the money: found (true/false), methods[] (strongest first: wallet_reassigned, owner_changed, approval_given, sent_to_lookalike, stolen_key, signed_by_this_wallet; each with title, what_happened, tx_ids, solscan, fix), noted[] (approvals to program-controlled addresses, the kind swaps use), unknown (what couldn't be read), summary.", howWorkedOut: "From instructions this wallet signed in these transactions (approve to a wallet left open in the same transaction; owner change of a token account that already held tokens; Assign of the wallet to a program) plus the state now (the wallet account's owner, token accounts with an open approval), and the sweep and poisoning flags. When none match it says the transactions don't show how, never a guess." },
+    { field: "grants[]", type: "array", is: "Each permission this wallet signed away in these transactions: name (approval_given, owner_changed, wallet_reassigned), level, tx_id, time, account, to, to_kind, mint, amount.", howWorkedOut: "Decoded SPL Token and System instructions, top level and inside programs." },
+    { field: "now", type: "{ wallet_owner, open_approvals }", is: "The wallet account's owner program now (null if unreadable) and every token account with an approval still open (null if unreadable).", howWorkedOut: "getAccountInfo and getParsedTokenAccountsByOwner for both token programs." },
     { field: "unread", type: "number", is: "Transactions listed for the wallet that couldn't be loaded; they're left out, never guessed.", howWorkedOut: "Signatures minus loaded transactions." },
     { field: "next_before", type: "string | null", is: "Pass as before to read the next, older page.", howWorkedOut: "The oldest transaction returned; null when there are no more." },
   ],
@@ -329,9 +346,10 @@ export const traceWallet: ToolDef = {
     }
     const conn = ctx.connection(network);
     const key = new PublicKey(address);
-    const [sigs, balance] = await Promise.all([
+    const [sigs, balance, now] = await Promise.all([
       conn.getSignaturesForAddress(key, { limit: how_many, ...(before ? { before } : {}) }, "confirmed"),
       conn.getBalance(key, "confirmed").then((b) => BigInt(b)).catch(() => null),
+      stateNow(conn, address),
     ]);
     const txs: (ParsedTransactionWithMeta | null)[] = [];
     // Three at a time: more trips RPC rate limits (429s in the first test run).
@@ -340,7 +358,10 @@ export const traceWallet: ToolDef = {
     const bySig = new Map(txs.filter((tx): tx is ParsedTransactionWithMeta => !!tx?.meta).map((tx) => [tx.transaction.signatures[0], tx]));
     const loaded = sigs.map((s) => ({ s, tx: bySig.get(s.signature) })).filter((x): x is { s: typeof sigs[number]; tx: ParsedTransactionWithMeta } => !!x.tx);
     if (sigs.length && !loaded.length) throw new ToolError(503, "Couldn't read this wallet's transactions right now.", "Retry in a moment.");
-    const mints = [...new Set(loaded.flatMap((x) => [...(x.tx.meta!.preTokenBalances ?? []), ...(x.tx.meta!.postTokenBalances ?? [])].filter((b) => b.owner === address).map((b) => b.mint)))];
+    const grants = loaded.flatMap((x) => grantsIn(address, x.tx, isoTime(x.tx.blockTime)));
+    const mints = [...new Set([
+      ...loaded.flatMap((x) => [...(x.tx.meta!.preTokenBalances ?? []), ...(x.tx.meta!.postTokenBalances ?? [])].filter((b) => b.owner === address).map((b) => b.mint)),
+      ...grants.map((g) => g.mint).filter((m): m is string => !!m), ...(now.open_approvals ?? []).map((a) => a.mint)])];
     const symbols = mints.length ? await symbolsFor(ctx)(mints) : new Map<string, string | null>();
     // USD prices (Jupiter) to rank where the money went by value, so a spam token can't outrank real SOL. If the
     // lookup fails, prices stay unknown and ranking falls back to tokens first, then SOL.
@@ -399,6 +420,9 @@ export const traceWallet: ToolDef = {
       }).catch(() => null);
     }
     const flags = flagsFor(address, flows, balance, busy);
+    const biggest = biggestMove(flows, prices);
+    const how = howItHappened({ grants, now, flags, symbols, drain: drainPattern(flags) && !busy,
+      bigSignedByOwner: biggest && biggest.wallet_signed && biggest.fee_payer === address && (biggest.share_of_sol_pct ?? 0) >= BIG_SHARE_PCT ? biggest : null });
 
     const inSol = flows.filter((f) => f.result === "success").reduce((s, f) => s + (BigInt(f.raw_sol_change) > 0n ? BigInt(f.raw_sol_change) : 0n), 0n);
     const outSol = flows.filter((f) => f.result === "success").reduce((s, f) => s + (BigInt(f.raw_sol_change) < 0n ? -BigInt(f.raw_sol_change) : 0n), 0n);
@@ -413,11 +437,14 @@ export const traceWallet: ToolDef = {
         // throwaway bot wallets (5 of 45 in one run), which the chain can't tell apart from a drained personal wallet.
         + (drainPattern(flags) && !busy ? " This is the drain pattern if it's a personal wallet whose owner didn't move the funds; exchange deposit addresses and short-lived bot wallets look the same on chain." : "")
         + (flags.some((f) => f.level === "info") ? ` Noted: ${flags.filter((f) => f.level === "info").map((f) => f.name.replace(/_/g, " ")).join(", ")}.` : "")
+        + (how.found ? ` How: ${how.summary}.` : "")
         + (unread ? ` ${unread} transaction${unread === 1 ? "" : "s"} couldn't be read and ${unread === 1 ? "is" : "are"} left out.` : "");
     return {
       wallet: address, network, summary, period: { from: times[times.length - 1] ?? null, to: times[0] ?? null },
       sol_now: balance === null ? null : lamportsToSol(balance), flows, top_destinations: topDestinations, flags,
-      report: reportFor({ wallet: address, network, flows, destinations: topDestinations, flags, unread, timeZone: time_zone, biggest: biggestMove(flows, prices) }),
+      report: { ...reportFor({ wallet: address, network, flows, destinations: topDestinations, flags, unread, timeZone: time_zone, biggest }),
+        how_it_happened: { ...how, methods: how.methods.map((m) => ({ ...m, solscan: m.tx_ids.map((id) => solscan("tx", id, network)) })) } },
+      grants, now,
       unread, next_before: sigs.length === how_many ? sigs[sigs.length - 1].signature : null,
     };
   },
