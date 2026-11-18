@@ -12,6 +12,7 @@ export const siteOrigin = () => (typeof window !== 'undefined' ? window.location
 
 const GUIDE_PAGES: NavItem[] = [
   { title: 'Overview', path: '/', keywords: 'home start intro' },
+  { title: 'Solana arbitrage, measured', path: '/arbitrage', keywords: 'arbitrage arb bots mev jito profit failed transactions research measured dex' },
   { title: 'Start here (videos)', path: '/start', keywords: 'start here videos watch story youtube tour every tool live example build chain challenge' },
   { title: 'Quickstart', path: '/docs/quickstart', keywords: 'curl http first request example' },
   { title: 'Toolbox', path: '/toolbox', keywords: 'playground try run every tool edit inputs json history calls' },
@@ -49,6 +50,7 @@ export const DOCS_MENU: { title: string; items: (NavItem & { about: string })[] 
     ...(ON_SITE.reports ? [{ title: 'Reports', path: '/reports', about: 'Code, casinos and earn apps we checked, with proof' }] : []),
     { title: 'Track record', path: '/track-record', about: 'What token_safety said, against what really happened' },
     { title: 'How every tool answers', path: '/docs/flows', about: 'What comes in, what goes out, what comes back' },
+    { title: 'Solana arbitrage, measured', path: '/arbitrage', about: 'What bots really make, every 4 hours from real blocks' },
   ] },
   { title: 'For machines', items: [
     { title: 'llms.txt', path: '/llms.txt', external: true, about: 'A plain-text guide for language models' },

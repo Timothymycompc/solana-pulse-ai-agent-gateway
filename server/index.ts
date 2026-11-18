@@ -26,6 +26,7 @@ import { BASE_NETWORK, BASE_PAY_TO, createX402, X402_NETWORK } from "./x402";
 import { ownerOverview } from "./owner";
 import { ownerCall, ownerCalls, publicUsage } from "./calls";
 import { runXPost } from "./x";
+import { arbitrageSummary } from "./arbitrage";
 import { postManual } from "./x-manual";
 import { saveQueueEdit, upcomingQueue } from "./x-edits";
 import { currentArgs, mcpDescription, priceText, toolDoc, ToolError, TOOLS, TOOLS_BY_NAME, type ToolContext, type ToolDef } from "./tools";
@@ -589,10 +590,13 @@ async function startServer() {
     res.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_11AcjHBOhpMfx0tc5ncQEWG92a9-4h93", maintainers: [{ email: "timothymycompc@gmail.com" }] });
   });
 
+  // Solana arbitrage, measured every 4 hours from real blocks (the /arbitrage page reads this).
+  app.get("/api/research/arbitrage", arbitrageSummary);
+
   // Every page and tool page, generated from the registry so new tools are indexed automatically.
   app.get("/sitemap.xml", noCache, (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
-    const paths = ["/", "/start", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", "/fix/transaction-version-not-supported", ...(siteReports().length ? ["/reports"] : []), ...siteReports().map((r) => `/reports/${r.name}`), ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
+    const paths = ["/", "/start", "/arbitrage", "/docs/quickstart", "/docs/calls", "/docs/connect", "/docs/pricing", "/toolbox", "/status", "/track-record", "/docs/flows", "/fix/transaction-version-not-supported", ...(siteReports().length ? ["/reports"] : []), ...siteReports().map((r) => `/reports/${r.name}`), ...TOOLS.map((t) => `/docs/tools/${t.name}`), "/llms.txt", "/.well-known/mcp.json"];
     res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${PUBLIC_URL}${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>`);
   });
 
