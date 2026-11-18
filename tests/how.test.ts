@@ -134,4 +134,5 @@ test("trace replays Kunal's real sweep (2026-10-27): how it happened = stolen ke
   assert.equal(h.methods[0].name, "stolen_key");
   assert.ok(h.methods[0].tx_ids.length && h.methods[0].solscan[0].startsWith("https://solscan.io/tx/"));
   assert.match(out.summary, /How: Seed phrase or private key stolen/);
+  assert.match(h.methods[0].fix, /If you did move it .* not a theft/, "an owner moving their own money looks the same (Tim's payer/payout wallets, 2026-11-18)");
 });

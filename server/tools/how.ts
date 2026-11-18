@@ -144,8 +144,10 @@ export function howItHappened(o: {
       what_happened: has("fee_paid_by_other_wallet")
         ? "Money was moved out with this wallet's own signature while another wallet paid the fees, and the wallet was left empty. That takes the key: a sweeper bot holds it and empties anything that arrives."
         : "Money was forwarded within seconds of arriving and the wallet was left empty, signed with this wallet's key: what sweeper bots that hold a stolen key do.",
+      // Found 2026-11-18 re-checking Drain Check's 8 looked-up wallets: Tim's own payer and payout wallets (moving test
+      // money between each other, fees paid by the x402 facilitator) match this exactly. The fix line says so.
       tx_ids: [...new Set(ids)],
-      fix: "The key is known to someone else for good: move anything left to a new wallet with a new seed phrase. The usual leaks: typing the phrase into a site or 'support' chat, a fake wallet app or extension, or a screenshot or note synced online." });
+      fix: "If you didn't move this money yourself, the key is known to someone else for good: move anything left to a new wallet with a new seed phrase. The usual leaks: typing the phrase into a site or 'support' chat, a fake wallet app or extension, or a screenshot or note synced online. If you did move it (to your own wallet, an exchange, or through an app that pays fees for you), this is your own move, not a theft: the chain can't tell them apart." });
   }
   if (!methods.length && o.bigSignedByOwner) {
     methods.push({ name: "signed_by_this_wallet", title: "Signed with this wallet's own key",
