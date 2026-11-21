@@ -31,19 +31,34 @@ export function rpcMethods(body: unknown): string[] {
   }
 }
 
+// How long the main RPC is skipped after it answers 429 (rate limit or "max usage reached": plan credits used up).
+export const RPC_COOLDOWN_MS = 2 * 60_000;
+
 // A fetch for web3.js's Connection that notes each RPC method it sends.
-export function rpcFetch(label: string): typeof fetch {
-  return async (input, init) => {
+// With a backup URL: when the main RPC answers 429, the same request goes to the backup, and the main RPC is
+// skipped for RPC_COOLDOWN_MS, then tried again. The trail names the backup (`<label> (backup)`) so the caller
+// can see which source answered. 2026-11-19: Helius ran out of credits and half of all calls failed with 503.
+export function rpcFetch(label: string, backupUrl?: string, now: () => number = Date.now): typeof fetch {
+  let skipMainUntil = 0;
+  const send = async (to: string, input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) => {
     const started = performance.now();
     const methods = rpcMethods(init?.body);
     try {
       const res = await fetch(input, init);
-      for (const m of methods) record(label, m, started, res.ok);
+      for (const m of methods) record(to, m, started, res.ok);
       return res;
     } catch (error) {
-      for (const m of methods) record(label, m, started, false);
+      for (const m of methods) record(to, m, started, false);
       throw error;
     }
+  };
+  return async (input, init) => {
+    if (!backupUrl) return send(label, input, init);
+    if (now() < skipMainUntil) return send(`${label} (backup)`, backupUrl, init);
+    const res = await send(label, input, init);
+    if (res.status !== 429) return res;
+    skipMainUntil = now() + RPC_COOLDOWN_MS;
+    return send(`${label} (backup)`, backupUrl, init);
   };
 }
 

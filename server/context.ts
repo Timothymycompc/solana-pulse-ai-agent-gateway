@@ -7,7 +7,10 @@ import { recordHttp, rpcFetch } from "./trail";
 // Built after secrets load, so the RPC URL and Jupiter key are in the environment.
 export function makeToolContext(): ToolContext {
   const connections = {
-    "mainnet-beta": new Connection(process.env.SOLANA_MAINNET_RPC_URL || clusterApiUrl("mainnet-beta"), { commitment: "confirmed", fetch: rpcFetch("Solana RPC") }),
+    // Backup: Solana's free public RPC, used only while the main (keyed) RPC answers 429. Not when there is no main.
+    "mainnet-beta": process.env.SOLANA_MAINNET_RPC_URL
+      ? new Connection(process.env.SOLANA_MAINNET_RPC_URL, { commitment: "confirmed", fetch: rpcFetch("Solana RPC", clusterApiUrl("mainnet-beta")) })
+      : new Connection(clusterApiUrl("mainnet-beta"), { commitment: "confirmed", fetch: rpcFetch("Solana RPC") }),
     devnet: new Connection(process.env.SOLANA_DEVNET_RPC_URL || clusterApiUrl("devnet"), { commitment: "confirmed", fetch: rpcFetch("Solana RPC (devnet)") }),
   };
   // The Jupiter key goes only to Jupiter's keyed host, never to any other site a tool fetches.
