@@ -12,6 +12,7 @@ import { recordPayment } from "./db";
 import { TOOLS_BY_NAME } from "./tools";
 import { cdpFacilitator } from "./cdp";
 import { BAZAAR_LISTING } from "./bazaar-listing";
+import { OUTPUT_DECLARATIONS } from "./output-declarations.generated";
 import { BONK_MINT, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, USDC_MINT } from "./tools/lib";
 
 export const X402_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
@@ -77,7 +78,16 @@ export function discoveryFor(name: string) {
     tags: listing.tags,
     inputSchema: z.toJSONSchema(z.object(tool.inputs), { io: "input" }) as Record<string, unknown>,
     example,
+    // What a paid answer always contains (measured; see output-declarations.generated.ts). Monitors check paid
+    // answers against it and agents see what they get before paying.
+    output: outputFor(name),
   };
+}
+
+export function outputFor(name: string) {
+  const decl = OUTPUT_DECLARATIONS[name];
+  if (!decl) throw new Error(`Paid tool ${name} needs an OUTPUT_DECLARATIONS entry (server/output-declarations.generated.ts)`);
+  return { example: decl.example, schema: { type: "object", required: decl.required } };
 }
 
 // Coinbase's facilitator first, so payments settle there and tools are listed in Coinbase's Bazaar; PayAI's takes
@@ -147,7 +157,7 @@ export function createX402(payTo: string) {
   const routes: Record<string, any> = {};
   for (const [tool, price] of Object.entries(TOOL_PRICES)) {
     if (!price) continue;
-    const { description, tags, inputSchema, example } = discoveryFor(tool);
+    const { description, tags, inputSchema, example, output } = discoveryFor(tool);
     routes[`POST ${TOOL_ROUTE_PREFIX}${tool}`] = {
       accepts: [
         { scheme: "exact", price, network: X402_NETWORK, payTo, maxTimeoutSeconds: 60 },
@@ -157,7 +167,7 @@ export function createX402(payTo: string) {
       mimeType: "application/json",
       serviceName: SERVICE_NAME,
       tags,
-      extensions: declareDiscoveryExtension({ bodyType: "json", input: example, inputSchema }),
+      extensions: declareDiscoveryExtension({ bodyType: "json", input: example, inputSchema, output }),
     };
   }
   // Syncs with the facilitator in the background and retries on the next request if that fails.
@@ -165,11 +175,11 @@ export function createX402(payTo: string) {
 
   // Wrap an MCP tool handler: without _meta["x402/payment"] it returns PaymentRequired; with it, verify, run, settle.
   const wrapMcpTool = async (tool: string, price: Exclude<ToolPrice, null>, handler: (...args: any[]) => any) => {
-    const { description, tags, inputSchema, example } = discoveryFor(tool);
+    const { description, tags, inputSchema, example, output } = discoveryFor(tool);
     const paid = createPaymentWrapper(resourceServer, {
       accepts: await acceptsFor(price),
       resource: { url: `mcp://tool/${tool}`, description, mimeType: "application/json", serviceName: SERVICE_NAME, tags },
-      extensions: declareDiscoveryExtension({ toolName: tool, description, transport: "streamable-http", inputSchema, example }),
+      extensions: declareDiscoveryExtension({ toolName: tool, description, transport: "streamable-http", inputSchema, example, output }),
     });
     return paid(handler);
   };

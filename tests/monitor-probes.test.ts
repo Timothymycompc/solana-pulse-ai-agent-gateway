@@ -31,7 +31,7 @@ const MONITORS = [
   "mcpbeat/0.1 (+https://mcpbeat.com/bot/; liveness check)",
 ];
 
-test("monitors get 402 on an empty body to fee and blockhash; real callers and real inputs still get free calls", async () => {
+test("monitors and directories are always asked to pay first; real callers keep free calls, even on an empty fee", async () => {
   const app = express();
   app.set("trust proxy", 1);
   app.use(express.json());
@@ -57,7 +57,9 @@ test("monitors get 402 on an empty body to fee and blockhash; real callers and r
     assert.equal(await call("fee", "node", {}), 200, "a real caller still gets fee free");
     assert.equal(await call("blockhash", "python-httpx/0.27.0"), 200);
     assert.equal(await call("fee", "paycheck-bot/1.0", {}), 200, "a bot that is not a monitor keeps free calls");
-    assert.equal(await call("fee", "CarbonMonitor/0.1", { network: "mainnet-beta" }), 200, "a monitor with real inputs gets a free call");
+    assert.equal(await call("fee", "CarbonMonitor/0.1", { network: "mainnet-beta" }), 402, "a monitor with real inputs is asked to pay too");
+    assert.equal(await call("token_safety", "vet402-observatory-l1/1.0", { mint: "x" }), 402, "on every tool");
+    assert.equal((await getFreeCallStatus("192.0.2.88")).token_safety, undefined, "and uses no free calls");
   } finally {
     server.close();
   }

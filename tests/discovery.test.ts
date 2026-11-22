@@ -29,16 +29,18 @@ test("every listing example is a valid input for its tool", () => {
 
 test("HTTP and MCP listings pass the Bazaar schema check", () => {
   for (const name of PAID) {
-    const { description, inputSchema, example } = discoveryFor(name);
+    const { description, inputSchema, example, output } = discoveryFor(name);
     // The resource server adds the HTTP method from the request before sending the listing; do the same here.
     const path = `${TOOL_ROUTE_PREFIX}${name}`;
     const request = { method: "POST", routePattern: path, adapter: { getPath: () => path } };
     const http = bazaarResourceServerExtension.enrichDeclaration!(
-      declareDiscoveryExtension({ bodyType: "json", input: example, inputSchema }).bazaar, request as any);
-    const mcp = declareDiscoveryExtension({ toolName: name, description, transport: "streamable-http", inputSchema, example }).bazaar;
+      declareDiscoveryExtension({ bodyType: "json", input: example, inputSchema, output }).bazaar, request as any);
+    const mcp = declareDiscoveryExtension({ toolName: name, description, transport: "streamable-http", inputSchema, example, output }).bazaar;
     for (const [kind, listing] of Object.entries({ http, mcp })) {
       const result = validateDiscoveryExtension(listing as any);
       assert.ok(result.valid, `${name} ${kind}: ${JSON.stringify(result.errors)}`);
+      // vet402 reads extensions.bazaar.info.output.example; its top-level keys are what a paid answer must contain.
+      assert.deepEqual(Object.keys((listing as any).info.output.example).sort(), [...output.schema.required].sort(), `${name} ${kind}: output declared`);
     }
   }
 });

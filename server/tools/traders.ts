@@ -107,6 +107,7 @@ export const tokenTraders: ToolDef = {
   ],
   outputs: [
     { field: "pool / launch_time / launch_slot", type: "string / string | null / number", is: "The pool read and its first transaction.", howWorkedOut: "The oldest signature of the pool address (getSignaturesForAddress, paged back to the start)." },
+    { field: "pool_creator", type: "string | null", is: "The wallet that created the pool. null when the pool's first transaction can't be read.", howWorkedOut: "The first signer of the pool's first transaction (getTransaction)." },
     { field: "window", type: "{ from, to, hours, cut_short }", is: "The time read. cut_short is true when max_trades or the time limit ran out before the hours did.", howWorkedOut: "Launch time plus hours, and the last transaction actually read." },
     { field: "stopped_for_time", type: "boolean", is: "True when reading stopped at the 20-second limit, so the window holds fewer transactions than asked. Ask again with a shorter hours or smaller max_trades for a full window.", howWorkedOut: "Time since the call began, checked before each batch of 10 transactions. The limit keeps a paid answer inside the time its payment stays valid." },
     { field: "start_reached", type: "boolean", is: "False when the pool's start couldn't be reached (over 40,000 transactions, or paging back took over 10 seconds); launch then means the oldest one read.", howWorkedOut: "Signature pages left over, or the 10-second paging limit." },
