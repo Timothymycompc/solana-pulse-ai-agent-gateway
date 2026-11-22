@@ -44,6 +44,10 @@ const fitDescription = (text: string) => {
 // explain_tx, a confirmed swap by the payout wallet.
 const SOL_TRANSFER = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQABA0jAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmoVgoILMOQ1EYfPamO+NIM+DFNelaCpg5VLgCvW3mbJ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEEtNEWetTmK6RLkue8tADNy8eH6av+X5ckYlACi5O/AAQICAAEMAgAAAICWmAAAAAAAAA==";
 const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
+// check_tx's listing example: an unsigned transaction from the example wallet that approves an outside address to move
+// its USDT, the classic drainer trick, built 2026-11-22 the same way as the playground's drainer example
+// (exampleTransaction in tools/transactions.ts). An agent browsing a directory sees check_tx answer BLOCK on it.
+const DRAINER_APPROVAL = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQADBUjAG1BZAFRV2dywxrzs3LT7Wy6rwamoK1c5K6qkDwTmsdU2b383oXaro40X8qiR8Z9qw4x+FODBu3rYhFVt52MDBkZv5SEXMv/srbpyw5vnvIzlu8X3EmssQ5s6QAAAAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpfowIh2C/3h3dzzLBfyCbgkLuUqrxMfrNiNDqLG0LBvIClmhTaxGJh9QRdN+69T7eOv/UvfFDLOSECzPcHDhb1QMCAAUCIE4AAAIACQMQJwAAAAAAAAMDAQQACQQAEKXU6AAAAAA=";
 export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   balance: { wallet: EXAMPLE_WALLET },
   tokens: { wallet: EXAMPLE_WALLET, how_many: 10 },
@@ -53,7 +57,7 @@ export const LISTING_EXAMPLES: Record<string, Record<string, unknown>> = {
   whats_this: { address: USDC_MINT },
   convert: { token: USDC_MINT, amount: "5", to: "raw" },
   why_failed: { error: `Program ${JUPITER} failed: custom program error: 0x1771`, program: JUPITER },
-  check_tx: { tx: SOL_TRANSFER },
+  check_tx: { tx: DRAINER_APPROVAL },
   tx_matches: { tx: SOL_TRANSFER, expected: { token: "SOL", amount: "0.01", to: EXAMPLE_RECIPIENT } },
   explain_tx: { tx_id: "3VC82Y2Uq42qczUPPzxuyUqeDPzgqKQf5utk1sKUsjgaTn9JZqDwMxqBb73U1FetJLF8WZqjrRyjsXovESSq3Phv" },
   // tx_version, the version 1 swap recorded in v1-ready (slot 463371847).

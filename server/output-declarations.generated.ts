@@ -4,7 +4,8 @@
 // required: the top-level keys found in EVERY successful HTTP answer in Pulse's usage log for the 30 days to
 // 2026-11-22 ("answers" = how many). Keys missing from even one answer are left out, because a declared key that is
 // missing counts against the tool.
-// example: a real answer to the tool's own listing example (LISTING_EXAMPLES), keeping only the required keys;
+// example: a real answer to the tool's own listing example (LISTING_EXAMPLES; check_tx re-taken 2026-11-22 for the
+// drainer example, showing its token_approval check), keeping only the required keys;
 // arrays keep their first item and long text is shortened with "…", to keep the 402 small.
 export const OUTPUT_DECLARATIONS: Record<string, { answers: number; required: string[]; example: Record<string, unknown> }> = {
   "balance": {
@@ -79,32 +80,32 @@ export const OUTPUT_DECLARATIONS: Record<string, { answers: number; required: st
     "example": {
       "balance_changes": [
         {
-          "after": "65.854505077",
-          "token": "SOL",
-          "before": "65.864510077",
-          "change": "-0.010005",
-          "is_you": true,
-          "symbol": "SOL",
           "wallet": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
-          "decimals": 9,
-          "raw_change": "-10005000"
+          "is_you": true,
+          "token": "SOL",
+          "symbol": "SOL",
+          "before": "65.864510077",
+          "after": "65.864504877",
+          "change": "-0.0000052",
+          "raw_change": "-5200",
+          "decimals": 9
         }
       ],
       "checks": [
         {
-          "name": "simulation",
-          "detail": "Dry run worked, using 150 compute units.",
-          "result": "pass"
+          "name": "token_approval",
+          "result": "fail",
+          "detail": "Instruction 2 lets 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM move up to 1000000000000 base units …"
         }
       ],
       "fee": {
-        "total_sol": "0.000005",
         "base_lamports": "5000",
-        "total_lamports": "5000",
-        "priority_lamports": "0",
-        "compute_unit_limit": 3000,
-        "compute_unit_price": "0",
-        "compute_unit_limit_from": "runtime default (3,000 per built-in program step, 200,000 per other step)"
+        "priority_lamports": "200",
+        "total_lamports": "5200",
+        "total_sol": "0.0000052",
+        "compute_unit_limit": 20000,
+        "compute_unit_limit_from": "set in transaction",
+        "compute_unit_price": "10000"
       },
       "fee_payer": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
       "network": "mainnet-beta",
@@ -112,32 +113,28 @@ export const OUTPUT_DECLARATIONS: Record<string, { answers: number; required: st
         "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
       ],
       "simulation": {
-        "logs": [
-          "Program 11111111111111111111111111111111 invoke [1]"
-        ],
-        "error": null,
         "worked": true,
-        "compute_used": 150,
-        "error_explained": null
+        "error": null,
+        "error_explained": null,
+        "compute_used": 423,
+        "logs": [
+          "Program ComputeBudget111111111111111111111111111111 invoke [1]"
+        ]
       },
       "steps": [
         {
-          "info": {
-            "to": "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU",
-            "from": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
-            "lamports": "10000000"
-          },
-          "type": "sol_transfer",
           "index": 0,
-          "program": "System Program",
-          "accounts": [
-            "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9"
-          ],
-          "program_id": "11111111111111111111111111111111"
+          "program_id": "ComputeBudget111111111111111111111111111111",
+          "program": "Compute Budget",
+          "accounts": [],
+          "type": "set_compute_unit_limit",
+          "info": {
+            "units": 20000
+          }
         }
       ],
-      "summary": "REVIEW: The blockhash has expired, so the network would reject this. It was dry-run with a fresh one…",
-      "verdict": "REVIEW"
+      "summary": "BLOCK: Instruction 2 lets 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM move up to 1000000000000 base…",
+      "verdict": "BLOCK"
     }
   },
   "convert": {

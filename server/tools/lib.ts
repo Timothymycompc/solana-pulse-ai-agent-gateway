@@ -15,6 +15,7 @@ export const BASE_FEE_LAMPORTS_PER_SIGNATURE = 5000;
 export const EXAMPLE_WALLET = "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9";
 export const EXAMPLE_RECIPIENT = "Brpc8HoPo1d3Uiyo7kbERnjMqwLJJmbWxtwxHxzar6DU";
 export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+export const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 export const BONK_MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 
 // Regulated stablecoins whose issuers keep mint/freeze/permanent-delegate powers by design (compliance).

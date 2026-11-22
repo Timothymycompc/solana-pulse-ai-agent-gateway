@@ -10,7 +10,7 @@ import { recentMarket } from "./fee-market";
 import { matchSwap } from "./swap";
 import {
   assertAddress, BASE_FEE_LAMPORTS_PER_SIGNATURE, COMPUTE_BUDGET_PROGRAM, EXAMPLE_RECIPIENT, EXAMPLE_WALLET, formatUnits, isoTime, jupByMints, jupiterDexes, labelFor,
-  lamportsToSol, NATIVE_MINT, NETWORK_DOC, parseUnits, snakeKeys, USDC_MINT,
+  lamportsToSol, NATIVE_MINT, NETWORK_DOC, parseUnits, snakeKeys, USDT_MINT,
 } from "./lib";
 import { ToolError, type ToolContext, type ToolDef } from "./types";
 
@@ -35,9 +35,11 @@ async function exampleTransaction(conn: Connection, kind: "sol_transfer" | "drai
   const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000 })];
   if (kind === "sol_transfer") instructions.push(SystemProgram.transfer({ fromPubkey: payer, toPubkey: new PublicKey(EXAMPLE_RECIPIENT), lamports: 10_000_000 }));
   else {
-    // Grants an outside address the right to move the wallet's USDC: the classic drainer pattern.
-    const usdcAccount = getAssociatedTokenAddressSync(new PublicKey(USDC_MINT), payer, true);
-    instructions.push(createApproveInstruction(usdcAccount, new PublicKey(EXAMPLE_ATTACKER), payer, 1_000_000_000_000n));
+    // Grants an outside address the right to move the wallet's USDT: the classic drainer pattern. USDT, not USDC:
+    // the example wallet's USDC account was frozen by its issuer (found 2026-11-22), so the dry run failed with
+    // AccountFrozen before the approval and the example led with the wrong problem.
+    const usdtAccount = getAssociatedTokenAddressSync(new PublicKey(USDT_MINT), payer, true);
+    instructions.push(createApproveInstruction(usdtAccount, new PublicKey(EXAMPLE_ATTACKER), payer, 1_000_000_000_000n));
   }
   const message = new TransactionMessage({ payerKey: payer, recentBlockhash: blockhash, instructions }).compileToV0Message();
   return Buffer.from(new VersionedTransaction(message).serialize()).toString("base64");
