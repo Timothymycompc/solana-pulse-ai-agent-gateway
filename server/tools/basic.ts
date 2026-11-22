@@ -212,10 +212,11 @@ export const findAta: ToolDef = {
     NETWORK_DOC,
   ],
   outputs: [
-    { field: "address", type: "string", is: "The recipient's token account for this token. Send the tokens here.", howWorkedOut: "getAssociatedTokenAddressSync(token, wallet) with the token's own program." },
+    { field: "address", type: "string", is: "The recipient's token account for this token. Send the tokens here, unless frozen is true.", howWorkedOut: "getAssociatedTokenAddressSync(token, wallet) with the token's own program." },
     { field: "token_program", type: '"spl-token" | "token-2022"', is: "The token program the transfer must use.", howWorkedOut: "The program that owns the token." },
     { field: "exists", type: "boolean", is: "Whether the account already exists on chain.", howWorkedOut: "Looked up on chain." },
     { field: "balance", type: "string | null", is: "What the account holds now, when it exists.", howWorkedOut: "Token amount with the token's decimals." },
+    { field: "frozen", type: "boolean | null", is: "True when the token's issuer froze this account: a transfer to it fails and nothing in it can move. Don't send. null when the account doesn't exist yet.", howWorkedOut: "The account's state on chain (frozen or initialized)." },
     { field: "decimals", type: "number", is: "The token's decimals.", howWorkedOut: "From the token." },
     { field: "create_cost_lamports", type: "string | null", is: "The SOL deposit (in lamports) to create the account when it doesn't exist. You get it back if the account is closed later.", howWorkedOut: "getMinimumBalanceForRentExemption for the account size, counting the token's Token-2022 extensions." },
     { field: "create_cost_sol", type: "string | null", is: "The same deposit in SOL.", howWorkedOut: "create_cost_lamports / 10^9." },
@@ -241,6 +242,9 @@ export const findAta: ToolDef = {
       wallet: owner.toBase58(), token: mintKey.toBase58(), network, address: ata.toBase58(),
       token_program: programId === TOKEN_PROGRAM ? "spl-token" : "token-2022", exists,
       balance: parsed ? formatUnits(parsed.tokenAmount.amount, parsed.tokenAmount.decimals) : null,
+      // A frozen account rejects transfers in; found 2026-11-22 when this tool's own example (the example wallet's
+      // USDC account, frozen by its issuer) said "Send the tokens here" without a word about it.
+      frozen: parsed ? parsed.state === "frozen" : null,
       decimals: Number(info.decimals), create_cost_lamports: createCostLamports, create_cost_sol: createCostLamports ? lamportsToSol(createCostLamports) : null,
       owner_is_program: !PublicKey.isOnCurve(owner.toBytes()),
     };
