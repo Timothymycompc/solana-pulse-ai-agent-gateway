@@ -80,7 +80,7 @@ export function discoveryFor(name: string) {
   return {
     // Auto-paying x402 clients never find the free calls unless the listing says so (2026-11-22). Right after the
     // lead, so it survives the 500-character cut; later sentences are dropped whole when too long.
-    description: fitDescription(`${listing.lead} ${FREE_CALLS_TEXT} without paying, then ${TOOL_PRICES[name]} USDC a call. ${tool.useWhen} ${tool.description}`),
+    description: fitDescription(`${listing.lead}${listing.proof ? ` ${listing.proof}` : ""} ${FREE_CALLS_TEXT} without paying, then ${TOOL_PRICES[name]} USDC a call. ${tool.useWhen} ${tool.description}`),
     tags: listing.tags,
     inputSchema: z.toJSONSchema(z.object(tool.inputs), { io: "input" }) as Record<string, unknown>,
     example,

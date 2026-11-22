@@ -4,9 +4,12 @@
 // safety solana" and "solana transaction check", while competitors led with those phrases; Pulse led with "Run on
 // every transaction before signing..." and was tagged "mcp" and "ai-agents", which no one searches for.
 // Every lead says only what the tool's own description already says. Tags: at most 5, each at most 32 characters.
-export const BAZAAR_LISTING: Record<string, { lead: string; tags: [string, string, string, string, string] }> = {
-  check_tx: { lead: "Solana pre-sign transaction check: simulate an unsigned transaction on mainnet and catch drainers before signing.", tags: ["solana", "pre-sign check", "transaction simulation", "drainer protection", "wallet security"] },
-  tx_matches: { lead: "Verify a Solana transfer or swap does exactly what was asked (token, amount, recipient) before signing.", tags: ["solana", "intent verification", "swap verification", "transfer check", "pre-sign check"] },
+// proof: a measured result, shown right after the lead so the 500-character cut keeps it (2026-11-22). Only results
+// measured and published in the repo (README "Proof", benchmark/); a tool without one gets none.
+const CHECK_TX_PROOF = "Measured: caught 9 of 9 attack cases with no false alarm, and no false BLOCK on 200 real mainnet transactions (benchmark in the public GitHub repo).";
+export const BAZAAR_LISTING: Record<string, { lead: string; proof?: string; tags: [string, string, string, string, string] }> = {
+  check_tx: { lead: "Solana pre-sign transaction check: simulate an unsigned transaction on mainnet and catch drainers before signing.", proof: CHECK_TX_PROOF, tags: ["solana", "pre-sign check", "transaction simulation", "drainer protection", "wallet security"] },
+  tx_matches: { lead: "Verify a Solana transfer or swap does exactly what was asked (token, amount, recipient) before signing.", proof: CHECK_TX_PROOF, tags: ["solana", "intent verification", "swap verification", "transfer check", "pre-sign check"] },
   token_safety: { lead: "Solana token safety check and rug check: is this token safe to buy? SAFE, CAUTION or AVOID with reasons.", tags: ["solana", "token safety", "rug check", "is this token safe", "honeypot check"] },
   build_tx: { lead: "Build a Solana SOL or token transfer, or a Jupiter swap, as an unsigned transaction that is already safety-checked.", tags: ["solana", "build transaction", "jupiter swap", "token transfer", "unsigned transaction"] },
   explain_tx: { lead: "Explain a Solana transaction in plain words: what each wallet gained and lost, fee, programs, and why it failed.", tags: ["solana", "explain transaction", "transaction decoder", "balance changes", "transaction parser"] },
