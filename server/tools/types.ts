@@ -49,6 +49,9 @@ export interface ToolDef {
   usage: string;
   description: string;
   inputs: z.ZodRawShape;
+  // Inputs that are each optional but of which one must be given (tx_version: tx_id or tx). An empty call then
+  // fails, so the payment gate treats an empty body as a payment probe and answers 402 (vet402 marked it "unverified").
+  needsOneOf?: string[];
   inputDocs: InputDoc[];
   outputs: OutputDoc[];
   notes?: string[];

@@ -146,9 +146,15 @@ const needsInput = new Map<string, boolean>();
 export function toolNeedsInput(tool: string): boolean {
   const def = TOOLS_BY_NAME.get(tool);
   if (!def) return false;
-  if (!needsInput.has(def.name)) needsInput.set(def.name, !z.object(def.inputs).safeParse({}).success);
+  if (!needsInput.has(def.name)) needsInput.set(def.name, !z.object(def.inputs).safeParse({}).success || Boolean(def.needsOneOf?.length));
   return needsInput.get(def.name)!;
 }
+
+// Uptime monitors and x402 directories (vet402, x402station, CarbonMonitor, PayAI-Bazaar, AgentRankProbe, ...) send an
+// empty body to every tool and list a tool as working only if it answers 402. fee and blockhash run on an empty body, so
+// they handed these a free 200 and vet402 marked them "fail: no_402" (2026-11-22). For these callers an empty body is a
+// payment probe on every tool; with real inputs they get free calls like anyone. Matched by name in the user agent.
+export const MONITOR_UA = /probe|prober|monitor|observ|canary|uptime|liveness|catalog|bazaar|x402station|vet402|crawler|spider/i;
 
 export const NO_FREE_CALLS_UA = /^Go-http-client\/[\d.]+$|^CoinbaseBazaarDiscovery\/|^pay\/[a-z]+\/\d/;
 
@@ -161,9 +167,10 @@ export function paidRouteMiddleware(x402Middleware: RequestHandler): RequestHand
     const tool = TOOLS_BY_NAME.get(name)?.name ?? name;
     const ip = req.ip || "unknown";
     // An empty body to a tool that needs inputs is a discovery probe (Coinbase's Bazaar), not a real call: skip free
-    // calls so it answers 402 with the payment terms. fee and blockhash run on an empty body, so those keep free calls.
+    // calls so it answers 402 with the payment terms. fee and blockhash run on an empty body, so those keep free calls,
+    // except for monitors and directories (MONITOR_UA), which need the 402.
     const emptyBody = req.method === "POST" && (!req.body || (typeof req.body === "object" && !Array.isArray(req.body) && Object.keys(req.body).length === 0));
-    const probe = emptyBody && toolNeedsInput(tool);
+    const probe = emptyBody && (toolNeedsInput(tool) || MONITOR_UA.test(req.get("user-agent") ?? ""));
     const hasPayment = Boolean(req.headers["payment-signature"] || req.headers["x-payment"]) || NO_FREE_CALLS_UA.test(req.get("user-agent") ?? "") || probe;
     let admission: Admission;
     try {

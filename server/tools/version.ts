@@ -43,6 +43,7 @@ export const txVersion: ToolDef = {
   usage: '{"tx_id": "<signature>"}  or  {"tx": "<base64 transaction>"}',
   description: "Says whether a transaction is legacy, version 0 or version 1, and which readers (RPC settings and library versions) can read it.",
   inputs: { tx_id: z.string().min(64).max(100).optional(), tx: z.string().optional(), network: NETWORK },
+  needsOneOf: ["tx_id", "tx"],
   inputDocs: [
     { name: "tx_id", type: "string (base58)", required: false, lookingFor: "A landed transaction's signature. Give this or tx.", whereToGet: "Returned when it was sent, or from history. Never make one up." },
     { name: "tx", type: "string (base64)", required: false, lookingFor: "A raw transaction, signed or not. Give this or tx_id.", whereToGet: "The bytes a wallet or builder gave you, base64-encoded." },
