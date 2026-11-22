@@ -157,3 +157,10 @@ Biggest idea: a `trace`/`risk` tool for drained-wallet investigations: lookalike
 - trace and transactions (explain_tx labels) still use jupByMints, which hides a failed Jupiter lookup as "no data". Switch them to jupByMintsChecked and say "unknown" the same way tokens/wallet now do.
 - tests/helpers/replay.ts queues RPC answers by method, so two calls to the same method made at once (tokens' classic + Token-2022 lookups) can replay in a different order than recorded. Big wallets then miss their Jupiter URLs. Key recordings by method + params instead.
 - trace "how it happened" (2026-11-18): add a REAL victim fixture for each attack shape (approval to a wallet, owner change of a funded token account, Assign of the wallet). Scanning 21,412 recent mainnet txs found none; published write-ups (SlowMist Dec 2025 $3M owner-permission case, SolPhishHunter) give no tx ids. Ask Drain Check users / X replies for drained wallets, or a long Cloud Run scan job. Also: follow an open approval's delegate to show which transfers it made (needs the token account's own history).
+
+## 2026-11-22: what would make an agent pick Pulse from a directory (Tim chose 1, 2, 3, 4, 7; brainstorm, not measured)
+1. check_tx listing example: show a real drainer being blocked (tests/fixtures/preflight-drainer-approval.json) instead of a plain 0.01 SOL transfer that answers OK. Output example must be a real answer to that input.
+2. Proof in listings: one measured accuracy line per safety tool (e.g. token_safety warned on N of M tokens that later died), with source and date, linked to the method. Only numbers that are current and re-measured.
+3. One front door: a single "is this safe to sign / buy?" check listed first, for agents that won't read 19 tools. Design first (which checks it bundles, price, how it differs from check_tx).
+4. Say "first 25 calls a day free, no payment needed" in every listing; auto-paying clients never find the free calls.
+7. Be the default safety check inside agent toolkits (AgentKit, elizaOS, Solana Agent Kit). Note: the 2026-11 integration offers got 0 callers; build in, don't offer.

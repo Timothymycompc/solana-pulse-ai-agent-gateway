@@ -17,6 +17,7 @@ test("every paid tool has a listing within the directory limits", () => {
     assert.ok(description.length > 0 && description.length <= 500, `${name}: description is ${description.length} characters`);
     assert.ok(description.endsWith("."), `${name}: description is cut mid-sentence`);
     assert.deepEqual(sanitizeTags(tags), tags, `${name}: a tag would be dropped`);
+    assert.match(description, /25 free calls a day without paying, then \$0\.0\d USDC a call\./, `${name}: says the free calls and price`);
   }
 });
 

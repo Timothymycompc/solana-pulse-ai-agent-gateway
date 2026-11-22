@@ -7,7 +7,7 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { createPaymentWrapper } from "@x402/mcp";
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { z } from "zod";
-import { TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
+import { FREE_CALLS_TEXT, TOOL_PRICES, TOOL_ROUTE_PREFIX, type ToolPrice } from "./pricing";
 import { recordPayment } from "./db";
 import { TOOLS_BY_NAME } from "./tools";
 import { cdpFacilitator } from "./cdp";
@@ -74,7 +74,9 @@ export function discoveryFor(name: string) {
   const listing = BAZAAR_LISTING[name];
   if (!listing) throw new Error(`Paid tool ${name} needs a BAZAAR_LISTING entry (server/bazaar-listing.ts)`);
   return {
-    description: fitDescription(`${listing.lead} ${tool.useWhen} ${tool.description}`),
+    // Auto-paying x402 clients never find the free calls unless the listing says so (2026-11-22). Right after the
+    // lead, so it survives the 500-character cut; later sentences are dropped whole when too long.
+    description: fitDescription(`${listing.lead} ${FREE_CALLS_TEXT} without paying, then ${TOOL_PRICES[name]} USDC a call. ${tool.useWhen} ${tool.description}`),
     tags: listing.tags,
     inputSchema: z.toJSONSchema(z.object(tool.inputs), { io: "input" }) as Record<string, unknown>,
     example,
