@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import { checkTransactionIntent, explainTransaction, feeAdvice, preflightTransaction } from "../server/tools/transactions";
-import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, rugChanceReasons, sameTicker, tokenVerdict, valueVsLiquidityCheck, holderSpreadCheck } from "../server/tools/tokens";
+import { creatorCheck, insiderCheck, liquidityPullCheck, metadataCanChange, metadataCheck, permanentDelegateRule, resolveToken, safeSummary, rugChanceReasons, sameTicker, tokenVerdict, valueVsLiquidityCheck, holderSpreadCheck } from "../server/tools/tokens";
 import { clearJupCache } from "../server/tools/lib";
 import { jupiterSaysNotTradable } from "../server/tools/sellcheck";
 import { currentArgs, ToolError, TOOLS_BY_NAME, type ToolDef } from "../server/tools";
@@ -243,6 +243,17 @@ test("insiders, creator history and metadata follow their thresholds", () => {
   assert.match(onlyRug!.detail, /^Unknown/);
   assert.doesNotMatch(onlyRug!.detail, /locked/);
   assert.equal(metadataCheck(null, false, null, { updateAuthority: null })?.result, "pass", "on-chain metadata with no update authority is locked");
+  // Real case, StonkJTX (6zmDH3…qTxr7), 2026-11-26: about.metadata_can_change said false (RugCheck) while the metadata
+  // check warned that WLHv2…VVh can rename it (on-chain tokenMetadata). The top-line answer now follows the check.
+  const sjtxRug = { tokenMeta: { mutable: false } };
+  const sjtxOnChain = { updateAuthority: "WLHv2UAZm6z4KyaaELi5pjdbJh6RESMva1Rnn8pJVVh" };
+  assert.equal(metadataCheck(sjtxRug, false, null, sjtxOnChain)?.result, "warn");
+  assert.equal(metadataCanChange(sjtxRug, sjtxOnChain), true);
+  assert.equal(metadataCanChange(null, { updateAuthority: null }), false);
+  assert.equal(metadataCanChange({ tokenMeta: { mutable: false } }), false);
+  assert.equal(metadataCanChange({ tokenMeta: { mutable: true, updateAuthority: "x" } }), true);
+  assert.equal(metadataCanChange({ tokenMeta: { mutable: true, updateAuthority: "11111111111111111111111111111111" } }), null, "1111…1111 is unknown");
+  assert.equal(metadataCanChange(null), null);
 });
 
 test("token_safety says AVOID for a token with no market left, but only when Jupiter itself says it isn't tradable", async () => {

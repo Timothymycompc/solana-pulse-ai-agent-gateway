@@ -267,6 +267,16 @@ export function metadataCheck(r: RugReport | null, verified: boolean, stable: st
   return changeable(meta.updateAuthority, "rugcheck");
 }
 
+// about.metadata_can_change, from the same source as the metadata check so the two never disagree (2026-11-26: SJTX
+// said false up top from RugCheck while its on-chain tokenMetadata named an update authority). null = unknown.
+export function metadataCanChange(r: RugReport | null, onChain?: { updateAuthority?: string | null } | null): boolean | null {
+  if (onChain) return !!onChain.updateAuthority && onChain.updateAuthority !== NO_AUTHORITY;
+  const meta = r?.tokenMeta;
+  if (!meta || typeof meta.mutable !== "boolean") return null;
+  if (!meta.mutable) return false;
+  return meta.updateAuthority && meta.updateAuthority !== NO_AUTHORITY ? true : null;
+}
+
 export const tokenVerdict: ToolDef = {
   name: "token_safety",
   oldName: "token_verdict",
@@ -296,7 +306,7 @@ export const tokenVerdict: ToolDef = {
     { field: "about.usd_price / liquidity_usd / holders / top10_share_pct / first_traded", type: "number | string | null", is: "Market facts the checks use.", howWorkedOut: "Jupiter token data. top10_share_pct is the share the 10 biggest holders own. first_traded is when its first pool was made." },
     { field: "about.creator / creator_tokens_launched", type: "string | number | null", is: "The wallet that created the token, and how many tokens it has launched.", howWorkedOut: "Jupiter token data." },
     { field: "about.total_value_usd / value_to_liquidity", type: "number | null", is: "The token's total value (price x whole supply) and how many times its DEX liquidity that is. A high ratio on a new token means one big holder selling can empty the pools.", howWorkedOut: "Jupiter price and liquidity, on-chain supply. null when Jupiter has no price or liquidity." },
-    { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "RugCheck's report of the token's metadata." },
+    { field: "about.metadata_can_change", type: "boolean | null", is: "Whether the name and logo can still be changed.", howWorkedOut: "The mint's own on-chain tokenMetadata (Token-2022) when it has one, otherwise RugCheck's report; same source as the metadata check. null = unknown." },
     { field: "checks[].name", type: "string", is: "Which check: sell_test, liquidity_pull, creator_history, insiders, metadata, verified, mint_authority, freeze_authority, extension:<name>, liquidity, value_vs_liquidity, same_ticker, holder_concentration, holder_spread, creator_split, age, known_stablecoin, market_data or rugcheck_data.", howWorkedOut: "A fixed list. market_data or rugcheck_data (warn) shows up only when Jupiter or RugCheck can't be reached. The checks that need them are then skipped, not guessed." },
     { field: "checks[].result", type: '"pass" | "info" | "warn" | "fail"', is: "How the check came out. info means notable but expected, like a regulated stablecoin's freeze power.", howWorkedOut: "Sell test: fail if the token blocked a real holder's simulated sale, warn if there's no route to sell or it failed for another reason. Liquidity pull: fail when over 20% of the liquidity is unlocked and comes from 1 or 2 providers (warn for verified tokens), warn for 3 to 9 providers, info for established tokens (Jupiter-verified and trading 90+ days). Creator: fail if they have rugged before, warn if an unverified token's creator launched 20+ tokens or still holds over 20%. Insiders: warn over 10% of supply, fail over 30%; for established tokens only networks of up to 500 wallets count (bigger ones are usually exchanges or airdrops), for new tokens every network counts; unknown (info) when RugCheck's numbers add up to more than the whole supply. Value vs liquidity: warn when a token that isn't established is worth over 100x its DEX liquidity; info for established tokens. Creator split (new tokens only, read from the creator's token account): fail when 10+ wallets got the exact same amount from the creator within 60 seconds in the first 30 minutes after launch, warn when 10+ wallets got different amounts in that window, info (unknown) when the history can't be read back to launch. Holder spread: warn when a token that isn't established has its top 10 holders owning under 1% (supply likely split to hide who holds it). Same ticker (info, unverified tokens only): how many other tokens use the same ticker and how many first traded in the last 2 days. Metadata: warn if an unverified token's name and logo can change. Liquidity: fail under $10k, warn under $100k. Top 10 holders: warn over 50%, fail over 80% (established tokens: info up to 80%, warn over; info for known stablecoins and Jupiter-verified liquid staking tokens). Age: warn under 24 hours. Permanent delegate fails, except a known issuer's delegate (xStocks, Backpack Securities, Paxos), which warns and names the issuer. Frozen-by-default and non-transferable fail. Mint and freeze powers warn unless it's a known stablecoin or an established token (Jupiter-verified and trading 90+ days), where they are info and name who holds them." },
     { field: "checks[].detail", type: "string", is: "The fact behind the result, in plain words.", howWorkedOut: "Built from the data." },
@@ -400,7 +410,8 @@ export const tokenVerdict: ToolDef = {
       if (creator) add("creator_history", creator.result, creator.detail, rug.report ? "rugcheck" : "jupiter");
     }
     const tokenMetaExt = extensions.find((e) => e.extension === "tokenMetadata");
-    const meta = metadataCheck(rug.report ?? null, verified, stable, tokenMetaExt ? { updateAuthority: tokenMetaExt.state?.updateAuthority ?? null } : null);
+    const onChainMeta = tokenMetaExt ? { updateAuthority: tokenMetaExt.state?.updateAuthority ?? null } : null;
+    const meta = metadataCheck(rug.report ?? null, verified, stable, onChainMeta);
     if (meta) add("metadata", meta.result, meta.detail, meta.source);
     if (!stable && network === "mainnet-beta") {
       const sell = await sellCheck(ctx, conn, mintAddress, Number(info.decimals), typeof j?.usdPrice === "number" ? j.usdPrice : null);
@@ -428,7 +439,7 @@ export const tokenVerdict: ToolDef = {
         extensions: extensions.map((e) => e.extension), usd_price: j?.usdPrice ?? null, liquidity_usd: typeof j?.liquidity === "number" ? Math.round(j.liquidity) : null,
         holders: j?.holderCount ?? null, top10_share_pct: typeof top === "number" ? Math.round(top * 10) / 10 : null, first_traded: firstPoolAt,
         creator: j?.dev ?? rug.report?.creator ?? null, creator_tokens_launched: typeof j?.audit?.devMints === "number" ? j.audit.devMints : null,
-        metadata_can_change: typeof rug.report?.tokenMeta?.mutable === "boolean" ? rug.report.tokenMeta.mutable : null,
+        metadata_can_change: metadataCanChange(rug.report ?? null, onChainMeta),
         total_value_usd: thin ? Math.round(thin.value) : null, value_to_liquidity: thin ? Math.round(thin.ratio * 10) / 10 : null,
       },
       checks,
